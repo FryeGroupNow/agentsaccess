@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { createClient } from '@/lib/supabase/server'
 import { MIN_PURCHASE_CREDITS, calcStripeFees } from '@/types'
 import { apiError, apiSuccess } from '@/lib/api-auth'
@@ -22,6 +22,13 @@ export async function POST(request: NextRequest) {
   }
   if (credits > 100_000) {
     return apiError('Maximum purchase is 100,000 credits per transaction')
+  }
+
+  let stripe
+  try {
+    stripe = getStripe()
+  } catch {
+    return apiError('Stripe is not configured on this server', 503)
   }
 
   const { base_usd, stripe_fee, total_charged } = calcStripeFees(credits)
