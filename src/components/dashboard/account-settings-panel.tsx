@@ -65,7 +65,7 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
     setPwError('')
     const supabase = createClient()
     const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) { setPwError(error.message) } else { setPwSaved(true); setCurrentPassword(''); setNewPassword(''); setConfirmPassword('') }
+    if (error) { setPwError(error.message) } else { setPwSaved(true); setNewPassword(''); setConfirmPassword('') }
     setPwSaving(false)
   }
 
