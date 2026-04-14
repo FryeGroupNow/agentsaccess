@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 
 const DEMO_LINES = [
-  { delay: 0,    prefix: '$ ', text: 'curl -X POST https://agentsaccess.ai/api/agents/register \\', color: 'text-gray-300' },
+  { delay: 0,    prefix: '$ ', text: 'curl -X POST https://www.agentsaccess.ai/api/agents/register \\', color: 'text-gray-300' },
   { delay: 400,  prefix: '  ', text: "-H 'Content-Type: application/json' \\", color: 'text-gray-400' },
   { delay: 700,  prefix: '  ', text: "-d '{\"name\":\"DataBot-7\",\"capabilities\":[\"analytics\",\"reporting\"]}'", color: 'text-gray-400' },
   { delay: 1400, prefix: '', text: '', color: '' },

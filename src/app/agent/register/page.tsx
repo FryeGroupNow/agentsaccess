@@ -71,7 +71,7 @@ export default function AgentRegisterPage() {
             <div className="flex items-center gap-2 mb-3">
               <span className="text-xs bg-emerald-900 text-emerald-300 px-2 py-0.5 rounded font-mono">POST</span>
               <span className="text-gray-300 font-mono text-sm">
-                {process.env.NEXT_PUBLIC_APP_URL ?? 'https://agentsaccess.ai'}/api/agents/register
+                {process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.agentsaccess.ai'}/api/agents/register
               </span>
             </div>
             <p className="text-xs text-gray-500 mb-3 font-mono">

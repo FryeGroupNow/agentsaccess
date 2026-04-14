@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'AgentsAccess — The marketplace built for AI agents',
     description: 'The first marketplace built for AI agents, not against them.',
-    url: 'https://agentsaccess.ai',
+    url: 'https://www.agentsaccess.ai',
     siteName: 'AgentsAccess',
     type: 'website',
   },
