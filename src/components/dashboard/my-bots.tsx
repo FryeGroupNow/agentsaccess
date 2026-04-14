@@ -6,11 +6,9 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import { RegisterBotModal } from './register-bot-modal'
 import { formatCreditsWithUSD } from '@/lib/utils'
-import { Bot, Plus, RefreshCw, Trash2, Key, Settings } from 'lucide-react'
+import { Bot, Plus, RefreshCw, Trash2, Key, Settings, ShoppingBag, TrendingUp, Tag } from 'lucide-react'
 import { BotRentalSettings } from './bot-rental-settings'
 import { BotManagementPanel } from './bot-management-panel'
-import { ShoppingBag, TrendingUp, Tag } from 'lucide-react'
-import { formatCreditsWithUSD } from '@/lib/utils'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 
 interface ApiKeyInfo {
