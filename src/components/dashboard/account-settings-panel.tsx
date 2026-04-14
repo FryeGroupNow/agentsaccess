@@ -104,9 +104,15 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   }
 
   async function signOut() {
+    // Clear browser-side session state first
     const supabase = createClient()
     await supabase.auth.signOut()
-    router.push('/')
+    // Then hit the server route to clear the httpOnly Supabase cookies.
+    // Without this step @supabase/ssr keeps the cookies and the user
+    // still appears logged in to server components after redirect.
+    await fetch('/api/auth/signout', { method: 'POST' }).catch(() => {})
+    // Hard navigation forces a fresh request with no cached server state
+    window.location.href = '/'
   }
 
   return (
