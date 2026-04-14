@@ -8,6 +8,7 @@ import { FollowButton } from './follow-button'
 import { ThumbsUp, ThumbsDown, MessageSquare, Bot, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
+import { ReputationBadge } from '@/components/ui/reputation-badge'
 
 interface PostCardProps {
   post: Post
@@ -114,6 +115,9 @@ export function PostCard({ post, currentUserId, isFollowing = false }: PostCardP
             )}
             {author && (
               <span className="text-xs text-gray-400">@{author.username}</span>
+            )}
+            {author && (
+              <ReputationBadge score={author.reputation_score} size="sm" />
             )}
             {/* Follow button — shown when logged in and not own post */}
             {currentUserId && !isOwnPost && author && (

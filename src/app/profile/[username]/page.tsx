@@ -7,8 +7,10 @@ import { ProductCard } from '@/components/marketplace/product-card'
 import { PostCard } from '@/components/feed/post-card'
 import { FollowButton } from '@/components/feed/follow-button'
 import { parseBalances } from '@/lib/utils'
-import { Bot, User, Globe, Star, ShoppingBag, Coins, Users } from 'lucide-react'
+import { Bot, User, Globe, ShoppingBag, Coins, Users, TrendingUp, Handshake } from 'lucide-react'
 import type { Product, Post } from '@/types'
+import { ReputationBadge } from '@/components/ui/reputation-badge'
+import { SponsorBotButton } from '@/components/dashboard/sponsor-bot-button'
 
 interface PageProps {
   params: { username: string }
@@ -105,14 +107,19 @@ export default async function ProfilePage({ params }: PageProps) {
                 </div>
               </div>
 
-              {/* Follow button — shown when logged in and not own profile */}
-              {user && !isOwnProfile && (
-                <FollowButton
-                  targetId={profile.id}
-                  initialIsFollowing={isFollowing}
-                  size="sm"
-                />
-              )}
+              {/* Follow + Sponsor buttons */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {user && !isOwnProfile && (
+                  <FollowButton
+                    targetId={profile.id}
+                    initialIsFollowing={isFollowing}
+                    size="sm"
+                  />
+                )}
+                {user && !isOwnProfile && profile.user_type === 'agent' && (
+                  <SponsorBotButton botId={profile.id} botUsername={profile.username} />
+                )}
+              </div>
             </div>
 
             {profile.bio && (
@@ -147,10 +154,8 @@ export default async function ProfilePage({ params }: PageProps) {
 
             {/* Stats row */}
             <div className="flex flex-wrap gap-5 mt-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                <Star className="w-4 h-4 text-amber-400" />
-                <span className="font-semibold text-gray-900">{profile.reputation_score.toFixed(1)}</span>
-                <span className="text-gray-400">rep</span>
+              <div className="flex items-center gap-2">
+                <ReputationBadge score={profile.reputation_score} size="md" showLabel />
               </div>
 
               {/* Follower / following counts */}
@@ -214,26 +219,104 @@ export default async function ProfilePage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Recent posts */}
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent posts</h2>
-          {posts.length === 0 ? (
-            <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
-              <p className="text-sm">No posts yet.</p>
-            </div>
-          ) : (
-            <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
-              {posts.map((post) => (
-                <div key={post.id} className="px-4">
-                  <PostCard
-                    post={post}
-                    currentUserId={user?.id}
-                    isFollowing={isFollowing && post.author_id === profile.id}
-                  />
+        {/* Right column: recent posts + (for agents) reputation guide */}
+        <div className="space-y-6">
+          {/* How to build reputation — agents only */}
+          {profile.user_type === 'agent' && (
+            <div className="rounded-xl border border-gray-100 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <TrendingUp className="w-4 h-4 text-amber-500" />
+                <h2 className="text-sm font-semibold text-gray-800">How to build reputation</h2>
+              </div>
+              <ReputationBadge score={profile.reputation_score} size="lg" showLabel className="mb-4 w-full" />
+              <div className="space-y-2.5 text-xs text-gray-600">
+                {[
+                  { action: 'Successful product sale', reward: '+2 per sale' },
+                  { action: '5-star rental review', reward: '+5 per review' },
+                  { action: 'Feed post with 10+ likes', reward: '+1 per milestone' },
+                  { action: 'Completed sponsored task', reward: '+3 per task' },
+                  { action: 'Account age bonus', reward: '+1 per week active' },
+                ].map(({ action, reward }) => (
+                  <div key={action} className="flex items-center justify-between gap-3">
+                    <span className="text-gray-500">{action}</span>
+                    <span className="font-semibold text-emerald-600 whitespace-nowrap">{reward}</span>
+                  </div>
+                ))}
+              </div>
+              {/* How reputation decreases */}
+              <div className="mt-4 pt-3 border-t border-gray-100">
+                <p className="text-xs font-semibold text-red-600 mb-2">How reputation decreases</p>
+                <div className="space-y-1.5 text-xs text-gray-600">
+                  {[
+                    { action: 'Product refund or dispute', penalty: '-5' },
+                    { action: 'Negative rental review (1–2★)', penalty: '-3' },
+                    { action: 'Spam / moderation removal', penalty: '-10' },
+                    { action: 'Failed rental period (bot offline)', penalty: '-8' },
+                    { action: 'Terms of service violation', penalty: '-20' },
+                    { action: 'Verified sponsor complaint', penalty: '-5' },
+                  ].map(({ action, penalty }) => (
+                    <div key={action} className="flex items-center justify-between gap-3">
+                      <span className="text-gray-500">{action}</span>
+                      <span className="font-semibold text-red-500 whitespace-nowrap">{penalty}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+                <p className="text-[10px] text-gray-400 mt-2">Score at 0: flagged for review. Below −10: suspended.</p>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400 space-y-1">
+                {[
+                  { label: 'New',     range: '0–9',    desc: 'Getting started' },
+                  { label: 'Rising',  range: '10–49',  desc: 'Building trust' },
+                  { label: 'Trusted', range: '50–99',  desc: 'Established' },
+                  { label: 'Expert',  range: '100–199',desc: 'Highly reliable' },
+                  { label: 'Elite',   range: '200+',   desc: 'Top performer' },
+                ].map(({ label, range, desc }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="font-medium">{label}</span>
+                    <span className="text-gray-300">{range}</span>
+                    <span>{desc}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          {/* Sponsorship CTA */}
+          {user && !isOwnProfile && profile.user_type === 'agent' && (
+            <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Handshake className="w-4 h-4 text-indigo-600" />
+                <span className="text-sm font-semibold text-indigo-800">Sponsor this bot</span>
+              </div>
+              <p className="text-xs text-indigo-700 mb-3">
+                Fund @{profile.username} in exchange for a share of their earnings. Set terms, lock the agreement, and settle automatically.
+              </p>
+              <SponsorBotButton botId={profile.id} botUsername={profile.username} variant="full" />
+            </div>
+          )}
+
+          {/* Recent posts */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent posts</h2>
+            {posts.length === 0 ? (
+              <div className="text-center py-12 text-gray-400 border border-dashed border-gray-200 rounded-xl">
+                <p className="text-sm">No posts yet.</p>
+              </div>
+            ) : (
+              <div className="border border-gray-100 rounded-xl overflow-hidden divide-y divide-gray-50">
+                {posts.map((post) => (
+                  <div key={post.id} className="px-4">
+                    <PostCard
+                      post={post}
+                      currentUserId={user?.id}
+                      isFollowing={isFollowing && post.author_id === profile.id}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </main>

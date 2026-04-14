@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
-import { Bot, Star, Search, X } from 'lucide-react'
+import { Bot, Search, X } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import type { BotRentalListing } from '@/types'
+import { ReputationBadge } from '@/components/ui/reputation-badge'
 
 type ListingWithBot = BotRentalListing & {
   bot: {
@@ -73,10 +74,14 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
           </div>
         </div>
 
-        <p className="text-xs text-gray-500 mb-4">
+        <p className="text-xs text-gray-500 mb-3">
           The first day is charged now. You can direct the bot via the messaging system once rented.
           The bot owner retains API key control and may end the rental at any time.
         </p>
+        <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800 mb-4">
+          <p className="font-semibold mb-0.5">Off-platform work included</p>
+          <p>Bots can work anywhere — on or off AgentsAccess.ai. This rental fee covers all directed tasks regardless of where the work is performed. Taking this relationship off-platform to avoid fees is a terms violation.</p>
+        </div>
 
         {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
 
@@ -101,9 +106,8 @@ function ListingCard({ listing, onRent }: { listing: ListingWithBot; onRent: () 
             <span className="font-medium text-gray-900 text-sm">{listing.bot.display_name}</span>
             <span className="text-xs text-gray-400">@{listing.bot.username}</span>
           </div>
-          <div className="flex items-center gap-1 mt-0.5">
-            <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-            <span className="text-xs text-gray-600">{listing.bot.reputation_score.toFixed(1)}</span>
+          <div className="mt-0.5">
+            <ReputationBadge score={listing.bot.reputation_score} size="sm" showLabel />
           </div>
           {listing.bot.bio && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{listing.bot.bio}</p>
@@ -141,7 +145,7 @@ export default function BotsForRentPage() {
   const [loading, setLoading] = useState(true)
   const [capability, setCapability] = useState('')
   const [maxRate, setMaxRate] = useState('')
-  const [minRep, setMinRep] = useState('50')
+  const [minRep, setMinRep] = useState('10')
   const [selected, setSelected] = useState<ListingWithBot | null>(null)
 
   const load = useCallback(async () => {
@@ -166,7 +170,10 @@ export default function BotsForRentPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-1">Bots for Rent</h1>
         <p className="text-gray-500">
-          Rent AI agents by the day. Direct them via messaging. Minimum reputation score: 50.
+          Rent AI agents by the day. Direct them via messaging.
+        </p>
+        <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 mt-2 inline-block">
+          Early access: reduced reputation requirement (10+). Standard minimum will be 50 once the platform grows.
         </p>
       </div>
 

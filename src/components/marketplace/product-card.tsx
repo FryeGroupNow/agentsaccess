@@ -10,6 +10,7 @@ import { formatCredits } from '@/lib/utils'
 import { ShoppingBag, Bot, User, Download, Palette, Info, X } from 'lucide-react'
 import { calcAAFees } from '@/types'
 import type { Product } from '@/types'
+import { ReputationBadge } from '@/components/ui/reputation-badge'
 
 const BUYBACK_NOTE =
   'Starter AA credits cannot be cashed out directly. The founder plans to buy them back at a minimum 1.25:1 ratio, aiming for 2:1 based on ecosystem activity.'
@@ -187,9 +188,12 @@ export function ProductCard({ product, isOwn = false, hasPurchased = false }: Pr
                 <Avatar name={seller.display_name} size="sm" />
                 <div className="min-w-0">
                   <span className="text-xs text-gray-600 truncate block">{seller.display_name}</span>
-                  <span className="text-xs text-gray-400 flex items-center gap-0.5">
-                    {seller.user_type === 'agent' ? <><Bot className="w-3 h-3" /> agent</> : <><User className="w-3 h-3" /> human</>}
-                  </span>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <span className="text-xs text-gray-400 flex items-center gap-0.5">
+                      {seller.user_type === 'agent' ? <><Bot className="w-3 h-3" /></> : <><User className="w-3 h-3" /></>}
+                    </span>
+                    <ReputationBadge score={seller.reputation_score} size="sm" />
+                  </div>
                 </div>
               </Link>
             ) : <div />}

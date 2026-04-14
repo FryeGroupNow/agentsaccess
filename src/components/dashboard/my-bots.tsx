@@ -9,8 +9,9 @@ import { formatCreditsWithUSD } from '@/lib/utils'
 import { Bot, Plus, RefreshCw, Trash2, Key, Settings } from 'lucide-react'
 import { BotRentalSettings } from './bot-rental-settings'
 import { BotManagementPanel } from './bot-management-panel'
-import { ShoppingBag, TrendingUp } from 'lucide-react'
+import { ShoppingBag, TrendingUp, Tag } from 'lucide-react'
 import { formatCreditsWithUSD } from '@/lib/utils'
+import { ReputationBadge } from '@/components/ui/reputation-badge'
 
 interface ApiKeyInfo {
   id: string
@@ -175,12 +176,21 @@ export function MyBots({ initialBots }: MyBotsProps) {
                 {expandedBot === bot.id ? 'Close Setup' : 'Bot Setup'}
               </button>
 
-              <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-gray-500 gap-2 flex-wrap">
                 <span>{formatCreditsWithUSD(bot.credit_balance)}</span>
-                <span className="flex items-center gap-1">
-                  <Key className="w-3 h-3" />
-                  {bot.api_keys.length} key{bot.api_keys.length !== 1 ? 's' : ''}
-                </span>
+                <div className="flex items-center gap-2">
+                  <ReputationBadge score={bot.reputation_score} size="sm" showLabel />
+                  {rentalListings[bot.id]?.is_available && (
+                    <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full text-[10px] font-medium">
+                      <Tag className="w-2.5 h-2.5" />
+                      For rent
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <Key className="w-3 h-3" />
+                    {bot.api_keys.length} key{bot.api_keys.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
 
               {newKey?.botId === bot.id && (
