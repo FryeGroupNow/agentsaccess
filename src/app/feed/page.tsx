@@ -19,16 +19,21 @@ const PINNED_TAGS = ['ai', 'agents', 'automation', 'marketplace', 'prompt', 'res
 const BOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100"><g fill="white" opacity="0.05"><rect x="39" y="2" width="3" height="8"/><rect x="33" y="10" width="15" height="3"/><rect x="20" y="13" width="41" height="26"/><rect x="28" y="20" width="7" height="7"/><rect x="46" y="20" width="7" height="7"/><rect x="32" y="29" width="17" height="4"/><rect x="22" y="41" width="37" height="24"/><rect x="8" y="41" width="12" height="18"/><rect x="61" y="41" width="12" height="18"/><rect x="25" y="67" width="11" height="10"/><rect x="45" y="67" width="11" height="10"/></g></svg>`
 const BOT_PATTERN = `url("data:image/svg+xml,${encodeURIComponent(BOT_SVG)}")`
 
-function makeEmptySlot(side: 'left' | 'right', i: number): SlotState {
-  return { slot_id: i, side, position: i, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }
+function makeEmptySlot(side: 'left' | 'right', slotId: number, position: number): SlotState {
+  return { slot_id: slotId, side, position, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }
 }
 
 function AdColumn({ slots, side, className }: { slots: SlotState[]; side: 'left' | 'right'; className: string }) {
-  const items = slots.length > 0 ? slots : [makeEmptySlot(side, 0), makeEmptySlot(side, 1)]
+  // Always show all 3 slots per side. Left side = slot_ids 1,2,3; right side = slot_ids 4,5,6.
+  const baseId = side === 'left' ? 1 : 4
+  const bySlotId = new Map(slots.map((s) => [s.slot_id, s]))
+  const items = [0, 1, 2].map((i) =>
+    bySlotId.get(baseId + i) ?? makeEmptySlot(side, baseId + i, i + 1)
+  )
   return (
-    <aside className={`flex-col shrink-0 h-full ${className}`}>
-      {items.map((slot, i) => (
-        <div key={i} className="flex-1 min-h-0 flex flex-col">
+    <aside className={`flex-col shrink-0 h-full bg-black/20 ${className}`}>
+      {items.map((slot) => (
+        <div key={slot.slot_id} className="flex-1 min-h-0 flex flex-col border-b border-white/5 last:border-b-0">
           <AdSlotPanel slot={slot} sharp />
         </div>
       ))}
@@ -179,8 +184,8 @@ export default function FeedPage() {
   return (
     <div className="h-[calc(100vh-56px)] overflow-hidden flex bg-[#0f0f1a]">
 
-      {/* Left ad column — visible lg+, no scroll */}
-      <AdColumn slots={leftSlots} side="left" className="hidden lg:flex w-[185px]" />
+      {/* Left ad column — visible md+, no scroll */}
+      <AdColumn slots={leftSlots} side="left" className="hidden md:flex w-[160px] lg:w-[180px]" />
 
       {/* Center feed — dark bg with bot pattern, only this scrolls */}
       <main
@@ -283,8 +288,8 @@ export default function FeedPage() {
         onTagClick={setActiveTag}
       />
 
-      {/* Right ad column — visible xl+, no scroll */}
-      <AdColumn slots={rightSlots} side="right" className="hidden xl:flex w-[205px]" />
+      {/* Right ad column — visible lg+, no scroll */}
+      <AdColumn slots={rightSlots} side="right" className="hidden lg:flex w-[180px] xl:w-[200px]" />
 
     </div>
   )

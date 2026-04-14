@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { Megaphone, ExternalLink } from 'lucide-react'
+import { Megaphone, ExternalLink, ShoppingBag } from 'lucide-react'
 import type { SlotState } from '@/types'
 
 interface AdSlotPanelProps {
@@ -37,63 +37,83 @@ export function AdSlotPanel({ slot, sharp }: AdSlotPanelProps) {
   const topBidLabel = slot.next_period_top_bid > 0 ? `${slot.next_period_top_bid} AA` : '1 AA'
   const promoteHref = `/feed/promote?slot=${slot.slot_id}`
 
+  // ─── Empty slot: call-to-bid ───────────────────────────────────────────────
   if (!placement) {
     return (
       <Link
         href={promoteHref}
-        className={`flex flex-col items-center justify-center gap-3 ${r} border-2 border-dashed border-indigo-200 bg-gradient-to-b from-indigo-50/80 to-white hover:from-indigo-100 hover:border-indigo-400 hover:shadow-lg transition-all cursor-pointer group w-full h-full p-5`}
+        className={`flex flex-col items-center justify-center gap-2 ${r} border-2 border-dashed border-indigo-300/40 bg-gradient-to-b from-indigo-900/40 to-indigo-950/60 hover:from-indigo-800/60 hover:border-indigo-300 transition-all cursor-pointer group w-full h-full p-4 text-center`}
       >
-        <div className="w-14 h-14 rounded-2xl bg-indigo-100 group-hover:bg-indigo-200 flex items-center justify-center transition-colors shadow-sm">
-          <Megaphone className="w-7 h-7 text-indigo-500 group-hover:text-indigo-700 transition-colors" />
+        <div className="w-10 h-10 rounded-xl bg-indigo-500/20 group-hover:bg-indigo-500/40 flex items-center justify-center transition-colors">
+          <Megaphone className="w-5 h-5 text-indigo-300" />
         </div>
-        <div className="text-center">
-          <p className="text-sm font-bold text-indigo-700 group-hover:text-indigo-900 leading-tight">
-            Advertise here
-          </p>
-          <p className="text-xs text-indigo-400 group-hover:text-indigo-600 mt-1 leading-relaxed max-w-[180px]">
-            Reach live feed readers. Bid to win this slot.
-          </p>
-        </div>
-        <span className="text-xs font-bold text-white bg-indigo-500 group-hover:bg-indigo-700 px-4 py-1.5 rounded-full transition-colors shadow-sm">
-          from {topBidLabel}
-        </span>
-        <span className="text-[10px] text-indigo-400 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <ExternalLink className="w-3 h-3" />
+        <p className="text-xs font-bold text-indigo-200 leading-tight px-1">
+          Promote your product here
+        </p>
+        <p className="text-[10px] text-indigo-400 leading-tight">
+          Bid starts at {topBidLabel}
+        </p>
+        <span className="text-[10px] font-semibold text-white bg-indigo-500 group-hover:bg-indigo-400 px-3 py-1 rounded-full transition-colors flex items-center gap-1">
           Start bidding
+          <ExternalLink className="w-2.5 h-2.5" />
         </span>
       </Link>
     )
   }
 
+  // ─── Winning ad ────────────────────────────────────────────────────────────
   const product = placement.product
   const href = `/marketplace/${product.id}`
+  const cover = product.cover_image_url
 
   return (
     <Link
       href={href}
       onClick={handleClick}
-      className={`flex flex-col ${r} border-2 border-indigo-100 bg-white hover:shadow-xl hover:border-indigo-300 ${sharp ? '' : 'hover:-translate-y-1'} transition-all duration-200 overflow-hidden group w-full h-full`}
+      className={`group relative flex flex-col ${r} border border-indigo-500/30 bg-gray-900 overflow-hidden w-full h-full hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-200`}
     >
-      {/* Header bar */}
-      <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-2.5 flex items-center justify-between shrink-0">
-        <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">
+      {/* Sponsored ribbon */}
+      <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent px-2.5 py-1.5 flex items-center justify-between pointer-events-none">
+        <span className="text-[9px] font-bold uppercase tracking-widest text-white/90">
           Sponsored
         </span>
-        <ExternalLink className="w-3.5 h-3.5 text-indigo-200 group-hover:text-white transition-colors" />
+        <ExternalLink className="w-3 h-3 text-white/80 group-hover:text-white" />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col px-4 pb-4 pt-3 gap-2 min-h-0 justify-between">
-        <p className="text-sm font-bold text-gray-900 leading-snug line-clamp-4 group-hover:text-indigo-700 transition-colors">
+      {/* Cover image or fallback hero area */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-indigo-800 via-violet-800 to-pink-700 shrink-0">
+        {cover ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={cover}
+            alt={product.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ShoppingBag className="w-10 h-10 text-white/30" />
+          </div>
+        )}
+      </div>
+
+      {/* Meta */}
+      <div className="flex-1 flex flex-col gap-1 p-3 min-h-0 text-white">
+        <p className="text-xs font-bold leading-snug line-clamp-2 group-hover:text-indigo-300 transition-colors">
           {product.title}
         </p>
-        {product.description && (
-          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{product.description}</p>
+        {product.tagline && (
+          <p className="text-[10px] text-gray-400 line-clamp-2 leading-tight">
+            {product.tagline}
+          </p>
         )}
-        <div className="mt-auto pt-2 border-t border-gray-100">
-          <span className="text-base font-black text-indigo-600">{product.price_credits} AA</span>
+        <div className="mt-auto pt-2 border-t border-white/10 flex items-center justify-between">
+          <span className="text-sm font-black text-indigo-300">
+            {product.price_credits} AA
+          </span>
           {product.seller && (
-            <p className="text-[10px] text-gray-400 mt-0.5">by @{product.seller.username}</p>
+            <span className="text-[9px] text-gray-500 truncate ml-2">
+              @{product.seller.username}
+            </span>
           )}
         </div>
       </div>

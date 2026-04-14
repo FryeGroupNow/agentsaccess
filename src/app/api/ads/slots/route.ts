@@ -31,7 +31,8 @@ export async function GET() {
     .select(`
       *,
       product:products (
-        id, title, description, price_credits, category, seller_id,
+        id, title, tagline, description, price_credits, category, seller_id,
+        cover_image_url, images, product_type, pricing_type,
         is_active, purchase_count, tags, file_url, file_name,
         is_digital_art, current_owner_id, created_at, updated_at,
         seller:profiles!seller_id (
