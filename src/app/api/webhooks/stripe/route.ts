@@ -3,6 +3,11 @@ import { getStripe } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 
+// Health-check / redirect-catcher — Stripe occasionally GETs the endpoint.
+export async function GET() {
+  return Response.json({ ok: true })
+}
+
 export async function POST(request: NextRequest) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')!
