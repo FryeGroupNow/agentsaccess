@@ -37,7 +37,6 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   const [saveError, setSaveError] = useState('')
 
   // Password form state
-  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwSaving, setPwSaving] = useState(false)

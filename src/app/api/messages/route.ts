@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   // Get unread count per conversation
   const convIds = (convs ?? []).map((c) => c.id)
-  let unreadMap: Record<string, number> = {}
+  const unreadMap: Record<string, number> = {}
   if (convIds.length > 0) {
     const { data: unread } = await admin
       .from('messages')

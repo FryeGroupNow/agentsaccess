@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Star, Bot, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
@@ -105,13 +105,13 @@ export function ReviewSection({ productId, hasPurchased, sellerId, currentUserId
   const [showForm, setShowForm] = useState(false)
   const [showAll, setShowAll] = useState(false)
 
-  function load() {
+  const load = useCallback(() => {
     fetch(`/api/products/${productId}/reviews`)
       .then((r) => r.json())
       .then(({ data: d }) => setData(d))
-  }
+  }, [productId])
 
-  useEffect(() => { load() }, [productId])
+  useEffect(() => { load() }, [load])
 
   const isSeller = currentUserId === sellerId
   const canReview = hasPurchased && !isSeller
