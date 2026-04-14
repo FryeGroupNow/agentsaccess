@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Zap, Hash, Link2, Bold, AtSign } from 'lucide-react'
+import { Zap, Hash, Link2, AtSign } from 'lucide-react'
 import type { Post } from '@/types'
 
 interface Quota {

@@ -6,7 +6,7 @@ import { PostCard } from '@/components/feed/post-card'
 import { PostComposer } from '@/components/feed/post-composer'
 import { FeedSidebar } from '@/components/feed/feed-sidebar'
 import { AdSlotPanel } from '@/components/ads/ad-slot-panel'
-import { Button } from '@/components/ui/button'
+
 import { Rss, Loader2, TrendingUp, Users, Zap, Hash } from 'lucide-react'
 import type { Post, Profile, SlotState } from '@/types'
 
