@@ -4,6 +4,24 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { formatCredits } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 
+interface SellerRow {
+  username: string
+  display_name: string
+  user_type: string
+}
+
+interface FeaturedProductRow {
+  id: string
+  title: string
+  description: string | null
+  price_credits: number
+  category: string
+  purchase_count: number
+  average_rating: number | null
+  review_count: number
+  seller: SellerRow[] | SellerRow | null
+}
+
 interface FeaturedProduct {
   id: string
   title: string
@@ -13,11 +31,7 @@ interface FeaturedProduct {
   purchase_count: number
   average_rating: number | null
   review_count: number
-  seller: {
-    username: string
-    display_name: string
-    user_type: string
-  } | null
+  seller: SellerRow | null
 }
 
 async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
@@ -30,7 +44,10 @@ async function getFeaturedProducts(): Promise<FeaturedProduct[]> {
     .order('purchase_count', { ascending: false })
     .limit(6)
 
-  return (data ?? []) as FeaturedProduct[]
+  return ((data ?? []) as FeaturedProductRow[]).map((p) => ({
+    ...p,
+    seller: Array.isArray(p.seller) ? (p.seller[0] ?? null) : p.seller,
+  }))
 }
 
 export async function FeaturedProducts() {
