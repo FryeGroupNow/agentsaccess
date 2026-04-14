@@ -3,16 +3,20 @@ import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/marketplace/product-card'
 import { CategoryFilter } from '@/components/marketplace/category-filter'
 import { CreateListingButton } from '@/components/marketplace/create-listing-button'
-import { ShoppingBag, Bot } from 'lucide-react'
+import { MarketplaceTypeTabs } from '@/components/marketplace/marketplace-type-tabs'
+import { MarketplaceSortDropdown } from '@/components/marketplace/marketplace-sort-dropdown'
+import { ShoppingBag, Bot, Star, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import type { Product } from '@/types'
 
 interface PageProps {
-  searchParams: { category?: string; page?: string }
+  searchParams: { category?: string; type?: string; sort?: string }
 }
 
-async function ProductGrid({ category, userId, purchasedIds }: {
+async function ProductGrid({ category, type, sort, userId, purchasedIds }: {
   category?: string
+  type?: string
+  sort?: string
   userId?: string
   purchasedIds: Set<string>
 }) {
@@ -23,10 +27,25 @@ async function ProductGrid({ category, userId, purchasedIds }: {
     .from('products')
     .select('*, seller:profiles!seller_id(id, username, display_name, reputation_score, user_type, avatar_url), current_owner:profiles!current_owner_id(id, username, display_name)')
     .eq('is_active', true)
-    .order('purchase_count', { ascending: false })
     .limit(PAGE_SIZE)
 
   if (category) query = query.eq('category', category)
+  if (type === 'digital_art') {
+    query = query.eq('product_type', 'digital_art')
+  } else if (type === 'services') {
+    query = query.eq('product_type', 'service')
+  } else if (type === 'products') {
+    query = query.neq('product_type', 'service').neq('product_type', 'digital_art')
+  }
+
+  switch (sort) {
+    case 'newest':     query = query.order('created_at',     { ascending: false }); break
+    case 'rating':     query = query.order('average_rating', { ascending: false, nullsFirst: false }); break
+    case 'price_asc':  query = query.order('price_credits',  { ascending: true  }); break
+    case 'price_desc': query = query.order('price_credits',  { ascending: false }); break
+    case 'popular':
+    default:           query = query.order('purchase_count', { ascending: false }); break
+  }
 
   const { data: products, error } = await query
 
@@ -35,13 +54,13 @@ async function ProductGrid({ category, userId, purchasedIds }: {
     return (
       <div className="text-center py-20 text-gray-400">
         <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-40" />
-        <p>No products yet in this category.</p>
+        <p>No listings in this category yet.</p>
       </div>
     )
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
       {products.map((product) => (
         <ProductCard
           key={product.id}
@@ -54,11 +73,37 @@ async function ProductGrid({ category, userId, purchasedIds }: {
   )
 }
 
+async function FeaturedRow() {
+  const supabase = createClient()
+  const { data: featured } = await supabase
+    .from('products')
+    .select('*, seller:profiles!seller_id(id, username, display_name, reputation_score, user_type, avatar_url)')
+    .eq('is_active', true)
+    .eq('is_featured', true)
+    .order('purchase_count', { ascending: false })
+    .limit(4)
+
+  if (!featured || featured.length === 0) return null
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center gap-2 mb-4">
+        <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+        <h2 className="text-lg font-bold text-gray-900">Featured</h2>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {featured.map((product) => (
+          <ProductCard key={product.id} product={product as Product} />
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export default async function MarketplacePage({ searchParams }: PageProps) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  // Get user's purchases to mark already-bought items
   let purchasedIds = new Set<string>()
   if (user) {
     const { data: purchases } = await supabase
@@ -69,14 +114,19 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   }
 
   const category = searchParams.category
+  const type = searchParams.type ?? 'all'
+  const sort = searchParams.sort ?? 'popular'
 
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
       <div className="mb-8 flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Marketplace</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+            Marketplace
+            <Sparkles className="w-5 h-5 text-indigo-400" />
+          </h1>
           <p className="text-gray-500">
-            Digital products and services from AI agents and humans, priced in AA Credits.
+            Premium digital products, services, and art from AI agents and humans — priced in AA Credits.
           </p>
         </div>
         {user && <CreateListingButton />}
@@ -97,6 +147,21 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         <span className="text-indigo-400 group-hover:text-indigo-600 text-sm">Browse →</span>
       </Link>
 
+      {/* Featured row */}
+      <Suspense>
+        <FeaturedRow />
+      </Suspense>
+
+      {/* Type tabs + sort */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <Suspense>
+          <MarketplaceTypeTabs current={type} />
+        </Suspense>
+        <Suspense>
+          <MarketplaceSortDropdown current={sort} />
+        </Suspense>
+      </div>
+
       <div className="mb-6">
         <Suspense>
           <CategoryFilter />
@@ -105,15 +170,17 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
       <Suspense
         fallback={
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-52 rounded-xl bg-gray-100 animate-pulse" />
+              <div key={i} className="h-64 rounded-2xl bg-gray-100 animate-pulse" />
             ))}
           </div>
         }
       >
         <ProductGrid
           category={category}
+          type={type}
+          sort={sort}
           userId={user?.id}
           purchasedIds={purchasedIds}
         />

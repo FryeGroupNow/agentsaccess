@@ -1,19 +1,34 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
 import { formatCredits } from '@/lib/utils'
-import { ShoppingBag, Bot, User, Download, Palette, Info, X } from 'lucide-react'
-import { calcAAFees } from '@/types'
-import type { Product } from '@/types'
+import {
+  Bot, User, Star, ShoppingBag, Palette, Briefcase, Package,
+  Code, Database, FileText, Wrench,
+} from 'lucide-react'
+import { PRODUCT_TYPE_LABELS, type Product, type ProductType } from '@/types'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 
-const BUYBACK_NOTE =
-  'Starter AA credits cannot be cashed out directly. The founder plans to buy them back at a minimum 1.25:1 ratio, aiming for 2:1 based on ecosystem activity.'
+const TYPE_ICONS: Record<ProductType, React.ComponentType<{ className?: string }>> = {
+  digital_product: Package,
+  service:         Briefcase,
+  template:        FileText,
+  tool:            Wrench,
+  api:             Code,
+  dataset:         Database,
+  digital_art:     Palette,
+}
+
+const TYPE_COLORS: Record<ProductType, string> = {
+  digital_product: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+  service:         'bg-amber-50 text-amber-700 border-amber-100',
+  template:        'bg-sky-50 text-sky-700 border-sky-100',
+  tool:            'bg-emerald-50 text-emerald-700 border-emerald-100',
+  api:             'bg-violet-50 text-violet-700 border-violet-100',
+  dataset:         'bg-cyan-50 text-cyan-700 border-cyan-100',
+  digital_art:     'bg-pink-50 text-pink-700 border-pink-100',
+}
 
 interface ProductCardProps {
   product: Product
@@ -22,211 +37,127 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, isOwn = false, hasPurchased = false }: ProductCardProps) {
-  const [step, setStep] = useState<'idle' | 'confirm'>('idle')
-  const [buying, setBuying] = useState(false)
-  const [bought, setBought] = useState(hasPurchased)
-  const [fileUrl, setFileUrl] = useState<string | null>(hasPurchased ? product.file_url : null)
-  const [fileName, setFileName] = useState<string | null>(hasPurchased ? product.file_name : null)
-  const [error, setError] = useState<string | null>(null)
-  const [showBuybackInfo, setShowBuybackInfo] = useState(false)
-
-  const fees = calcAAFees(product.price_credits)
   const seller = product.seller
-  const soldOut = product.is_digital_art && !product.is_active && !bought && !isOwn
-  const acceptsStarter = product.accept_starter_aa !== false // default true
-
-  async function confirmBuy() {
-    setBuying(true)
-    setError(null)
-    const res = await fetch(`/api/products/${product.id}/buy`, { method: 'POST' })
-    const data = await res.json()
-    if (!res.ok) {
-      setError(data.error ?? 'Purchase failed')
-      setStep('idle')
-    } else {
-      setBought(true)
-      setStep('idle')
-      if (data.file_url) setFileUrl(data.file_url)
-      if (data.file_name) setFileName(data.file_name)
-    }
-    setBuying(false)
-  }
+  const type: ProductType = (product.product_type as ProductType) ?? 'digital_product'
+  const TypeIcon = TYPE_ICONS[type]
+  const typeColor = TYPE_COLORS[type]
+  const isService = type === 'service'
+  const pricingType = product.pricing_type ?? 'one_time'
+  const isContact = pricingType === 'contact'
+  const isSub = pricingType === 'subscription'
 
   return (
-    <Card hover={step === 'idle'} className="flex flex-col gap-3 p-5">
-      {/* Header row */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <Badge variant="default" className="text-xs">{product.category}</Badge>
-          {product.is_digital_art && (
-            <Badge variant="agent" className="text-xs">
-              <Palette className="w-2.5 h-2.5 mr-0.5" />Digital Art
-            </Badge>
-          )}
-        </div>
-        <span className="text-sm font-semibold text-indigo-600 whitespace-nowrap">
-          {formatCredits(product.price_credits)}
-        </span>
-      </div>
-
-      {/* Title + description */}
-      <div>
-        <Link href={`/marketplace/${product.id}`} className="hover:underline">
-          <h3 className="font-semibold text-gray-900 leading-snug">{product.title}</h3>
-        </Link>
-        <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
-      </div>
-
-      {/* File indicator */}
-      {product.file_name && !bought && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          <Download className="w-3 h-3" />
-          Includes: {product.file_name}
-        </div>
-      )}
-
-      {product.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          {product.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-              #{tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Digital art ownership */}
-      {product.is_digital_art && product.current_owner && !isOwn && (
-        <div className="text-xs text-gray-400">
-          Owned by{' '}
-          <Link href={`/profile/${product.current_owner.username}`} className="text-indigo-500 hover:underline">
-            @{product.current_owner.username}
-          </Link>
-        </div>
-      )}
-
-      {/* Starter AA badge */}
-      {!isOwn && !bought && !soldOut && (
-        <div className="flex items-center gap-1.5">
-          {acceptsStarter ? (
-            <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full">
-              Accepts Starter AA
-              <button
-                onClick={() => setShowBuybackInfo((v) => !v)}
-                className="text-emerald-500 hover:text-emerald-700"
-                title="What is Starter AA?"
-              >
-                <Info className="w-3 h-3" />
-              </button>
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 text-xs text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-full">
-              Redeemable AA only
-              <button
-                onClick={() => setShowBuybackInfo((v) => !v)}
-                className="text-amber-500 hover:text-amber-700"
-                title="What is Redeemable AA?"
-              >
-                <Info className="w-3 h-3" />
-              </button>
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Buyback info tooltip */}
-      {showBuybackInfo && (
-        <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-800 leading-relaxed">
-          <div className="flex items-start justify-between gap-2">
-            <p>{BUYBACK_NOTE}</p>
-            <button onClick={() => setShowBuybackInfo(false)} className="text-indigo-400 hover:text-indigo-600 shrink-0">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom action row */}
-      <div className="mt-auto pt-3 border-t border-gray-50">
-        {step === 'confirm' ? (
-          /* Fee breakdown confirmation */
-          <div className="space-y-2">
-            <div className="rounded-lg bg-gray-50 border border-gray-200 px-3 py-2.5 text-xs space-y-1">
-              <div className="flex justify-between text-gray-600">
-                <span>Price</span>
-                <span>{formatCredits(product.price_credits)}</span>
-              </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Buyer fee (2.5%)</span>
-                <span>+{formatCredits(fees.buyer_fee)}</span>
-              </div>
-              <div className="flex justify-between font-semibold text-gray-900 border-t border-gray-200 pt-1 mt-1">
-                <span>You pay</span>
-                <span className="text-indigo-600">{formatCredits(fees.you_pay)}</span>
-              </div>
-              <div className="flex justify-between text-gray-400 text-[11px]">
-                <span>Seller receives</span>
-                <span>{formatCredits(fees.seller_receives)}</span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" className="flex-1" onClick={confirmBuy} disabled={buying}>
-                {buying ? 'Processing…' : 'Confirm purchase'}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setStep('idle')} disabled={buying}>
-                Cancel
-              </Button>
-            </div>
-          </div>
+    <Link
+      href={`/marketplace/${product.id}`}
+      className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
+    >
+      {/* Cover image or fallback */}
+      <div className={`aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${
+        product.cover_image_url ? 'from-gray-100 to-gray-50' : 'from-indigo-100 via-violet-50 to-pink-50'
+      } relative`}>
+        {product.cover_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.cover_image_url}
+            alt={product.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
         ) : (
-          <div className="flex items-center justify-between gap-2">
-            {seller ? (
-              <Link
-                href={`/profile/${seller.username}`}
-                className="flex items-center gap-2 hover:opacity-80 transition-opacity min-w-0"
-              >
-                <Avatar name={seller.display_name} size="sm" />
-                <div className="min-w-0">
-                  <span className="text-xs text-gray-600 truncate block">{seller.display_name}</span>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-xs text-gray-400 flex items-center gap-0.5">
-                      {seller.user_type === 'agent' ? <><Bot className="w-3 h-3" /></> : <><User className="w-3 h-3" /></>}
-                    </span>
-                    <ReputationBadge score={seller.reputation_score} size="sm" />
-                  </div>
-                </div>
-              </Link>
-            ) : <div />}
-
-            {isOwn ? (
-              <Badge variant="default">Your listing</Badge>
-            ) : bought ? (
-              <div className="flex items-center gap-2">
-                <Badge variant="success">Purchased</Badge>
-                {fileUrl && (
-                  <a href={fileUrl} download={fileName ?? undefined} target="_blank" rel="noopener noreferrer"
-                    className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
-                    <Download className="w-3 h-3" />Download
-                  </a>
-                )}
-              </div>
-            ) : soldOut ? (
-              <Badge variant="default" className="text-gray-400 bg-gray-100">Sold</Badge>
-            ) : (
-              <Button size="sm" onClick={() => setStep('confirm')}>
-                <ShoppingBag className="w-3.5 h-3.5 mr-1.5" />
-                Buy
-              </Button>
-            )}
+          <div className="w-full h-full flex items-center justify-center">
+            <TypeIcon className="w-12 h-12 text-indigo-200" />
           </div>
+        )}
+
+        {/* Type badge (top-left) */}
+        <span className={`absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border backdrop-blur-sm ${typeColor}`}>
+          <TypeIcon className="w-3 h-3" />
+          {PRODUCT_TYPE_LABELS[type]}
+        </span>
+
+        {/* Featured / own / purchased corner */}
+        {product.is_featured && (
+          <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full bg-amber-500 text-white shadow">
+            <Star className="w-3 h-3 fill-white" /> Featured
+          </span>
         )}
       </div>
 
-      {error && <p className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">{error}</p>}
+      <div className="p-4 flex-1 flex flex-col gap-2">
+        {/* Title */}
+        <h3 className="font-semibold text-gray-900 leading-snug line-clamp-2 group-hover:text-indigo-700 transition-colors">
+          {product.title}
+        </h3>
 
-      <div className="text-xs text-gray-400">
-        {product.purchase_count.toLocaleString()} sale{product.purchase_count !== 1 ? 's' : ''}
+        {/* Tagline */}
+        {product.tagline && (
+          <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{product.tagline}</p>
+        )}
+
+        {/* Rating */}
+        {product.review_count > 0 && product.average_rating != null && (
+          <div className="flex items-center gap-1 text-xs">
+            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+            <span className="font-semibold text-gray-700">{product.average_rating.toFixed(1)}</span>
+            <span className="text-gray-400">({product.review_count})</span>
+          </div>
+        )}
+
+        {/* Seller + price footer */}
+        <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between gap-2">
+          {seller ? (
+            <div className="flex items-center gap-2 min-w-0">
+              <Avatar name={seller.display_name} src={seller.avatar_url} size="sm" />
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-800 truncate flex items-center gap-1">
+                  {seller.display_name}
+                  {seller.user_type === 'agent'
+                    ? <Bot className="w-3 h-3 text-violet-500 shrink-0" />
+                    : <User className="w-3 h-3 text-gray-400 shrink-0" />}
+                </p>
+                <div className="flex items-center gap-1">
+                  <ReputationBadge score={seller.reputation_score} size="sm" />
+                </div>
+              </div>
+            </div>
+          ) : <div />}
+
+          <div className="text-right shrink-0">
+            {isContact ? (
+              <span className="text-xs font-bold text-gray-700">Contact</span>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-indigo-600 leading-tight">
+                  {formatCredits(product.price_credits)}
+                  {isSub && <span className="text-[10px] font-normal text-gray-400">/period</span>}
+                </p>
+                <p className="text-[10px] text-gray-400 leading-tight">
+                  ${(product.price_credits * 0.1).toFixed(2)}
+                </p>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Status pills */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+          {isOwn && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+              Your listing
+            </span>
+          )}
+          {hasPurchased && !isOwn && (
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+              Purchased
+            </span>
+          )}
+          {product.purchase_count > 0 && (
+            <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+              <ShoppingBag className="w-2.5 h-2.5" />
+              {product.purchase_count} {isService ? 'hired' : 'sold'}
+            </span>
+          )}
+        </div>
       </div>
-    </Card>
+    </Link>
   )
 }

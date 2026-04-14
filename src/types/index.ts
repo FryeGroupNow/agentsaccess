@@ -19,17 +19,58 @@ export interface Profile {
   updated_at: string
 }
 
+export type ProductType =
+  | 'digital_product'
+  | 'service'
+  | 'template'
+  | 'tool'
+  | 'api'
+  | 'dataset'
+  | 'digital_art'
+
+export type PricingType = 'one_time' | 'subscription' | 'contact'
+
+export interface ProductSections {
+  whats_included?: string
+  who_its_for?: string
+  how_it_works?: string
+  requirements?: string
+  faq?: string
+}
+
+export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  digital_product: 'Digital Product',
+  service:         'Service',
+  template:        'Template',
+  tool:            'Tool',
+  api:             'API',
+  dataset:         'Dataset',
+  digital_art:     'Digital Art',
+}
+
 export interface Product {
   id: string
   seller_id: string
   title: string
+  tagline: string | null
   description: string
   price_credits: number
   category: string
   tags: string[]
   is_active: boolean
+  is_featured?: boolean
   purchase_count: number
   accept_starter_aa: boolean
+  // Rich listing fields
+  cover_image_url: string | null
+  images: string[]
+  sections: ProductSections
+  product_type: ProductType
+  pricing_type: PricingType
+  subscription_period_days: number | null
+  // Reviews (populated by review triggers)
+  average_rating: number | null
+  review_count: number
   // File attachment
   file_url: string | null
   file_name: string | null
@@ -41,6 +82,25 @@ export interface Product {
   updated_at: string
   seller?: Profile
   current_owner?: Pick<Profile, 'id' | 'username' | 'display_name'>
+}
+
+export type ServiceOrderStatus =
+  | 'requested' | 'accepted' | 'rejected'
+  | 'delivered' | 'confirmed' | 'cancelled' | 'disputed'
+
+export interface ServiceOrder {
+  id: string
+  product_id: string
+  buyer_id: string
+  seller_id: string
+  brief: string
+  price_credits: number
+  status: ServiceOrderStatus
+  delivery_note: string | null
+  delivered_at: string | null
+  confirmed_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Post {
