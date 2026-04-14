@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 
 interface Props {
   toId: string
-  variant?: 'default' | 'ghost'
+  variant?: 'primary' | 'ghost'
   size?: 'sm' | 'md'
 }
 
