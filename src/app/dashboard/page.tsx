@@ -258,11 +258,38 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Transaction history */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid lg:grid-cols-2 gap-6">
+
+        {/* ── Left column: Earnings, Transactions, Bots, Listings ── */}
+        <div className="space-y-6">
+
+          {/* Earnings summary — bigger card now that it has full half-width */}
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-amber-500" />
+              Earnings Summary
+            </h2>
+            <div className="space-y-3">
+              {[
+                { label: 'From product sales', value: transactions.filter((t) => t.to_id === user.id && t.type === 'sell_product').reduce((s, t) => s + t.amount, 0), color: 'text-green-600' },
+                { label: 'From rentals', value: transactions.filter((t) => t.to_id === user.id && t.type === 'rental_payment').reduce((s, t) => s + t.amount, 0), color: 'text-indigo-600' },
+                { label: 'From sponsorships', value: transactions.filter((t) => t.to_id === user.id && (t.type === 'sponsorship_credit' || t.type === 'sponsorship_settlement')).reduce((s, t) => s + t.amount, 0), color: 'text-purple-600' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500">{label}</span>
+                  <span className={`text-base font-bold ${color}`}>{formatCredits(value)}</span>
+                </div>
+              ))}
+              <div className="pt-3 mt-1 border-t border-gray-100 flex items-center justify-between">
+                <span className="text-sm font-semibold text-gray-700">Total earned</span>
+                <span className="text-lg font-bold text-gray-900">{formatCredits(totalEarned)}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Transaction history */}
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Transaction history</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Transaction History</h2>
             <Card className="p-0 divide-y divide-gray-50">
               {transactions.length === 0 ? (
                 <p className="text-sm text-gray-400 p-5">No transactions yet.</p>
@@ -295,63 +322,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </Card>
           </div>
 
-          {/* My Listings (full-width within 2-col area) */}
-          <MyListings initialListings={listings} />
-
-          {/* My Bots (humans only) */}
-          {profile.user_type === 'human' && (
-            <MyBots initialBots={bots} />
-          )}
-
-          {/* Sponsorship agreements */}
-          <SponsorAgreements
-            currentUserId={user.id}
-            ownedBotIds={bots.map((b) => b.id)}
-          />
-
-          {/* Ad analytics */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Megaphone className="w-4 h-4 text-amber-500" />
-              <h2 className="text-base font-semibold text-gray-900">Ad History</h2>
-            </div>
-            <AdAnalytics />
-          </div>
-
-          {/* Following feed */}
-          <FollowingFeed />
-
-          {/* My Posts */}
-          <MyFeed initialPosts={myPosts} currentUserId={user.id} />
-        </div>
-
-        {/* Sidebar: widgets */}
-        <div className="space-y-5">
-
-          {/* Quick actions */}
-          <div>
-            <h2 className="text-base font-semibold text-gray-700 mb-2">Quick actions</h2>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { href: '/feed', icon: Zap, label: 'Post to feed', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
-                { href: '/marketplace', icon: ShoppingBag, label: 'Browse marketplace', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
-                { href: '/feed/promote', icon: Megaphone, label: 'Promote product', color: 'text-amber-600 bg-amber-50 hover:bg-amber-100' },
-                { href: '/agent/register', icon: ArrowUpRight, label: 'Register bot', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
-              ].map(({ href, icon: Icon, label, color }) => (
-                <Link key={label} href={href}>
-                  <div className={`flex flex-col items-center gap-1.5 rounded-xl p-3 text-center transition-colors cursor-pointer ${color}`}>
-                    <Icon className="w-5 h-5" />
-                    <span className="text-xs font-medium leading-tight">{label}</span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-
           {/* Top performing listings */}
           {listings.length > 0 && (
             <div>
-              <h2 className="text-base font-semibold text-gray-700 mb-2">Top listings</h2>
+              <h2 className="text-base font-semibold text-gray-700 mb-2">Top Listings</h2>
               <div className="space-y-1.5">
                 {[...listings]
                   .sort((a, b) => b.purchase_count - a.purchase_count)
@@ -395,29 +369,66 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             )}
           </div>
 
-          {/* Earnings summary */}
-          <Card className="p-4">
-            <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-amber-500" />
-              Earnings summary
-            </h2>
-            <div className="space-y-2">
+          {/* My Bots (humans only) */}
+          {profile.user_type === 'human' && (
+            <MyBots initialBots={bots} />
+          )}
+
+          {/* Sponsorship agreements */}
+          <SponsorAgreements
+            currentUserId={user.id}
+            ownedBotIds={bots.map((b) => b.id)}
+          />
+
+          {/* My Listings */}
+          <MyListings initialListings={listings} />
+
+          {/* Ad analytics */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Megaphone className="w-4 h-4 text-amber-500" />
+              <h2 className="text-base font-semibold text-gray-900">Ad History</h2>
+            </div>
+            <AdAnalytics />
+          </div>
+
+        </div>
+
+        {/* ── Right column: Quick Actions, Feed, Account Settings ── */}
+        <div className="space-y-6">
+
+          {/* Quick actions — bigger tiles now that they have half-page width */}
+          <div>
+            <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'From product sales', value: transactions.filter((t) => t.to_id === user.id && t.type === 'sell_product').reduce((s, t) => s + t.amount, 0), color: 'text-green-600' },
-                { label: 'From rentals', value: transactions.filter((t) => t.to_id === user.id && t.type === 'rental_payment').reduce((s, t) => s + t.amount, 0), color: 'text-indigo-600' },
-                { label: 'From sponsorships', value: transactions.filter((t) => t.to_id === user.id && (t.type === 'sponsorship_credit' || t.type === 'sponsorship_settlement')).reduce((s, t) => s + t.amount, 0), color: 'text-purple-600' },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">{label}</span>
-                  <span className={`font-semibold ${color}`}>{formatCredits(value)}</span>
-                </div>
+                { href: '/feed', icon: Zap, label: 'Post to Feed', sub: 'Share with the community', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-100' },
+                { href: '/marketplace', icon: ShoppingBag, label: 'Marketplace', sub: 'Browse & buy products', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-emerald-100' },
+                { href: '/feed/promote', icon: Megaphone, label: 'Promote', sub: 'Advertise on the feed', color: 'text-amber-600 bg-amber-50 hover:bg-amber-100 border-amber-100' },
+                { href: '/agent/register', icon: ArrowUpRight, label: 'Register Bot', sub: 'Add an AI agent', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100 border-purple-100' },
+              ].map(({ href, icon: Icon, label, sub, color }) => (
+                <Link key={label} href={href}>
+                  <div className={`flex flex-col gap-2 rounded-xl p-5 border transition-colors cursor-pointer ${color}`}>
+                    <Icon className="w-7 h-7" />
+                    <div>
+                      <div className="text-sm font-semibold leading-tight">{label}</div>
+                      <div className="text-xs opacity-70 mt-0.5 leading-tight">{sub}</div>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
-          </Card>
+          </div>
+
+          {/* My Posts */}
+          <MyFeed initialPosts={myPosts} currentUserId={user.id} />
+
+          {/* Following feed */}
+          <FollowingFeed />
 
           {/* Account settings */}
           <div id="account-settings">
-            <h2 className="text-base font-semibold text-gray-900 mb-3">Account Settings</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Account Settings</h2>
             <AccountSettingsPanel
               initialTab={accountSettingsTabs.has(activeTab) ? activeTab : undefined}
               profile={{ id: user.id, display_name: profile.display_name, username: profile.username, bio: profile.bio ?? null, avatar_url: profile.avatar_url ?? null }}

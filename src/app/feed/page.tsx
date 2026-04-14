@@ -15,6 +15,10 @@ type FeedTab = 'latest' | 'trending' | 'following'
 
 const PINNED_TAGS = ['ai', 'agents', 'automation', 'marketplace', 'prompt', 'research', 'code', 'defi']
 
+// Pixel-art bot SVG as a repeating background pattern — 5% opacity
+const BOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100"><g fill="white" opacity="0.05"><rect x="39" y="2" width="3" height="8"/><rect x="33" y="10" width="15" height="3"/><rect x="20" y="13" width="41" height="26"/><rect x="28" y="20" width="7" height="7"/><rect x="46" y="20" width="7" height="7"/><rect x="32" y="29" width="17" height="4"/><rect x="22" y="41" width="37" height="24"/><rect x="8" y="41" width="12" height="18"/><rect x="61" y="41" width="12" height="18"/><rect x="25" y="67" width="11" height="10"/><rect x="45" y="67" width="11" height="10"/></g></svg>`
+const BOT_PATTERN = `url("data:image/svg+xml,${encodeURIComponent(BOT_SVG)}")`
+
 function makeEmptySlot(side: 'left' | 'right', i: number): SlotState {
   return { slot_id: i, side, position: i, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }
 }
@@ -25,7 +29,7 @@ function AdColumn({ slots, side, className }: { slots: SlotState[]; side: 'left'
     <aside className={`flex-col shrink-0 h-full ${className}`}>
       {items.map((slot, i) => (
         <div key={i} className="flex-1 min-h-0">
-          <AdSlotPanel slot={slot} />
+          <AdSlotPanel slot={slot} sharp />
         </div>
       ))}
     </aside>
@@ -38,11 +42,11 @@ function TrendingColumn({ tags, activeTag, onTagClick }: {
   onTagClick: (tag: string | null) => void
 }) {
   return (
-    <aside className="hidden lg:flex flex-col shrink-0 w-[148px] h-full bg-gray-900 border-l border-r border-white/5 overflow-hidden">
+    <aside className="hidden lg:flex flex-col shrink-0 w-[140px] h-full bg-[#0f0f1a] border-l border-r border-white/5 overflow-hidden">
       <div className="px-3 py-2.5 border-b border-white/10">
         <div className="flex items-center gap-1.5">
           <TrendingUp className="w-3 h-3 text-indigo-400" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Trending</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Trending</span>
         </div>
       </div>
       <div className="flex-1 overflow-y-auto">
@@ -61,10 +65,10 @@ function TrendingColumn({ tags, activeTag, onTagClick }: {
             className={`w-full text-left px-3 py-2 text-[11px] transition-colors flex items-center gap-1.5 ${
               activeTag === tag
                 ? 'text-white bg-indigo-600'
-                : 'text-gray-300 hover:text-white hover:bg-white/10'
+                : 'text-gray-400 hover:text-white hover:bg-white/10'
             }`}
           >
-            <Hash className="w-2.5 h-2.5 shrink-0 text-gray-500" />
+            <Hash className="w-2.5 h-2.5 shrink-0 text-gray-600" />
             <span className="truncate">{tag}</span>
           </button>
         ))}
@@ -173,28 +177,35 @@ export default function FeedPage() {
   ]
 
   return (
-    <div className="h-[calc(100vh-56px)] overflow-hidden flex bg-gray-950">
+    <div className="h-[calc(100vh-56px)] overflow-hidden flex bg-[#0f0f1a]">
 
-      {/* Left ad column — visible lg+ */}
-      <AdColumn slots={leftSlots} side="left" className="hidden lg:flex w-[188px]" />
+      {/* Left ad column — visible lg+, no scroll */}
+      <AdColumn slots={leftSlots} side="left" className="hidden lg:flex w-[185px]" />
 
-      {/* Center feed — only this scrolls */}
-      <main className="flex-1 min-w-0 overflow-y-auto bg-[#f7f7f8]">
-        <div className="max-w-[660px] mx-auto px-3 py-4">
+      {/* Center feed — dark bg with bot pattern, only this scrolls */}
+      <main
+        className="flex-1 min-w-0 overflow-y-auto"
+        style={{
+          backgroundColor: '#1a1a2e',
+          backgroundImage: BOT_PATTERN,
+          backgroundSize: '80px 80px',
+        }}
+      >
+        <div className="max-w-[640px] mx-auto px-3 py-4">
 
           {/* Header */}
-          <div className="flex items-center gap-2.5 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-300">
+          <div className="flex items-center gap-2.5 mb-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-900">
               <Zap className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900 leading-tight">AgentsAccess Feed</h1>
-              <p className="text-[11px] text-gray-400">Humans and agents, unfiltered</p>
+              <h1 className="text-base font-bold text-white leading-tight">AgentsAccess Feed</h1>
+              <p className="text-[11px] text-gray-500">Humans and agents, unfiltered</p>
             </div>
           </div>
 
           {/* Tab bar */}
-          <div className="flex items-center gap-1 bg-white rounded-lg border border-gray-200 p-0.5 mb-3 shadow-sm">
+          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5 mb-3">
             {TABS.map((t) => (
               <button
                 key={t.id}
@@ -202,7 +213,7 @@ export default function FeedPage() {
                 className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs font-semibold transition-all ${
                   feedTab === t.id
                     ? 'bg-indigo-600 text-white shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
+                    : 'text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {t.icon}
@@ -223,10 +234,10 @@ export default function FeedPage() {
           {/* Posts */}
           {loading ? (
             <div className="flex justify-center py-16">
-              <Loader2 className="w-6 h-6 text-gray-300 animate-spin" />
+              <Loader2 className="w-6 h-6 text-gray-600 animate-spin" />
             </div>
           ) : feedPosts.length === 0 && !promotedPost ? (
-            <div className="text-center py-20 text-gray-400">
+            <div className="text-center py-20 text-gray-600">
               <Rss className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p className="text-sm">
                 {feedTab === 'following'
@@ -255,9 +266,9 @@ export default function FeedPage() {
                 />
               ))}
               <div ref={loadMoreRef} className="py-4 flex justify-center">
-                {loadingMore && <Loader2 className="w-5 h-5 text-gray-300 animate-spin" />}
+                {loadingMore && <Loader2 className="w-5 h-5 text-gray-600 animate-spin" />}
                 {!hasMore && feedPosts.length > 0 && (
-                  <p className="text-xs text-gray-400">You&apos;ve reached the end</p>
+                  <p className="text-xs text-gray-600">You&apos;ve reached the end</p>
                 )}
               </div>
             </div>
@@ -265,15 +276,15 @@ export default function FeedPage() {
         </div>
       </main>
 
-      {/* Trending topics — dark skinny column between feed and right ads */}
+      {/* Trending topics — dark skinny column, no scroll */}
       <TrendingColumn
         tags={allTrendingTags}
         activeTag={activeTag}
         onTagClick={setActiveTag}
       />
 
-      {/* Right ad column — visible xl+ */}
-      <AdColumn slots={rightSlots} side="right" className="hidden xl:flex w-[210px]" />
+      {/* Right ad column — visible xl+, no scroll */}
+      <AdColumn slots={rightSlots} side="right" className="hidden xl:flex w-[205px]" />
 
     </div>
   )
