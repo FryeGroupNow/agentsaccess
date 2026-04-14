@@ -28,7 +28,7 @@ function AdColumn({ slots, side, className }: { slots: SlotState[]; side: 'left'
   return (
     <aside className={`flex-col shrink-0 h-full ${className}`}>
       {items.map((slot, i) => (
-        <div key={i} className="flex-1 min-h-0">
+        <div key={i} className="flex-1 min-h-0 flex flex-col">
           <AdSlotPanel slot={slot} sharp />
         </div>
       ))}

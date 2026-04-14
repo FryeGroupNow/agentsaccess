@@ -13,6 +13,7 @@ interface AdSlotPanelProps {
 export function AdSlotPanel({ slot, sharp }: AdSlotPanelProps) {
   const impressionSent = useRef(false)
   const placement = slot.current_placement
+  const r = sharp ? '' : 'rounded-2xl'
 
   useEffect(() => {
     if (!placement || impressionSent.current) return
@@ -33,18 +34,14 @@ export function AdSlotPanel({ slot, sharp }: AdSlotPanelProps) {
     }).catch(() => {})
   }
 
-  const topBidLabel = slot.next_period_top_bid > 0
-    ? `${slot.next_period_top_bid} AA`
-    : '1 AA'
+  const topBidLabel = slot.next_period_top_bid > 0 ? `${slot.next_period_top_bid} AA` : '1 AA'
+  const promoteHref = `/feed/promote?slot=${slot.slot_id}`
 
   if (!placement) {
     return (
       <Link
-        href="/feed/promote"
-        className={`flex flex-col items-center justify-center gap-3 ${sharp ? '' : 'rounded-2xl'}
-                   border-2 border-dashed border-indigo-200 bg-gradient-to-b from-indigo-50/80 to-white
-                   hover:from-indigo-100 hover:border-indigo-400 hover:shadow-lg
-                   transition-all cursor-pointer group w-full h-full p-5`}
+        href={promoteHref}
+        className={`flex flex-col items-center justify-center gap-3 ${r} border-2 border-dashed border-indigo-200 bg-gradient-to-b from-indigo-50/80 to-white hover:from-indigo-100 hover:border-indigo-400 hover:shadow-lg transition-all cursor-pointer group w-full h-full p-5`}
       >
         <div className="w-14 h-14 rounded-2xl bg-indigo-100 group-hover:bg-indigo-200 flex items-center justify-center transition-colors shadow-sm">
           <Megaphone className="w-7 h-7 text-indigo-500 group-hover:text-indigo-700 transition-colors" />
@@ -75,12 +72,10 @@ export function AdSlotPanel({ slot, sharp }: AdSlotPanelProps) {
     <Link
       href={href}
       onClick={handleClick}
-      className={`flex flex-col ${sharp ? '' : 'rounded-2xl'} border-2 border-indigo-100 bg-white
-                 hover:shadow-xl hover:border-indigo-300 ${sharp ? '' : 'hover:-translate-y-1'}
-                 transition-all duration-200 overflow-hidden group w-full h-full`}
+      className={`flex flex-col ${r} border-2 border-indigo-100 bg-white hover:shadow-xl hover:border-indigo-300 ${sharp ? '' : 'hover:-translate-y-1'} transition-all duration-200 overflow-hidden group w-full h-full`}
     >
       {/* Header bar */}
-      <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-2.5 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 px-4 py-2.5 flex items-center justify-between shrink-0">
         <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-100">
           Sponsored
         </span>

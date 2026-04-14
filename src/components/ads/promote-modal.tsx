@@ -8,6 +8,7 @@ import type { SlotState, Product } from '@/types'
 interface PromoteModalProps {
   product: Product
   onClose: () => void
+  initialSlot?: number
 }
 
 const SLOT_LABEL: Record<number, string> = {
@@ -27,10 +28,10 @@ function formatCountdown(ms: number): string {
   return `${m}m ${s.toString().padStart(2, '0')}s`
 }
 
-export function PromoteModal({ product, onClose }: PromoteModalProps) {
+export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProps) {
   const [slots, setSlots] = useState<SlotState[]>([])
   const [loadingSlots, setLoadingSlots] = useState(true)
-  const [selectedSlot, setSelectedSlot] = useState<number | null>(null)
+  const [selectedSlot, setSelectedSlot] = useState<number | null>(initialSlot ?? null)
   const [bidAmount, setBidAmount] = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
