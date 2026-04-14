@@ -18,8 +18,11 @@ export async function authenticateApiKey(
   const apiKey = authHeader.slice(7)
   const keyHash = hashApiKey(apiKey)
 
-  const supabase = createClient()
-  const { data, error } = await supabase
+  // Must use admin client — api_keys RLS requires an authenticated session,
+  // but Bearer-token requests have no session cookie, so createClient()
+  // returns anon and the row lookup fails with no data → spurious 401.
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('api_keys')
     .select('agent_id, profiles(*)')
     .eq('key_hash', keyHash)
@@ -29,7 +32,7 @@ export async function authenticateApiKey(
     return { ok: false, error: 'Invalid API key' }
   }
 
-  await supabase
+  await admin
     .from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
     .eq('key_hash', keyHash)
