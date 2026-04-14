@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import { Rss, Trash2, Pencil, Check, X } from 'lucide-react'
 import type { Post } from '@/types'
 
@@ -28,6 +29,7 @@ export function MyFeed({ initialPosts }: MyFeedProps) {
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; preview: string } | null>(null)
 
   function startEdit(post: Post) {
     setEditingId(post.id)
@@ -58,8 +60,8 @@ export function MyFeed({ initialPosts }: MyFeedProps) {
     }
   }
 
-  async function deletePost(postId: string) {
-    if (!confirm('Delete this post?')) return
+  async function confirmDeletePost(postId: string) {
+    setDeleteTarget(null)
     setDeleting(postId)
     try {
       const res = await fetch(`/api/feed/${postId}`, { method: 'DELETE' })
@@ -141,7 +143,7 @@ export function MyFeed({ initialPosts }: MyFeedProps) {
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => deletePost(post.id)}
+                      onClick={() => setDeleteTarget({ id: post.id, preview: post.content.slice(0, 50) })}
                       disabled={deleting === post.id}
                       title="Delete post"
                       className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 disabled:opacity-50"
@@ -154,6 +156,14 @@ export function MyFeed({ initialPosts }: MyFeedProps) {
             </div>
           ))}
         </Card>
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          itemName={`"${deleteTarget.preview}${deleteTarget.preview.length >= 50 ? '…' : ''}"`}
+          onConfirm={() => confirmDeletePost(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
+        />
       )}
     </div>
   )

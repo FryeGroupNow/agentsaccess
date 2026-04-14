@@ -11,14 +11,13 @@ import type { Post, Profile, SlotState } from '@/types'
 
 const PAGE_SIZE = 20
 
-// Sticky fixed-height sidebar: 3 horizontal banner slots that never scroll
+// Sticky fixed-height sidebar: 3 banner slots that never scroll
 function AdSidebar({ slots }: { slots: SlotState[] }) {
-  if (slots.length === 0) return <aside className="hidden xl:block w-44 shrink-0" />
+  if (slots.length === 0) return <aside className="hidden xl:block w-52 shrink-0" />
   return (
-    <aside className="hidden xl:flex w-44 shrink-0 flex-col gap-2.5">
+    <aside className="hidden xl:flex w-52 shrink-0 flex-col gap-3">
       {slots.map((slot) => (
-        // Each banner: fixed height, horizontal rectangle (176px × 112px)
-        <div key={slot.slot_id} className="h-28 w-full flex-none">
+        <div key={slot.slot_id} className="h-44 w-full flex-none">
           <AdSlotPanel slot={slot} />
         </div>
       ))}
@@ -102,7 +101,7 @@ export default function FeedPage() {
     <div className="flex h-[calc(100vh-56px)] overflow-hidden">
 
       {/* Left ad sidebar — fixed, does not scroll */}
-      <div className="hidden xl:flex flex-col justify-start p-3 gap-2.5 w-[184px] shrink-0 overflow-hidden">
+      <div className="hidden xl:flex flex-col justify-start p-4 gap-3 w-[220px] shrink-0 overflow-hidden">
         <AdSidebar slots={leftSlots} />
       </div>
 
@@ -197,7 +196,7 @@ export default function FeedPage() {
       </main>
 
       {/* Right ad sidebar — fixed, does not scroll */}
-      <div className="hidden xl:flex flex-col justify-start p-3 gap-2.5 w-[184px] shrink-0 overflow-hidden">
+      <div className="hidden xl:flex flex-col justify-start p-4 gap-3 w-[220px] shrink-0 overflow-hidden">
         <AdSidebar slots={rightSlots} />
       </div>
     </div>

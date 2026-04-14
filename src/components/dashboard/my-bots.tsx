@@ -3,11 +3,14 @@
 import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import { RegisterBotModal } from './register-bot-modal'
 import { formatCreditsWithUSD } from '@/lib/utils'
-import { Bot, Plus, RefreshCw, Trash2, Key, ChevronDown, ChevronUp } from 'lucide-react'
+import { Bot, Plus, RefreshCw, Trash2, Key, Settings } from 'lucide-react'
 import { BotRentalSettings } from './bot-rental-settings'
 import { BotManagementPanel } from './bot-management-panel'
+import { ShoppingBag, TrendingUp } from 'lucide-react'
+import { formatCreditsWithUSD } from '@/lib/utils'
 
 interface ApiKeyInfo {
   id: string
@@ -22,6 +25,15 @@ interface RentalListing {
   description: string | null
 }
 
+interface BotListing {
+  id: string
+  title: string
+  purchase_count: number
+  price_credits: number
+  is_active: boolean
+  category: string
+}
+
 interface BotInfo {
   id: string
   username: string
@@ -34,6 +46,7 @@ interface BotInfo {
   created_at: string
   api_keys: ApiKeyInfo[]
   rental_listing?: RentalListing | null
+  listings?: BotListing[]
 }
 
 interface MyBotsProps {
@@ -45,7 +58,6 @@ export function MyBots({ initialBots }: MyBotsProps) {
   const [expandedBot, setExpandedBot] = useState<string | null>(null)
   const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
   useEffect(() => {
-    // Load rental listings for each bot
     initialBots.forEach((bot) => {
       fetch(`/api/rentals/listings/${bot.id}`)
         .then((r) => r.ok ? r.json() : null)
@@ -58,6 +70,7 @@ export function MyBots({ initialBots }: MyBotsProps) {
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; username: string } | null>(null)
   const [newKey, setNewKey] = useState<{ botId: string; key: string } | null>(null)
 
   function handleBotRegistered(bot: BotInfo) {
@@ -82,9 +95,9 @@ export function MyBots({ initialBots }: MyBotsProps) {
     }
   }
 
-  async function handleDelete(botId: string) {
-    if (!confirm('Deactivate this bot? All its API keys and listings will be disabled.')) return
+  async function confirmDelete(botId: string) {
     setDeleting(botId)
+    setDeleteTarget(null)
     try {
       const res = await fetch(`/api/bots/${botId}`, { method: 'DELETE' })
       if (res.ok) {
@@ -118,7 +131,8 @@ export function MyBots({ initialBots }: MyBotsProps) {
         <div className="space-y-3">
           {bots.map((bot) => (
             <Card key={bot.id} className="p-4">
-              <div className="flex items-start justify-between gap-3 mb-2">
+              {/* Header row: name + destructive actions */}
+              <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
                     <Bot className="w-4 h-4 text-indigo-600" />
@@ -138,24 +152,28 @@ export function MyBots({ initialBots }: MyBotsProps) {
                     <RefreshCw className={`w-3.5 h-3.5 ${regenerating === bot.id ? 'animate-spin' : ''}`} />
                   </button>
                   <button
-                    onClick={() => handleDelete(bot.id)}
+                    onClick={() => setDeleteTarget({ id: bot.id, username: bot.username })}
                     disabled={deleting === bot.id}
                     title="Deactivate bot"
                     className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 disabled:opacity-50"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
-                  <button
-                    onClick={() => setExpandedBot(expandedBot === bot.id ? null : bot.id)}
-                    title="Manage bot"
-                    className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700"
-                  >
-                    {expandedBot === bot.id
-                      ? <ChevronUp className="w-3.5 h-3.5" />
-                      : <ChevronDown className="w-3.5 h-3.5" />}
-                  </button>
                 </div>
               </div>
+
+              {/* Prominent Bot Setup button */}
+              <button
+                onClick={() => setExpandedBot(expandedBot === bot.id ? null : bot.id)}
+                className={`w-full flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium transition-colors mb-3 ${
+                  expandedBot === bot.id
+                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                {expandedBot === bot.id ? 'Close Setup' : 'Bot Setup'}
+              </button>
 
               <div className="flex items-center justify-between text-xs text-gray-500">
                 <span>{formatCreditsWithUSD(bot.credit_balance)}</span>
@@ -188,6 +206,40 @@ export function MyBots({ initialBots }: MyBotsProps) {
                 </div>
               )}
 
+              {/* Bot product listings */}
+              {bot.listings && bot.listings.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <ShoppingBag className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs font-medium text-gray-600">
+                      {bot.listings.length} listing{bot.listings.length !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-xs text-gray-400 ml-auto flex items-center gap-1">
+                      <TrendingUp className="w-3 h-3" />
+                      {bot.listings.reduce((s, l) => s + l.purchase_count, 0)} total sales ·{' '}
+                      {formatCreditsWithUSD(bot.listings.reduce((s, l) => s + l.price_credits * l.purchase_count, 0))} revenue
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {bot.listings.slice(0, 3).map((listing) => (
+                      <div key={listing.id} className="flex items-center justify-between gap-2 text-xs text-gray-600 bg-gray-50 rounded-lg px-2.5 py-1.5">
+                        <span className="truncate font-medium">{listing.title}</span>
+                        <div className="flex items-center gap-2 shrink-0 text-gray-400">
+                          <span>{listing.purchase_count} sold</span>
+                          <span className="text-indigo-600 font-medium">{listing.price_credits} AA</span>
+                          {!listing.is_active && <span className="text-gray-300">inactive</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {bot.listings.length > 3 && (
+                      <p className="text-xs text-gray-400 text-center pt-1">
+                        +{bot.listings.length - 3} more listings
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <BotRentalSettings
                 botId={bot.id}
                 currentListing={rentalListings[bot.id] ?? null}
@@ -206,6 +258,14 @@ export function MyBots({ initialBots }: MyBotsProps) {
         <RegisterBotModal
           onClose={() => setShowRegisterModal(false)}
           onRegistered={(bot) => handleBotRegistered(bot as BotInfo)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          itemName={`@${deleteTarget.username}`}
+          onConfirm={() => confirmDelete(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>

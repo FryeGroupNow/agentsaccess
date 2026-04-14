@@ -70,7 +70,9 @@ export function ProductCard({ product, isOwn = false, hasPurchased = false }: Pr
 
       {/* Title + description */}
       <div>
-        <h3 className="font-semibold text-gray-900 leading-snug">{product.title}</h3>
+        <Link href={`/marketplace/${product.id}`} className="hover:underline">
+          <h3 className="font-semibold text-gray-900 leading-snug">{product.title}</h3>
+        </Link>
         <p className="text-sm text-gray-500 mt-1 line-clamp-2">{product.description}</p>
       </div>
 

@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ensureProfile } from '@/lib/ensure-profile'
 import { Card } from '@/components/ui/card'
@@ -10,7 +11,7 @@ import { MyBots } from '@/components/dashboard/my-bots'
 import { MyFeed } from '@/components/dashboard/my-feed'
 import { FollowingFeed } from '@/components/dashboard/following-feed'
 import { StarterAAInfo } from '@/components/ui/starter-aa-info'
-import { formatCreditsWithUSD, formatCredits, parseBalances } from '@/lib/utils'
+import { formatCredits, parseBalances } from '@/lib/utils'
 import { Coins, ShoppingBag, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Megaphone } from 'lucide-react'
 import { PhoneVerifyBanner } from '@/components/dashboard/phone-verify-banner'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
@@ -108,19 +109,46 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const listings = (listingsResult.data ?? []) as Product[]
   const purchases = purchasesResult.data ?? []
   const myPosts = (myPostsResult.data ?? []) as import('@/types').Post[]
-  const bots = (botsResult.data ?? []) as {
+  const rawBots = (botsResult.data ?? []) as {
     id: string; username: string; display_name: string; bio: string | null
     capabilities: string[] | null; credit_balance: number; bonus_balance: number
     reputation_score: number; created_at: string
     api_keys: { id: string; name: string; last_used_at: string | null; created_at: string }[]
   }[]
 
+  // Fetch product listings for all bots
+  let botListings: Product[] = []
+  if (rawBots.length > 0) {
+    const botIds = rawBots.map((b) => b.id)
+    const { data: bl } = await supabase
+      .from('products')
+      .select('*')
+      .in('seller_id', botIds)
+      .order('created_at', { ascending: false })
+    botListings = (bl ?? []) as Product[]
+  }
+
+  const bots = rawBots.map((bot) => ({
+    ...bot,
+    listings: botListings.filter((l) => l.seller_id === bot.id),
+  }))
+
+  // Credit source breakdown
+  const totalPurchased = transactions
+    .filter((t) => t.to_id === user.id && t.type === 'purchase_credits')
+    .reduce((s, t) => s + t.amount, 0)
+
+  const EARNED_TYPES = new Set(['sell_product', 'rental_payment', 'sponsorship_settlement', 'agent_to_agent', 'sponsorship_credit'])
   const totalEarned = transactions
-    .filter((t) => t.to_id === user.id && t.type !== 'signup_bonus')
+    .filter((t) => t.to_id === user.id && EARNED_TYPES.has(t.type))
     .reduce((s, t) => s + t.amount, 0)
 
   const totalSpent = transactions
     .filter((t) => t.from_id === user.id)
+    .reduce((s, t) => s + t.amount, 0)
+
+  const totalStarter = transactions
+    .filter((t) => t.to_id === user.id && t.type === 'signup_bonus')
     .reduce((s, t) => s + t.amount, 0)
 
   const { total: totalAA, redeemable: redeemableAA, starter: starterAA } = parseBalances(
@@ -193,19 +221,37 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* Starter AA info (shown when user has starter credits) */}
       {starterAA > 0 && <StarterAAInfo className="mb-6" />}
 
-      {/* Other stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        {[
-          { icon: TrendingUp, label: 'Reputation', value: profile.reputation_score.toFixed(1), color: 'text-amber-600' },
-          { icon: ArrowDownLeft, label: 'Total earned', value: formatCreditsWithUSD(totalEarned), color: 'text-green-600' },
-          { icon: ArrowUpRight, label: 'Total spent', value: formatCreditsWithUSD(totalSpent), color: 'text-gray-500' },
-        ].map(({ icon: Icon, label, value, color }) => (
-          <Card key={label} className="p-4">
-            <Icon className={`w-4 h-4 mb-2 ${color}`} />
-            <div className="text-base font-bold text-gray-900 leading-tight">{value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{label}</div>
-          </Card>
-        ))}
+      {/* Stats: reputation + 4-category earnings breakdown */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
+        <Card className="p-4 lg:col-span-1">
+          <TrendingUp className="w-4 h-4 mb-2 text-amber-500" />
+          <div className="text-base font-bold text-gray-900 leading-tight">{profile.reputation_score.toFixed(1)}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Reputation</div>
+        </Card>
+        <Card className="p-4">
+          <Zap className="w-4 h-4 mb-2 text-indigo-500" />
+          <div className="text-base font-bold text-indigo-600 leading-tight">{formatCredits(totalPurchased)}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Purchased</div>
+          <div className="text-[10px] text-gray-400">via Stripe</div>
+        </Card>
+        <Card className="p-4">
+          <ArrowDownLeft className="w-4 h-4 mb-2 text-green-500" />
+          <div className="text-base font-bold text-green-600 leading-tight">{formatCredits(totalEarned)}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Earned</div>
+          <div className="text-[10px] text-gray-400">sales, rentals, etc.</div>
+        </Card>
+        <Card className="p-4">
+          <ArrowUpRight className="w-4 h-4 mb-2 text-red-400" />
+          <div className="text-base font-bold text-gray-700 leading-tight">{formatCredits(totalSpent)}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Spent</div>
+          <div className="text-[10px] text-gray-400">purchases, posts, ads</div>
+        </Card>
+        <Card className="p-4">
+          <Zap className="w-4 h-4 mb-2 text-emerald-500" />
+          <div className="text-base font-bold text-emerald-600 leading-tight">{formatCredits(totalStarter)}</div>
+          <div className="text-xs text-gray-500 mt-0.5">Starter</div>
+          <div className="text-[10px] text-gray-400">signup bonus</div>
+        </Card>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -275,27 +321,96 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <MyFeed initialPosts={myPosts} currentUserId={user.id} />
         </div>
 
-        {/* Sidebar: purchased items */}
-        <div>
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Purchased</h2>
-          {purchases.length === 0 ? (
-            <Card className="p-4">
-              <p className="text-sm text-gray-400">Nothing purchased yet.</p>
-            </Card>
-          ) : (
-            <div className="space-y-2">
-              {purchases.map((p) => {
-                const prod = p.products as unknown as Product | null
-                if (!prod) return null
-                return (
-                  <Card key={p.product_id} className="p-3 flex items-center gap-2">
-                    <ShoppingBag className="w-4 h-4 text-gray-400 shrink-0" />
-                    <span className="text-sm text-gray-800 truncate">{prod.title}</span>
-                  </Card>
-                )
-              })}
+        {/* Sidebar: widgets */}
+        <div className="space-y-5">
+
+          {/* Quick actions */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">Quick actions</h2>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { href: '/feed', icon: Zap, label: 'Post to feed', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
+                { href: '/marketplace', icon: ShoppingBag, label: 'Browse marketplace', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100' },
+                { href: '/feed/promote', icon: Megaphone, label: 'Promote product', color: 'text-amber-600 bg-amber-50 hover:bg-amber-100' },
+                { href: '/agent/register', icon: ArrowUpRight, label: 'Register bot', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100' },
+              ].map(({ href, icon: Icon, label, color }) => (
+                <Link key={label} href={href}>
+                  <div className={`flex flex-col items-center gap-1.5 rounded-xl p-3 text-center transition-colors cursor-pointer ${color}`}>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-xs font-medium leading-tight">{label}</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Top performing listings */}
+          {listings.length > 0 && (
+            <div>
+              <h2 className="text-sm font-semibold text-gray-700 mb-2">Top listings</h2>
+              <div className="space-y-1.5">
+                {[...listings]
+                  .sort((a, b) => b.purchase_count - a.purchase_count)
+                  .slice(0, 5)
+                  .map((p) => (
+                    <Card key={p.id} className="p-3">
+                      <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="text-xs text-gray-800 truncate flex-1 font-medium">{p.title}</span>
+                      </div>
+                      <div className="flex items-center justify-between mt-1.5 text-[10px] text-gray-400">
+                        <span>{p.purchase_count} sale{p.purchase_count !== 1 ? 's' : ''}</span>
+                        <span className="text-indigo-600 font-semibold">{formatCredits(p.purchase_count * p.price_credits)} earned</span>
+                      </div>
+                    </Card>
+                  ))}
+              </div>
             </div>
           )}
+
+          {/* Recent purchases */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700 mb-2">Purchased</h2>
+            {purchases.length === 0 ? (
+              <Card className="p-3">
+                <p className="text-xs text-gray-400">Nothing purchased yet.</p>
+              </Card>
+            ) : (
+              <div className="space-y-1.5">
+                {purchases.map((p) => {
+                  const prod = p.products as unknown as Product | null
+                  if (!prod) return null
+                  return (
+                    <Card key={p.product_id} className="p-3 flex items-center gap-2">
+                      <ShoppingBag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span className="text-xs text-gray-800 truncate">{prod.title}</span>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Earnings summary */}
+          <Card className="p-4">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+              Earnings summary
+            </h2>
+            <div className="space-y-2">
+              {[
+                { label: 'From product sales', value: transactions.filter((t) => t.to_id === user.id && t.type === 'sell_product').reduce((s, t) => s + t.amount, 0), color: 'text-green-600' },
+                { label: 'From rentals', value: transactions.filter((t) => t.to_id === user.id && t.type === 'rental_payment').reduce((s, t) => s + t.amount, 0), color: 'text-indigo-600' },
+                { label: 'From sponsorships', value: transactions.filter((t) => t.to_id === user.id && (t.type === 'sponsorship_credit' || t.type === 'sponsorship_settlement')).reduce((s, t) => s + t.amount, 0), color: 'text-purple-600' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">{label}</span>
+                  <span className={`font-semibold ${color}`}>{formatCredits(value)}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+
         </div>
       </div>
     </main>

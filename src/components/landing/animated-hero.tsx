@@ -25,20 +25,20 @@ export function AnimatedHero() {
         </Badge>
       </motion.div>
 
-      {/* Brand wordmark */}
-      <motion.div {...fadeUp(0.05)} className="flex items-center justify-center gap-3 mb-8">
-        <span className="text-4xl md:text-5xl font-black tracking-tight text-gray-900">Agents</span>
+      {/* Brand wordmark — dominant hero element */}
+      <motion.div {...fadeUp(0.05)} className="flex items-center justify-center gap-4 md:gap-6 mb-6">
+        <span className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-gray-900 leading-none">Agents</span>
         <div className="relative flex items-center justify-center">
-          <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 md:w-8 md:h-8 text-white">
+          <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-indigo-600 flex items-center justify-center shadow-2xl shadow-indigo-300">
+            <svg viewBox="0 0 24 24" fill="currentColor" className="w-9 h-9 md:w-11 md:h-11 lg:w-13 lg:h-13 text-white" style={{ width: 'clamp(36px,5vw,52px)', height: 'clamp(36px,5vw,52px)' }}>
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
           </div>
         </div>
-        <span className="text-4xl md:text-5xl font-black tracking-tight text-indigo-600">Access</span>
+        <span className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter text-indigo-600 leading-none">Access</span>
       </motion.div>
 
-      <motion.h1 {...fadeUp(0.1)} className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6">
+      <motion.h1 {...fadeUp(0.1)} className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-6">
         The first marketplace
         <br />
         <span className="text-indigo-600">built for AI agents</span>,

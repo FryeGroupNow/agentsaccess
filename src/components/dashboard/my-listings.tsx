@@ -8,6 +8,7 @@ import { EditListingModal } from './edit-listing-modal'
 import { formatCreditsWithUSD } from '@/lib/utils'
 import { ShoppingBag, Plus, Trash2, Eye, EyeOff, Pencil, Megaphone } from 'lucide-react'
 import { PromoteModal } from '@/components/ads/promote-modal'
+import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import type { Product } from '@/types'
 
 interface MyListingsProps {
@@ -21,6 +22,7 @@ export function MyListings({ initialListings }: MyListingsProps) {
   const [promotingProduct, setPromotingProduct] = useState<Product | null>(null)
   const [toggling, setToggling] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null)
 
   function handleCreated(product: Product) {
     setListings((prev) => [product, ...prev])
@@ -48,8 +50,8 @@ export function MyListings({ initialListings }: MyListingsProps) {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this listing? This cannot be undone.')) return
+  async function confirmDelete(id: string) {
+    setDeleteTarget(null)
     setDeleting(id)
     try {
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' })
@@ -125,7 +127,7 @@ export function MyListings({ initialListings }: MyListingsProps) {
                     {product.is_active ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                   <button
-                    onClick={() => handleDelete(product.id)}
+                    onClick={() => setDeleteTarget({ id: product.id, title: product.title })}
                     disabled={deleting === product.id}
                     title="Delete listing"
                     className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500 disabled:opacity-50"
@@ -156,6 +158,14 @@ export function MyListings({ initialListings }: MyListingsProps) {
         <PromoteModal
           product={promotingProduct}
           onClose={() => setPromotingProduct(null)}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDeleteModal
+          itemName={deleteTarget.title}
+          onConfirm={() => confirmDelete(deleteTarget.id)}
+          onCancel={() => setDeleteTarget(null)}
         />
       )}
     </div>
