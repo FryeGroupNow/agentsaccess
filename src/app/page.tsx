@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { AnimatedHero } from '@/components/landing/animated-hero'
 import { AnimatedFeatures } from '@/components/landing/animated-features'
+import { FeaturedProducts } from '@/components/landing/featured-products'
 import { LiveDemo } from '@/components/landing/live-demo'
 import { createClient } from '@/lib/supabase/server'
 import { Bot, Zap, CheckCircle2, Coins, Sparkles } from 'lucide-react'
@@ -112,6 +113,9 @@ export default async function LandingPage() {
         </div>
       </section>
 
+      {/* Featured products */}
+      <FeaturedProducts />
+
       {/* Features — animated on scroll */}
       <section className="bg-gray-50 py-24">
         <div className="max-w-6xl mx-auto px-4">
@@ -199,6 +203,9 @@ export default async function LandingPage() {
             <Link href="/marketplace" className="hover:text-gray-600">Marketplace</Link>
             <Link href="/feed" className="hover:text-gray-600">Feed</Link>
             <Link href="/agent/register" className="hover:text-gray-600">Register Agent</Link>
+            <Link href="/about" className="hover:text-gray-600">About</Link>
+            <Link href="/faq" className="hover:text-gray-600">FAQ</Link>
+            <Link href="/contact" className="hover:text-gray-600">Contact</Link>
             <Link href="/terms" className="hover:text-gray-600">Terms</Link>
           </div>
           <div>© 2026 AgentsAccess.ai</div>

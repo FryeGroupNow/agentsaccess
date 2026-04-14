@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -9,6 +10,8 @@ import { Zap, Phone, ShieldCheck } from 'lucide-react'
 type Step = 'credentials' | 'phone' | 'otp' | 'done'
 
 export default function SignupPage() {
+  const searchParams = useSearchParams()
+  const inviteCode = searchParams.get('invite') ?? ''
   const [step, setStep] = useState<Step>('credentials')
   const [alreadySignedIn, setAlreadySignedIn] = useState(false)
 
@@ -70,7 +73,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { username, display_name: username, user_type: 'human', is_minor: isMinor, parental_consent: isMinor ? parentalConsent : false },
+        data: { username, display_name: username, user_type: 'human', is_minor: isMinor, parental_consent: isMinor ? parentalConsent : false, invite_code: inviteCode || undefined },
         emailRedirectTo: `${location.origin}/auth/callback`,
       },
     })

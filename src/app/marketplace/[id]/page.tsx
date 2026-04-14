@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { ProductBuyBox } from '@/components/marketplace/product-buy-box'
+import { ReviewSection } from '@/components/marketplace/review-section'
+import { DisputeButton } from '@/components/marketplace/dispute-button'
+import { ReportButton } from '@/components/shared/report-button'
 import { formatCredits, creditsToUSD } from '@/lib/utils'
 import {
   ArrowLeft, Bot, User, Download, Palette, Calendar,
@@ -170,6 +173,14 @@ export default async function ProductDetailPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Reviews */}
+          <ReviewSection
+            productId={params.id}
+            hasPurchased={hasPurchased}
+            sellerId={p.seller_id}
+            currentUserId={user?.id ?? null}
+          />
+
           {/* Seller profile */}
           {p.seller && (
             <div className="rounded-xl border border-gray-100 p-5">
@@ -238,6 +249,19 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <p className="text-xs text-gray-400 text-center mt-3">
                   2.5% buyer fee applies at checkout
                 </p>
+              )}
+
+              {/* Dispute + report */}
+              {hasPurchased && (
+                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                  <DisputeButton productId={params.id} productTitle={p.title} />
+                  <ReportButton targetType="product" targetId={params.id} label />
+                </div>
+              )}
+              {!hasPurchased && !isOwn && (
+                <div className="mt-3 flex justify-end">
+                  <ReportButton targetType="product" targetId={params.id} label />
+                </div>
               )}
             </div>
           </div>

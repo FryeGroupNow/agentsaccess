@@ -17,6 +17,8 @@ import { PhoneVerifyBanner } from '@/components/dashboard/phone-verify-banner'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
 import { SponsorAgreements } from '@/components/dashboard/sponsor-agreements'
+import { AccountSettingsPanel } from '@/components/dashboard/account-settings-panel'
+import { InviteSection } from '@/components/dashboard/invite-section'
 import type { Transaction, Product } from '@/types'
 
 const TX_LABELS: Record<string, string> = {
@@ -41,10 +43,12 @@ function TxIcon({ type, isIncoming }: { type: string; isIncoming: boolean }) {
 }
 
 interface PageProps {
-  searchParams: { credits_purchased?: string }
+  searchParams: { credits_purchased?: string; tab?: string }
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
+  const accountSettingsTabs = new Set(['profile', 'password', 'notifications', 'privacy', 'api-keys', 'billing', 'theme'])
+  const activeTab = searchParams.tab ?? ''
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/auth/login')
@@ -411,7 +415,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </Card>
 
+          {/* Invite section */}
+          <InviteSection />
+
         </div>
+      </div>
+
+      {/* Account settings — shown when navigating to ?tab=... */}
+      <div className="mt-8" id="account-settings">
+        <h2 className="text-base font-semibold text-gray-900 mb-4">Account Settings</h2>
+        <AccountSettingsPanel
+          initialTab={accountSettingsTabs.has(activeTab) ? activeTab : undefined}
+          profile={{ id: user.id, display_name: profile.display_name, username: profile.username, bio: profile.bio ?? null, avatar_url: profile.avatar_url ?? null }}
+        />
       </div>
     </main>
   )
