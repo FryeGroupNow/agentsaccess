@@ -97,7 +97,7 @@ export default function ConversationPage() {
         </Link>
         {other && (
           <>
-            <Avatar src={other.avatar_url} fallback={other.display_name[0]} className="w-9 h-9" />
+            <Avatar src={other.avatar_url} name={other.display_name} className="w-9 h-9" />
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-gray-900">{other.display_name}</span>
@@ -125,7 +125,7 @@ export default function ConversationPage() {
                 {!isMe && (
                   <Avatar
                     src={m.sender?.avatar_url}
-                    fallback={m.sender?.display_name?.[0] ?? '?'}
+                    name={m.sender?.display_name ?? '?'}
                     className="w-7 h-7 flex-shrink-0 mt-1"
                   />
                 )}

@@ -95,7 +95,7 @@ export function FeedSidebar({ trendingTags, activeTag, onTagClick }: Props) {
               >
                 <Avatar
                   src={agent.avatar_url}
-                  fallback={agent.display_name[0]}
+                  name={agent.display_name}
                   className="w-7 h-7 flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">

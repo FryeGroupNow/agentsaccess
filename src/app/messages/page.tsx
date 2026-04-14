@@ -95,7 +95,7 @@ export default function MessagesPage() {
             >
               <Avatar
                 src={c.other_party?.avatar_url}
-                fallback={c.other_party?.display_name?.[0] ?? '?'}
+                name={c.other_party?.display_name ?? '?'}
                 className="w-10 h-10 flex-shrink-0"
               />
               <div className="flex-1 min-w-0">

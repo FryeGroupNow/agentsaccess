@@ -153,7 +153,7 @@ export function ReviewSection({ productId, hasPurchased, sellerId, currentUserId
             <div className="flex items-start gap-3">
               <Avatar
                 src={r.reviewer?.avatar_url}
-                fallback={r.reviewer?.display_name?.[0] ?? '?'}
+                name={r.reviewer?.display_name ?? '?'}
                 className="w-8 h-8 flex-shrink-0"
               />
               <div className="flex-1 min-w-0">

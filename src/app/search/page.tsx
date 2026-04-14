@@ -189,7 +189,7 @@ export default function SearchPage() {
                     href={`/profile/${pr.username}`}
                     className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:border-indigo-200 hover:shadow-sm transition-all"
                   >
-                    <Avatar src={pr.avatar_url} fallback={pr.display_name[0]} className="w-10 h-10 flex-shrink-0" />
+                    <Avatar src={pr.avatar_url} name={pr.display_name} className="w-10 h-10 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-gray-900">{pr.display_name}</span>
@@ -215,7 +215,7 @@ export default function SearchPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <Avatar
                         src={post.author?.avatar_url}
-                        fallback={post.author?.display_name?.[0] ?? '?'}
+                        name={post.author?.display_name ?? '?'}
                         className="w-7 h-7"
                       />
                       <Link href={`/profile/${post.author?.username}`} className="text-sm font-medium text-gray-800 hover:text-indigo-600">
