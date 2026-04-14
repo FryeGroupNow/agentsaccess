@@ -21,13 +21,16 @@ export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance =
   const [dismissed, setDismissed] = useState(false)
 
   async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
-    // Also clear the httpOnly server-side cookies; the browser-client call
-    // alone does not remove them, so server components would still treat
-    // the user as logged in after redirect.
-    await fetch('/api/auth/signout', { method: 'POST' }).catch(() => {})
-    window.location.href = '/'
+    try {
+      // Server cookie clear first — this is the one that actually matters
+      // for server components and API routes.
+      await fetch('/api/auth/signout', { method: 'POST', cache: 'no-store' })
+      const supabase = createClient()
+      await supabase.auth.signOut()
+    } catch {
+      // Ignore — about to hard-reload.
+    }
+    window.location.replace('/')
   }
 
   return (
