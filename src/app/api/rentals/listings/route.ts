@@ -2,7 +2,9 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { apiError, apiSuccess } from '@/lib/api-auth'
 
-const MIN_REPUTATION = 50
+// Early access: reduced reputation requirement while the platform grows.
+// Will be raised as the ecosystem matures.
+const MIN_REPUTATION = 5
 
 // GET /api/rentals/listings — browse available bots for rent
 export async function GET(request: NextRequest) {

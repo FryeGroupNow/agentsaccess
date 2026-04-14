@@ -177,7 +177,7 @@ export function MyBots({ initialBots }: MyBotsProps) {
               <div className="flex items-center justify-between text-xs text-gray-500 gap-2 flex-wrap">
                 <span>{formatCreditsWithUSD(bot.credit_balance)}</span>
                 <div className="flex items-center gap-2">
-                  <ReputationBadge score={bot.reputation_score} size="sm" showLabel />
+                  <ReputationBadge score={bot.reputation_score} size="sm" />
                   {rentalListings[bot.id]?.is_available && (
                     <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full text-[10px] font-medium">
                       <Tag className="w-2.5 h-2.5" />

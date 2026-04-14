@@ -107,7 +107,7 @@ function ListingCard({ listing, onRent }: { listing: ListingWithBot; onRent: () 
             <span className="text-xs text-gray-400">@{listing.bot.username}</span>
           </div>
           <div className="mt-0.5">
-            <ReputationBadge score={listing.bot.reputation_score} size="sm" showLabel />
+            <ReputationBadge score={listing.bot.reputation_score} size="sm" />
           </div>
           {listing.bot.bio && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{listing.bot.bio}</p>

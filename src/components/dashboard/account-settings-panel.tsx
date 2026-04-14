@@ -1,18 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
-  UserCircle, Lock, Bell, Shield, KeyRound, Receipt, Palette, LogOut, Check,
+  UserCircle, Lock, Bell, Shield, KeyRound, Receipt, Palette, LogOut, Check, Coins,
 } from 'lucide-react'
+import type { SpendPreference } from '@/types'
 
-type Tab = 'profile' | 'password' | 'notifications' | 'privacy' | 'api-keys' | 'billing' | 'theme'
+type Tab = 'profile' | 'password' | 'spending' | 'notifications' | 'privacy' | 'api-keys' | 'billing' | 'theme'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'profile',       label: 'Edit Profile',             icon: <UserCircle className="w-4 h-4" /> },
   { id: 'password',      label: 'Change Password',           icon: <Lock className="w-4 h-4" /> },
+  { id: 'spending',      label: 'Spending Preference',       icon: <Coins className="w-4 h-4" /> },
   { id: 'notifications', label: 'Notification Preferences',  icon: <Bell className="w-4 h-4" /> },
   { id: 'privacy',       label: 'Privacy Settings',          icon: <Shield className="w-4 h-4" /> },
   { id: 'api-keys',      label: 'API Keys',                  icon: <KeyRound className="w-4 h-4" /> },
@@ -42,6 +44,38 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   const [pwSaving, setPwSaving] = useState(false)
   const [pwSaved, setPwSaved] = useState(false)
   const [pwError, setPwError] = useState('')
+
+  // Spending preference
+  const [spendPref, setSpendPref] = useState<SpendPreference>('starter_first')
+  const [spendSaving, setSpendSaving] = useState(false)
+  const [spendSaved, setSpendSaved] = useState(false)
+  const [spendError, setSpendError] = useState('')
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('profiles')
+      .select('spend_preference')
+      .eq('id', profile.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.spend_preference) setSpendPref(data.spend_preference as SpendPreference)
+      })
+  }, [profile.id])
+
+  async function saveSpendPref(next: SpendPreference) {
+    setSpendSaving(true)
+    setSpendSaved(false)
+    setSpendError('')
+    const supabase = createClient()
+    const { error } = await supabase
+      .from('profiles')
+      .update({ spend_preference: next })
+      .eq('id', profile.id)
+    if (error) { setSpendError(error.message) }
+    else { setSpendPref(next); setSpendSaved(true); setTimeout(() => setSpendSaved(false), 1800) }
+    setSpendSaving(false)
+  }
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault()
@@ -175,6 +209,92 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
                 {pwSaving ? 'Updating…' : 'Update password'}
               </Button>
             </form>
+          )}
+
+          {activeTab === 'spending' && (
+            <div className="space-y-5 max-w-md">
+              <div>
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <Coins className="w-4 h-4 text-indigo-600" />
+                  AA Credit Spending Preference
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Choose how your credits are deducted when you spend.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => saveSpendPref('starter_first')}
+                  disabled={spendSaving}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all disabled:opacity-60 ${
+                    spendPref === 'starter_first'
+                      ? 'border-indigo-600 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                      spendPref === 'starter_first' ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'
+                    }`}>
+                      {spendPref === 'starter_first' && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-gray-900">Spend Starter AA first</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                          Default
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                        Uses your non-cashable Starter AA credits before touching your Redeemable
+                        (cashable) balance. Best if you want to keep as much cashable AA as possible.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => saveSpendPref('redeemable_first')}
+                  disabled={spendSaving}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all disabled:opacity-60 ${
+                    spendPref === 'redeemable_first'
+                      ? 'border-indigo-600 bg-indigo-50'
+                      : 'border-gray-200 hover:border-indigo-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                      spendPref === 'redeemable_first' ? 'bg-indigo-600 border-indigo-600' : 'border-gray-300'
+                    }`}>
+                      {spendPref === 'redeemable_first' && <Check className="w-3 h-3 text-white" />}
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-900">Spend Redeemable AA first</span>
+                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                        Preserves your Starter AA and spends cashable credits first. Best if you&apos;re
+                        confident the Starter AA buyback will reach a favorable rate and want to hold it.
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </div>
+
+              {spendError && <p className="text-red-500 text-xs">{spendError}</p>}
+              {spendSaved && (
+                <p className="text-emerald-600 text-xs flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5" />
+                  Preference saved — applies to all future purchases, transfers, and bids.
+                </p>
+              )}
+
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-[11px] text-amber-800 leading-relaxed">
+                <strong>Note:</strong> Cashouts always come from Redeemable AA only — this setting
+                doesn&apos;t affect cashout behavior.
+              </div>
+            </div>
           )}
 
           {activeTab === 'notifications' && (

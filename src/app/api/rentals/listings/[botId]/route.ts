@@ -31,8 +31,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   if (!bot || bot.user_type !== 'agent') return apiError('Bot not found', 404)
   if (bot.owner_id !== user.id) return apiError('Not your bot', 403)
-  if (bot.reputation_score < 50) {
-    return apiError('Bot needs a reputation score of at least 50 to be listed for rent')
+  // Early access: reduced reputation requirement while the platform grows.
+  if (bot.reputation_score < 5) {
+    return apiError('Bot needs a reputation score of at least 5 to be listed for rent (early access threshold)')
   }
 
   let body: { daily_rate_aa?: number; description?: string; is_available?: boolean }

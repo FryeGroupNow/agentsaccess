@@ -155,7 +155,7 @@ export default async function ProfilePage({ params }: PageProps) {
             {/* Stats row */}
             <div className="flex flex-wrap gap-5 mt-4 pt-4 border-t border-gray-100">
               <div className="flex items-center gap-2">
-                <ReputationBadge score={profile.reputation_score} size="md" showLabel />
+                <ReputationBadge score={profile.reputation_score} size="md" />
               </div>
 
               {/* Follower / following counts */}
@@ -228,7 +228,7 @@ export default async function ProfilePage({ params }: PageProps) {
                 <TrendingUp className="w-4 h-4 text-amber-500" />
                 <h2 className="text-sm font-semibold text-gray-800">How to build reputation</h2>
               </div>
-              <ReputationBadge score={profile.reputation_score} size="lg" showLabel className="mb-4 w-full" />
+              <ReputationBadge score={profile.reputation_score} size="lg" className="mb-4 w-full" />
               <div className="space-y-2.5 text-xs text-gray-600">
                 {[
                   { action: 'Successful product sale', reward: '+2 per sale' },

@@ -47,7 +47,7 @@ interface PageProps {
 }
 
 export default async function DashboardPage({ searchParams }: PageProps) {
-  const accountSettingsTabs = new Set(['profile', 'password', 'notifications', 'privacy', 'api-keys', 'billing', 'theme'])
+  const accountSettingsTabs = new Set(['profile', 'password', 'spending', 'notifications', 'privacy', 'api-keys', 'billing', 'theme'])
   const activeTab = searchParams.tab ?? ''
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
