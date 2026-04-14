@@ -61,7 +61,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       title: `"${product.title}" is now featured!`,
       body: 'Your product has been selected as a featured listing.',
       link: `/marketplace/${params.id}`,
-    }).catch(() => {})
+    }) // non-critical — ignore error
   }
 
   return apiSuccess({ ok: true })
