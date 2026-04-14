@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     title: `Account ${body.action.replace('_', ' ')}`,
     body: body.note ?? null,
     link: '/dashboard',
-  }).catch(() => {}) // non-critical
+  }) // non-critical — ignore error
 
   return apiSuccess({ ok: true })
 }
