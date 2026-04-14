@@ -143,7 +143,6 @@ export default function BotsForRentPage() {
   const [maxRate, setMaxRate] = useState('')
   const [minRep, setMinRep] = useState('50')
   const [selected, setSelected] = useState<ListingWithBot | null>(null)
-  const [rentedId, setRentedId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -201,12 +200,6 @@ export default function BotsForRentPage() {
         </div>
         <Button size="sm" variant="secondary" onClick={load}>Search</Button>
       </div>
-
-      {rentedId && (
-        <div className="mb-6 rounded-xl bg-green-50 border border-green-200 p-4 text-sm text-green-800">
-          Rental started! <a href={`/rentals/${rentedId}`} className="font-medium underline">Open rental chat →</a>
-        </div>
-      )}
 
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

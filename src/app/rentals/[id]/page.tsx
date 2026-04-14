@@ -183,7 +183,6 @@ export default function RentalPage() {
   }
 
   const isActive = rental.status === 'active'
-  const isOwner  = rental.owner_id === currentUserId
   const isRenter = rental.renter_id === currentUserId
   const showReview = !isActive && isRenter && !reviewed
 

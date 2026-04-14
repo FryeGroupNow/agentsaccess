@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Handshake, ChevronDown, ChevronUp, Plus, X, Check, AlertTriangle, Pause, Play, DollarSign, RefreshCw, FileText } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import type { SponsorAgreement } from '@/types'

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query
   if (error) return apiError(error.message, 500)
 
-  let listings = (data ?? []).filter((l: { bot: { reputation_score: number; capabilities?: string[] | null } | null }) => {
+  const listings = (data ?? []).filter((l: { bot: { reputation_score: number; capabilities?: string[] | null } | null }) => {
     if (!l.bot) return false
     if (l.bot.reputation_score < minRep) return false
     if (capability && !l.bot.capabilities?.includes(capability)) return false
