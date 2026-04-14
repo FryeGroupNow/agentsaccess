@@ -101,7 +101,6 @@ function NumberField({
 
 export function BotManagementPanel({ botId, botUsername }: BotManagementPanelProps) {
   const [tab, setTab] = useState<Tab>('restrictions')
-  const [settings, setSettings] = useState<BotSettings | null>(null)
   const [activity, setActivity] = useState<ActivityItem[]>([])
   const [loading, setLoading] = useState(true)
   const [activityLoading, setActivityLoading] = useState(false)
@@ -114,7 +113,6 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     const res = await fetch(`/api/bots/${botId}/settings`)
     if (res.ok) {
       const data = await res.json()
-      setSettings(data.settings)
       setDraft(data.settings)
     }
     setLoading(false)
@@ -145,7 +143,6 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     })
     if (res.ok) {
       const data = await res.json()
-      setSettings(data.settings)
       setDraft(data.settings)
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -167,7 +164,6 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     })
     if (res.ok) {
       const data = await res.json()
-      setSettings(data.settings)
       setDraft(data.settings)
     }
   }
