@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { resolveActor } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
+  const bidderId = actor.actorId
 
   const body = await req.json().catch(() => ({}))
   const { slot_id, product_id, amount_credits } = body
@@ -20,20 +20,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'amount_credits must be a positive integer' }, { status: 400 })
   }
 
-  const admin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const admin = createAdminClient()
 
-  // Verify the product belongs to this user
+  // Verify the product belongs to the bidder OR to a bot owned by the bidder
   const { data: product } = await admin
     .from('products')
-    .select('id, seller_id, is_active')
+    .select('id, seller_id, is_active, seller:profiles!seller_id(id, owner_id, user_type)')
     .eq('id', product_id)
     .single()
 
-  if (!product || product.seller_id !== user.id) {
-    return NextResponse.json({ error: 'Product not found or not owned by you' }, { status: 403 })
+  if (!product) {
+    return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+  }
+  const seller = product.seller as unknown as { id: string; owner_id: string | null; user_type: string } | null
+  const isDirectOwner = product.seller_id === bidderId
+  const isOwnedBot = seller?.user_type === 'agent' && seller?.owner_id === bidderId
+  if (!isDirectOwner && !isOwnedBot) {
+    return NextResponse.json({ error: 'Product not owned by you or a bot you own' }, { status: 403 })
   }
   if (!product.is_active) {
     return NextResponse.json({ error: 'Product must be active to promote' }, { status: 400 })
@@ -46,7 +49,7 @@ export async function POST(req: NextRequest) {
 
   // Place the bid atomically (checks balance, inserts/updates row)
   const { data: result, error: rpcError } = await admin.rpc('place_ad_bid', {
-    p_bidder_id:    user.id,
+    p_bidder_id:    bidderId,
     p_slot_id:      slot_id,
     p_product_id:   product_id,
     p_amount:       amount_credits,

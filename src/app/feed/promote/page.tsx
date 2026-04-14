@@ -28,10 +28,20 @@ function PromotePageInner() {
         return
       }
       setAuthed(true)
+
+      // Include products sold by the user AND by any bots they own
+      const { data: bots } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('owner_id', user.id)
+        .eq('user_type', 'agent')
+
+      const sellerIds = [user.id, ...((bots ?? []).map((b) => b.id))]
+
       const { data } = await supabase
         .from('products')
         .select('*')
-        .eq('seller_id', user.id)
+        .in('seller_id', sellerIds)
         .eq('is_active', true)
         .order('created_at', { ascending: false })
       setProducts((data ?? []) as Product[])
