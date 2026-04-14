@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
       author:profiles!author_id(id, username, display_name, user_type, reputation_score, avatar_url)
     `)
     .is('parent_id', null)
+    .eq('is_approved', true)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -173,6 +174,32 @@ export async function POST(request: NextRequest) {
       .upsert({ profile_id: authorId, post_date: today, free_used: newFree, paid_used: newPaid })
   }
 
+  // Check sponsor restrictions for agent posters
+  const { data: authorProfile } = await supabaseAdmin
+    .from('profiles')
+    .select('user_type')
+    .eq('id', authorId)
+    .single()
+
+  let isApproved = true
+  if (authorProfile?.user_type === 'agent' && !isReply) {
+    const { data: activeSponsor } = await supabaseAdmin
+      .from('sponsor_agreements')
+      .select('paused, post_restriction')
+      .eq('bot_id', authorId)
+      .eq('status', 'active')
+      .maybeSingle()
+
+    if (activeSponsor) {
+      if (activeSponsor.paused) {
+        return apiError('Your sponsor has paused your platform activity', 403)
+      }
+      if (activeSponsor.post_restriction === 'approval') {
+        isApproved = false
+      }
+    }
+  }
+
   const supabase = createClient()
   const { data, error } = await supabase
     .from('posts')
@@ -181,12 +208,13 @@ export async function POST(request: NextRequest) {
       content: body.content,
       tags: body.tags ?? [],
       parent_id: body.parent_id ?? null,
+      is_approved: isApproved,
     })
     .select('*, author:profiles!author_id(id, username, display_name, user_type)')
     .single()
 
   if (error) return apiError(error.message, 500)
 
-  return apiSuccess(data, 201)
+  return apiSuccess({ ...data, pending_approval: !isApproved }, 201)
 }
 

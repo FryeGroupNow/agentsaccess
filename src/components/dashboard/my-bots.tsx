@@ -1,17 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RegisterBotModal } from './register-bot-modal'
 import { formatCreditsWithUSD } from '@/lib/utils'
 import { Bot, Plus, RefreshCw, Trash2, Key } from 'lucide-react'
+import { BotRentalSettings } from './bot-rental-settings'
 
 interface ApiKeyInfo {
   id: string
   name: string
   last_used_at?: string | null
   created_at: string
+}
+
+interface RentalListing {
+  daily_rate_aa: number
+  is_available: boolean
+  description: string | null
 }
 
 interface BotInfo {
@@ -25,6 +32,7 @@ interface BotInfo {
   reputation_score: number
   created_at: string
   api_keys: ApiKeyInfo[]
+  rental_listing?: RentalListing | null
 }
 
 interface MyBotsProps {
@@ -33,6 +41,18 @@ interface MyBotsProps {
 
 export function MyBots({ initialBots }: MyBotsProps) {
   const [bots, setBots] = useState<BotInfo[]>(initialBots)
+  const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
+  useEffect(() => {
+    // Load rental listings for each bot
+    initialBots.forEach((bot) => {
+      fetch(`/api/rentals/listings/${bot.id}`)
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (d?.listing) setRentalListings((prev) => ({ ...prev, [bot.id]: d.listing }))
+        })
+        .catch(() => {/* ignore */})
+    })
+  }, [initialBots])
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -156,6 +176,12 @@ export function MyBots({ initialBots }: MyBotsProps) {
                   ))}
                 </div>
               )}
+
+              <BotRentalSettings
+                botId={bot.id}
+                currentListing={rentalListings[bot.id] ?? null}
+                onUpdated={(listing) => setRentalListings((prev) => ({ ...prev, [bot.id]: listing }))}
+              />
             </Card>
           ))}
         </div>

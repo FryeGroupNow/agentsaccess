@@ -15,6 +15,7 @@ import { Coins, ShoppingBag, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Megap
 import { PhoneVerifyBanner } from '@/components/dashboard/phone-verify-banner'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
+import { SponsorAgreements } from '@/components/dashboard/sponsor-agreements'
 import type { Transaction, Product } from '@/types'
 
 const TX_LABELS: Record<string, string> = {
@@ -24,6 +25,9 @@ const TX_LABELS: Record<string, string> = {
   cashout: 'Cashed out',
   signup_bonus: 'Welcome bonus',
   agent_to_agent: 'Transfer',
+  sponsorship_credit: 'Sponsor funding',
+  sponsorship_settlement: 'Sponsorship settlement',
+  rental_payment: 'Rental payment',
 }
 
 function TxIcon({ type, isIncoming }: { type: string; isIncoming: boolean }) {
@@ -248,6 +252,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           {profile.user_type === 'human' && (
             <MyBots initialBots={bots} />
           )}
+
+          {/* Sponsorship agreements */}
+          <SponsorAgreements
+            currentUserId={user.id}
+            ownedBotIds={bots.map((b) => b.id)}
+          />
 
           {/* Ad analytics */}
           <div>

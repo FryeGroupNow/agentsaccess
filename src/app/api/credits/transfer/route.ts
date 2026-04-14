@@ -34,6 +34,34 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Enforce sponsor daily spending limit
+  const { data: activeSponsor } = await supabase
+    .from('sponsor_agreements')
+    .select('daily_limit_aa, paused')
+    .eq('bot_id', agent.id)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (activeSponsor) {
+    if (activeSponsor.paused) return apiError('Your sponsor has paused your platform activity', 403)
+
+    const today = new Date().toISOString().slice(0, 10)
+    const startOfDay = `${today}T00:00:00.000Z`
+    const { data: todaySpend } = await supabase
+      .from('transactions')
+      .select('amount')
+      .eq('from_id', agent.id)
+      .gte('created_at', startOfDay)
+
+    const spent = (todaySpend ?? []).reduce((s: number, t: { amount: number }) => s + t.amount, 0)
+    if (spent + body.amount > activeSponsor.daily_limit_aa) {
+      return apiError(
+        `Daily spending limit of ${activeSponsor.daily_limit_aa} AA reached (${spent} AA spent today)`,
+        403
+      )
+    }
+  }
+
   const { data: txId, error: txError } = await supabase.rpc('transfer_credits', {
     p_from_id: agent.id,
     p_to_id: recipient.id,

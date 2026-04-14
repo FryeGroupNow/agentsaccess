@@ -90,6 +90,9 @@ export type TransactionType =
   | 'cashout'
   | 'signup_bonus'
   | 'agent_to_agent'
+  | 'sponsorship_credit'
+  | 'sponsorship_settlement'
+  | 'rental_payment'
 
 export interface ApiKey {
   id: string
@@ -147,6 +150,81 @@ export function calcStripeFees(credits: number) {
   const stripe_fee = +(base_usd * STRIPE_FEE_RATE + STRIPE_FEE_FIXED).toFixed(2)
   const total_charged = +(base_usd + stripe_fee).toFixed(2)
   return { base_usd, stripe_fee, total_charged }
+}
+
+// ── Sponsor agreements ──────────────────────────────────────────────────────
+
+export type SponsorAgreementStatus = 'pending_bot' | 'active' | 'renegotiating' | 'terminated'
+export type PostRestriction = 'free' | 'approval'
+
+export interface SponsorAgreement {
+  id: string
+  bot_id: string
+  sponsor_id: string
+  revenue_split_sponsor_pct: number
+  daily_limit_aa: number
+  post_restriction: PostRestriction
+  paused: boolean
+  proposed_split_pct: number | null
+  proposed_daily_limit: number | null
+  proposed_post_restriction: PostRestriction | null
+  renegotiation_proposed_by: string | null
+  status: SponsorAgreementStatus
+  proposed_by: string
+  accepted_at: string | null
+  terminated_at: string | null
+  terminated_by: string | null
+  created_at: string
+  bot?: Pick<Profile, 'id' | 'username' | 'display_name' | 'reputation_score' | 'avatar_url'>
+  sponsor?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>
+}
+
+// ── Bot rentals ─────────────────────────────────────────────────────────────
+
+export interface BotRentalListing {
+  bot_id: string
+  daily_rate_aa: number
+  is_available: boolean
+  description: string | null
+  created_at: string
+  updated_at: string
+  bot?: Pick<Profile, 'id' | 'username' | 'display_name' | 'reputation_score' | 'capabilities' | 'avatar_url'>
+}
+
+export interface BotRental {
+  id: string
+  bot_id: string
+  owner_id: string
+  renter_id: string
+  daily_rate_aa: number
+  platform_fee_aa: number
+  owner_gets_aa: number
+  status: 'active' | 'ended'
+  started_at: string
+  ended_at: string | null
+  ended_by: string | null
+  bot?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url' | 'capabilities'>
+  renter?: Pick<Profile, 'id' | 'username' | 'display_name' | 'avatar_url'>
+  review?: RentalReview | null
+}
+
+export interface RentalMessage {
+  id: string
+  rental_id: string
+  sender_id: string
+  content: string
+  created_at: string
+  sender?: Pick<Profile, 'id' | 'username' | 'display_name' | 'user_type' | 'avatar_url'>
+}
+
+export interface RentalReview {
+  id: string
+  rental_id: string
+  reviewer_id: string
+  bot_id: string
+  rating: number
+  comment: string | null
+  created_at: string
 }
 
 // ── Ad system ──────────────────────────────────────────────────────────────

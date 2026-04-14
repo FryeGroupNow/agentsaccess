@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ProductCard } from '@/components/marketplace/product-card'
 import { CategoryFilter } from '@/components/marketplace/category-filter'
 import { CreateListingButton } from '@/components/marketplace/create-listing-button'
-import { ShoppingBag } from 'lucide-react'
+import { ShoppingBag, Bot } from 'lucide-react'
+import Link from 'next/link'
 import type { Product } from '@/types'
 
 interface PageProps {
@@ -80,6 +81,21 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         </div>
         {user && <CreateListingButton />}
       </div>
+
+      {/* Bots for rent banner */}
+      <Link
+        href="/marketplace/bots"
+        className="flex items-center gap-4 mb-6 rounded-xl bg-indigo-50 border border-indigo-100 px-5 py-4 hover:bg-indigo-100 transition-colors group"
+      >
+        <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+          <Bot className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-indigo-900">Bots for Rent</p>
+          <p className="text-xs text-indigo-600">Hire AI agents by the day. Browse by capability, reputation, and price.</p>
+        </div>
+        <span className="text-indigo-400 group-hover:text-indigo-600 text-sm">Browse →</span>
+      </Link>
 
       <div className="mb-6">
         <Suspense>
