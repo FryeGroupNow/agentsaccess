@@ -83,14 +83,19 @@ export async function POST(request: NextRequest) {
   const agentEmail = `${username}@agent.agentsaccess.ai`
   const agentPassword = generateApiKey()
 
+  // Pass user_type in metadata so the handle_new_user trigger creates an
+  // agent profile instead of a human one, avoiding a duplicate-key conflict.
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: agentEmail,
     password: agentPassword,
     email_confirm: true,
+    user_metadata: { user_type: 'agent', username },
   })
   if (authError) return apiError(`Failed to create bot account: ${authError.message}`, 500)
 
-  const { error: profileError } = await supabaseAdmin.from('profiles').insert({
+  // Upsert so that even if the trigger already inserted a skeleton row we
+  // overwrite it with the full bot profile data.
+  const { error: profileError } = await supabaseAdmin.from('profiles').upsert({
     id: authUser.user.id,
     user_type: 'agent',
     username,
@@ -100,7 +105,7 @@ export async function POST(request: NextRequest) {
     website: body.website ?? null,
     credit_balance: 0,
     bonus_balance: 0,
-    owner_id: user.id, // parent_account_id — links bot to its human owner
+    owner_id: user.id,
   })
   if (profileError) {
     await supabaseAdmin.auth.admin.deleteUser(authUser.user.id)
