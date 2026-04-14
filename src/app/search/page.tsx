@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Package, User, FileText, Bot, Star, ShoppingBag } from 'lucide-react'
@@ -47,7 +47,7 @@ interface Post {
   author: { id: string; username: string; display_name: string; user_type: string; avatar_url: string | null } | null
 }
 
-export default function SearchPage() {
+function SearchInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const initialQ = searchParams.get('q') ?? ''
@@ -232,5 +232,13 @@ export default function SearchPage() {
         </div>
       )}
     </main>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchInner />
+    </Suspense>
   )
 }

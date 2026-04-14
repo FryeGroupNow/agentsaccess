@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Zap, Phone, ShieldCheck } from 'lucide-react'
 
 type Step = 'credentials' | 'phone' | 'otp' | 'done'
 
-export default function SignupPage() {
+function SignupInner() {
   const searchParams = useSearchParams()
   const inviteCode = searchParams.get('invite') ?? ''
   const [step, setStep] = useState<Step>('credentials')
@@ -396,5 +396,13 @@ export default function SignupPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupInner />
+    </Suspense>
   )
 }
