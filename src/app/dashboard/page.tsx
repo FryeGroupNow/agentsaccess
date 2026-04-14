@@ -167,7 +167,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <div className="flex items-center gap-4">
           <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{profile.display_name}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{profile.display_name}</h1>
             <div className="flex items-center gap-2 mt-0.5">
               <span className="text-sm text-gray-500">@{profile.username}</span>
               <Badge variant={profile.user_type === 'agent' ? 'agent' : 'human'}>
@@ -229,30 +229,30 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
         <Card className="p-4 lg:col-span-1">
           <TrendingUp className="w-4 h-4 mb-2 text-amber-500" />
-          <div className="text-base font-bold text-gray-900 leading-tight">{profile.reputation_score.toFixed(1)}</div>
+          <div className="text-lg font-bold text-gray-900 leading-tight">{profile.reputation_score.toFixed(1)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Reputation</div>
         </Card>
         <Card className="p-4">
           <Zap className="w-4 h-4 mb-2 text-indigo-500" />
-          <div className="text-base font-bold text-indigo-600 leading-tight">{formatCredits(totalPurchased)}</div>
+          <div className="text-lg font-bold text-indigo-600 leading-tight">{formatCredits(totalPurchased)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Purchased</div>
           <div className="text-[10px] text-gray-400">via Stripe</div>
         </Card>
         <Card className="p-4">
           <ArrowDownLeft className="w-4 h-4 mb-2 text-green-500" />
-          <div className="text-base font-bold text-green-600 leading-tight">{formatCredits(totalEarned)}</div>
+          <div className="text-lg font-bold text-green-600 leading-tight">{formatCredits(totalEarned)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Earned</div>
           <div className="text-[10px] text-gray-400">sales, rentals, etc.</div>
         </Card>
         <Card className="p-4">
           <ArrowUpRight className="w-4 h-4 mb-2 text-red-400" />
-          <div className="text-base font-bold text-gray-700 leading-tight">{formatCredits(totalSpent)}</div>
+          <div className="text-lg font-bold text-gray-700 leading-tight">{formatCredits(totalSpent)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Spent</div>
           <div className="text-[10px] text-gray-400">purchases, posts, ads</div>
         </Card>
         <Card className="p-4">
           <Zap className="w-4 h-4 mb-2 text-emerald-500" />
-          <div className="text-base font-bold text-emerald-600 leading-tight">{formatCredits(totalStarter)}</div>
+          <div className="text-lg font-bold text-emerald-600 leading-tight">{formatCredits(totalStarter)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Starter</div>
           <div className="text-[10px] text-gray-400">signup bonus</div>
         </Card>
@@ -262,7 +262,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         {/* Transaction history */}
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <h2 className="text-base font-semibold text-gray-900 mb-3">Transaction history</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Transaction history</h2>
             <Card className="p-0 divide-y divide-gray-50">
               {transactions.length === 0 ? (
                 <p className="text-sm text-gray-400 p-5">No transactions yet.</p>
@@ -275,14 +275,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                         <TxIcon type={tx.type} isIncoming={isIncoming} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-gray-800">
+                        <div className="text-[15px] font-medium text-gray-800">
                           {TX_LABELS[tx.type] ?? tx.type}
                         </div>
                         {tx.notes && (
                           <div className="text-xs text-gray-400 truncate">{tx.notes}</div>
                         )}
                       </div>
-                      <div className={`text-sm font-semibold ${isIncoming ? 'text-green-600' : 'text-gray-700'}`}>
+                      <div className={`text-[15px] font-semibold ${isIncoming ? 'text-green-600' : 'text-gray-700'}`}>
                         {isIncoming ? '+' : '-'}{formatCredits(tx.amount)}
                       </div>
                       <div className="text-xs text-gray-400 whitespace-nowrap">
@@ -330,7 +330,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
           {/* Quick actions */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Quick actions</h2>
+            <h2 className="text-base font-semibold text-gray-700 mb-2">Quick actions</h2>
             <div className="grid grid-cols-2 gap-2">
               {[
                 { href: '/feed', icon: Zap, label: 'Post to feed', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100' },
@@ -351,7 +351,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           {/* Top performing listings */}
           {listings.length > 0 && (
             <div>
-              <h2 className="text-sm font-semibold text-gray-700 mb-2">Top listings</h2>
+              <h2 className="text-base font-semibold text-gray-700 mb-2">Top listings</h2>
               <div className="space-y-1.5">
                 {[...listings]
                   .sort((a, b) => b.purchase_count - a.purchase_count)
@@ -374,7 +374,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
           {/* Recent purchases */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-700 mb-2">Purchased</h2>
+            <h2 className="text-base font-semibold text-gray-700 mb-2">Purchased</h2>
             {purchases.length === 0 ? (
               <Card className="p-3">
                 <p className="text-xs text-gray-400">Nothing purchased yet.</p>
@@ -397,7 +397,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
           {/* Earnings summary */}
           <Card className="p-4">
-            <h2 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+            <h2 className="text-base font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
               <TrendingUp className="w-4 h-4 text-amber-500" />
               Earnings summary
             </h2>
@@ -415,19 +415,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </Card>
 
+          {/* Account settings */}
+          <div id="account-settings">
+            <h2 className="text-base font-semibold text-gray-900 mb-3">Account Settings</h2>
+            <AccountSettingsPanel
+              initialTab={accountSettingsTabs.has(activeTab) ? activeTab : undefined}
+              profile={{ id: user.id, display_name: profile.display_name, username: profile.username, bio: profile.bio ?? null, avatar_url: profile.avatar_url ?? null }}
+            />
+          </div>
+
           {/* Invite section */}
           <InviteSection />
 
         </div>
-      </div>
-
-      {/* Account settings — shown when navigating to ?tab=... */}
-      <div className="mt-8" id="account-settings">
-        <h2 className="text-base font-semibold text-gray-900 mb-4">Account Settings</h2>
-        <AccountSettingsPanel
-          initialTab={accountSettingsTabs.has(activeTab) ? activeTab : undefined}
-          profile={{ id: user.id, display_name: profile.display_name, username: profile.username, bio: profile.bio ?? null, avatar_url: profile.avatar_url ?? null }}
-        />
       </div>
     </main>
   )

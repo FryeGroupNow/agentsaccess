@@ -4,7 +4,6 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { PostCard } from '@/components/feed/post-card'
 import { PostComposer } from '@/components/feed/post-composer'
-import { FeedSidebar } from '@/components/feed/feed-sidebar'
 import { AdSlotPanel } from '@/components/ads/ad-slot-panel'
 
 import { Rss, Loader2, TrendingUp, Users, Zap, Hash } from 'lucide-react'
@@ -16,24 +15,60 @@ type FeedTab = 'latest' | 'trending' | 'following'
 
 const PINNED_TAGS = ['ai', 'agents', 'automation', 'marketplace', 'prompt', 'research', 'code', 'defi']
 
-// Wide ad sidebar — both sides
-function AdSidebar({ slots, side }: { slots: SlotState[]; side: 'left' | 'right' }) {
+function makeEmptySlot(side: 'left' | 'right', i: number): SlotState {
+  return { slot_id: i, side, position: i, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }
+}
+
+function AdColumn({ slots, side, className }: { slots: SlotState[]; side: 'left' | 'right'; className: string }) {
+  const items = slots.length > 0 ? slots : [makeEmptySlot(side, 0), makeEmptySlot(side, 1)]
   return (
-    <aside className="hidden 2xl:flex flex-col gap-4 w-[300px] shrink-0 pt-6 px-3">
-      {slots.length === 0 ? (
-        // Show placeholder slots when no ads active
-        [0, 1].map((i) => (
-          <div key={i} className="h-[280px] w-full">
-            <AdSlotPanel slot={{ slot_id: i, side, position: i, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }} />
-          </div>
-        ))
-      ) : (
-        slots.map((slot) => (
-          <div key={slot.slot_id} className="h-[280px] w-full">
-            <AdSlotPanel slot={slot} />
-          </div>
-        ))
-      )}
+    <aside className={`flex-col shrink-0 h-full ${className}`}>
+      {items.map((slot, i) => (
+        <div key={i} className="flex-1 min-h-0">
+          <AdSlotPanel slot={slot} />
+        </div>
+      ))}
+    </aside>
+  )
+}
+
+function TrendingColumn({ tags, activeTag, onTagClick }: {
+  tags: string[]
+  activeTag: string | null
+  onTagClick: (tag: string | null) => void
+}) {
+  return (
+    <aside className="hidden lg:flex flex-col shrink-0 w-[148px] h-full bg-gray-900 border-l border-r border-white/5 overflow-hidden">
+      <div className="px-3 py-2.5 border-b border-white/10">
+        <div className="flex items-center gap-1.5">
+          <TrendingUp className="w-3 h-3 text-indigo-400" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Trending</span>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        <button
+          onClick={() => onTagClick(null)}
+          className={`w-full text-left px-3 py-2 text-[11px] font-semibold transition-colors ${
+            !activeTag ? 'text-white bg-indigo-600' : 'text-gray-400 hover:text-white hover:bg-white/10'
+          }`}
+        >
+          All posts
+        </button>
+        {tags.map((tag) => (
+          <button
+            key={tag}
+            onClick={() => onTagClick(activeTag === tag ? null : tag)}
+            className={`w-full text-left px-3 py-2 text-[11px] transition-colors flex items-center gap-1.5 ${
+              activeTag === tag
+                ? 'text-white bg-indigo-600'
+                : 'text-gray-300 hover:text-white hover:bg-white/10'
+            }`}
+          >
+            <Hash className="w-2.5 h-2.5 shrink-0 text-gray-500" />
+            <span className="truncate">{tag}</span>
+          </button>
+        ))}
+      </div>
     </aside>
   )
 }
@@ -51,7 +86,6 @@ export default function FeedPage() {
   const [rightSlots, setRightSlots] = useState<SlotState[]>([])
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
-  // Load current user + following list
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -65,7 +99,6 @@ export default function FeedPage() {
     })
   }, [])
 
-  // Load ad slots
   useEffect(() => {
     fetch('/api/ads/slots')
       .then((r) => r.json())
@@ -78,22 +111,17 @@ export default function FeedPage() {
   }, [])
 
   const fetchPosts = useCallback(async (offset: number, tag: string | null, tab: FeedTab) => {
-    const params = new URLSearchParams({
-      limit: PAGE_SIZE.toString(),
-      offset: offset.toString(),
-    })
+    const params = new URLSearchParams({ limit: PAGE_SIZE.toString(), offset: offset.toString() })
     if (tag) params.set('tag', tag)
     if (tab === 'following') params.set('filter', 'following')
-    // trending: fetch latest but sort client-side by engagement
     const res = await fetch(`/api/feed?${params}`)
     const data = await res.json()
     let fetched = (data.posts ?? []) as Post[]
     if (tab === 'trending') {
-      fetched = [...fetched].sort((a, b) => {
-        const scoreA = (a.human_like_count ?? 0) + (a.bot_like_count ?? 0)
-        const scoreB = (b.human_like_count ?? 0) + (b.bot_like_count ?? 0)
-        return scoreB - scoreA
-      })
+      fetched = [...fetched].sort((a, b) =>
+        ((b.human_like_count ?? 0) + (b.bot_like_count ?? 0)) -
+        ((a.human_like_count ?? 0) + (a.bot_like_count ?? 0))
+      )
     }
     return fetched
   }, [])
@@ -108,7 +136,6 @@ export default function FeedPage() {
     })
   }, [activeTag, feedTab, fetchPosts])
 
-  // Infinite scroll via IntersectionObserver
   useEffect(() => {
     const el = loadMoreRef.current
     if (!el) return
@@ -133,48 +160,46 @@ export default function FeedPage() {
     setPosts((prev) => [post, ...prev])
   }
 
-  // Promoted post — pick highest-engagement post from right slots or first post
   const promotedPost = posts.find((p) => (p.human_like_count ?? 0) + (p.bot_like_count ?? 0) > 5) ?? null
   const feedPosts = posts.filter((p) => p.id !== promotedPost?.id)
 
-  // Trending tags — from loaded posts + pinned
   const dynamicTags = Array.from(new Set(posts.flatMap((p) => p.tags))).slice(0, 12)
-  const allTrendingTags = Array.from(new Set([...PINNED_TAGS, ...dynamicTags])).slice(0, 12)
+  const allTrendingTags = Array.from(new Set([...PINNED_TAGS, ...dynamicTags])).slice(0, 16)
 
   const TABS: { id: FeedTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'latest',   label: 'Latest',   icon: <Rss className="w-3.5 h-3.5" /> },
-    { id: 'trending', label: 'Trending', icon: <TrendingUp className="w-3.5 h-3.5" /> },
-    { id: 'following',label: 'Following',icon: <Users className="w-3.5 h-3.5" /> },
+    { id: 'latest',    label: 'Latest',    icon: <Rss className="w-3.5 h-3.5" /> },
+    { id: 'trending',  label: 'Trending',  icon: <TrendingUp className="w-3.5 h-3.5" /> },
+    { id: 'following', label: 'Following', icon: <Users className="w-3.5 h-3.5" /> },
   ]
 
   return (
-    <div className="flex min-h-[calc(100vh-56px)] bg-gray-50/50">
+    <div className="h-[calc(100vh-56px)] overflow-hidden flex bg-gray-950">
 
-      {/* Left ad sidebar */}
-      <AdSidebar slots={leftSlots} side="left" />
+      {/* Left ad column — visible lg+ */}
+      <AdColumn slots={leftSlots} side="left" className="hidden lg:flex w-[188px]" />
 
-      {/* Center feed */}
-      <main className="flex-1 min-w-0 overflow-y-auto">
-        <div className="max-w-[680px] mx-auto px-4 py-6">
+      {/* Center feed — only this scrolls */}
+      <main className="flex-1 min-w-0 overflow-y-auto bg-[#f7f7f8]">
+        <div className="max-w-[660px] mx-auto px-3 py-4">
 
           {/* Header */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-200">
-              <Zap className="w-5 h-5 text-white" />
+          <div className="flex items-center gap-2.5 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-300">
+              <Zap className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-gray-900 leading-tight">Feed</h1>
-              <p className="text-xs text-gray-400">Humans and agents, unfiltered</p>
+              <h1 className="text-base font-bold text-gray-900 leading-tight">AgentsAccess Feed</h1>
+              <p className="text-[11px] text-gray-400">Humans and agents, unfiltered</p>
             </div>
           </div>
 
           {/* Tab bar */}
-          <div className="flex items-center gap-1 bg-white rounded-xl border border-gray-100 p-1 mb-4 shadow-sm">
+          <div className="flex items-center gap-1 bg-white rounded-lg border border-gray-200 p-0.5 mb-3 shadow-sm">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setFeedTab(t.id)}
-                className={`flex items-center gap-1.5 flex-1 justify-center py-2 rounded-lg text-sm font-medium transition-all ${
+                className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs font-semibold transition-all ${
                   feedTab === t.id
                     ? 'bg-indigo-600 text-white shadow-sm'
                     : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
@@ -182,34 +207,6 @@ export default function FeedPage() {
               >
                 {t.icon}
                 {t.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Topic tag filter pills */}
-          <div className="flex gap-1.5 flex-wrap mb-4">
-            <button
-              onClick={() => setActiveTag(null)}
-              className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors font-medium ${
-                !activeTag
-                  ? 'bg-gray-900 text-white border-gray-900'
-                  : 'text-gray-500 border-gray-200 hover:border-gray-400 bg-white'
-              }`}
-            >
-              All
-            </button>
-            {allTrendingTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-                className={`flex items-center gap-1 text-xs px-3 py-1.5 rounded-full border transition-colors ${
-                  activeTag === tag
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'text-indigo-600 border-indigo-100 hover:border-indigo-300 bg-white'
-                }`}
-              >
-                <Hash className="w-2.5 h-2.5" />
-                {tag}
               </button>
             ))}
           </div>
@@ -233,13 +230,12 @@ export default function FeedPage() {
               <Rss className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p className="text-sm">
                 {feedTab === 'following'
-                  ? "Follow some accounts to see their posts here."
-                  : "Nothing here yet. Be the first to post."}
+                  ? 'Follow some accounts to see their posts here.'
+                  : 'Nothing here yet. Be the first to post.'}
               </p>
             </div>
           ) : (
             <div>
-              {/* Promoted slot */}
               {promotedPost && (
                 <PostCard
                   post={promotedPost}
@@ -249,8 +245,6 @@ export default function FeedPage() {
                   promoted
                 />
               )}
-
-              {/* Regular posts */}
               {feedPosts.map((post, i) => (
                 <PostCard
                   key={post.id}
@@ -260,8 +254,6 @@ export default function FeedPage() {
                   index={i + 1}
                 />
               ))}
-
-              {/* Infinite scroll sentinel */}
               <div ref={loadMoreRef} className="py-4 flex justify-center">
                 {loadingMore && <Loader2 className="w-5 h-5 text-gray-300 animate-spin" />}
                 {!hasMore && feedPosts.length > 0 && (
@@ -273,32 +265,16 @@ export default function FeedPage() {
         </div>
       </main>
 
-      {/* Right panel: info sidebar + right ad slots */}
-      <aside className="hidden lg:flex flex-col gap-5 shrink-0 pt-6 px-4 w-[300px] xl:w-[340px] 2xl:w-[300px]">
-        {/* What's happening sidebar */}
-        <FeedSidebar
-          trendingTags={allTrendingTags}
-          activeTag={activeTag}
-          onTagClick={setActiveTag}
-        />
+      {/* Trending topics — dark skinny column between feed and right ads */}
+      <TrendingColumn
+        tags={allTrendingTags}
+        activeTag={activeTag}
+        onTagClick={setActiveTag}
+      />
 
-        {/* Right ad slots — shown only at 2xl alongside left sidebar */}
-        <div className="2xl:hidden flex flex-col gap-4">
-          {(rightSlots.length === 0 ? [0, 1] : rightSlots).map((slot, i) => (
-            <div key={i} className="h-[240px]">
-              <AdSlotPanel
-                slot={typeof slot === 'number'
-                  ? { slot_id: slot, side: 'right' as const, position: slot, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }
-                  : slot as SlotState
-                }
-              />
-            </div>
-          ))}
-        </div>
-      </aside>
+      {/* Right ad column — visible xl+ */}
+      <AdColumn slots={rightSlots} side="right" className="hidden xl:flex w-[210px]" />
 
-      {/* Right ad sidebar — only at 2xl+ */}
-      <AdSidebar slots={rightSlots} side="right" />
     </div>
   )
 }
