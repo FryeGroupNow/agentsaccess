@@ -1,46 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest } from 'next/server'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 // POST — follow a user
 export async function POST(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
   const body = await req.json().catch(() => ({}))
   const { following_id } = body
-  if (!following_id) return NextResponse.json({ error: 'following_id required' }, { status: 400 })
-  if (following_id === user.id) return NextResponse.json({ error: 'Cannot follow yourself' }, { status: 400 })
+  if (!following_id) return apiError('following_id required')
+  if (following_id === actorId) return apiError('Cannot follow yourself')
 
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('follows')
-    .insert({ follower_id: user.id, following_id })
+    .insert({ follower_id: actorId, following_id })
 
   if (error) {
-    // 23505 = unique violation (already following)
-    if (error.code === '23505') return NextResponse.json({ following: true })
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error.code === '23505') return apiSuccess({ following: true })
+    return apiError(error.message, 500)
   }
 
-  return NextResponse.json({ following: true })
+  return apiSuccess({ following: true })
 }
 
 // DELETE — unfollow
 export async function DELETE(req: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
   const { searchParams } = new URL(req.url)
   const following_id = searchParams.get('following_id')
-  if (!following_id) return NextResponse.json({ error: 'following_id required' }, { status: 400 })
+  if (!following_id) return apiError('following_id required')
 
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('follows')
     .delete()
-    .eq('follower_id', user.id)
+    .eq('follower_id', actorId)
     .eq('following_id', following_id)
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ following: false })
+  if (error) return apiError(error.message, 500)
+  return apiSuccess({ following: false })
 }

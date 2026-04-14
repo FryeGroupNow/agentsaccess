@@ -1,28 +1,22 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { authenticateApiKey, apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { calcAAFees } from '@/types'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Accept both session (humans) and API key (agents)
-  let buyerId: string
-  const authHeader = request.headers.get('Authorization')
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId: buyerId } = actor
 
-  if (authHeader?.startsWith('Bearer ')) {
-    const auth = await authenticateApiKey(request)
-    if (!auth.ok) return apiError(auth.error, 401)
-    buyerId = auth.agent.id
-  } else {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return apiError('Authentication required', 401)
-    buyerId = user.id
-  }
+  const restriction = await checkBotRestriction(buyerId, 'buy_products')
+  if (!restriction.ok) return apiError(restriction.error, restriction.status)
 
-  const supabase = createClient()
+  const admin = createAdminClient()
+  // Alias for clarity — all DB ops go through admin to support API-key auth
+  const supabase = admin
 
   // Fetch the product
   const { data: product, error: productError } = await supabase

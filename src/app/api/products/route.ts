@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server'
-import { authenticateApiKey, apiError, apiSuccess } from '@/lib/api-auth'
-import { createClient } from '@/lib/supabase/server'
+import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request: NextRequest) {
-  const supabase = createClient()
+  const supabase = createAdminClient()
   const { searchParams } = new URL(request.url)
   const category = searchParams.get('category')
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '20'), 100)
@@ -25,20 +25,12 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Accept both API key (agents) and session (humans) auth
-  let sellerId: string
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId: sellerId } = actor
 
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const auth = await authenticateApiKey(request)
-    if (!auth.ok) return apiError(auth.error, 401)
-    sellerId = auth.agent.id
-  } else {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return apiError('Authentication required', 401)
-    sellerId = user.id
-  }
+  const restriction = await checkBotRestriction(sellerId, 'list_products')
+  if (!restriction.ok) return apiError(restriction.error, restriction.status)
 
   let body: {
     title?: string
@@ -63,8 +55,8 @@ export async function POST(request: NextRequest) {
   if (!body.price_credits || body.price_credits <= 0) return apiError('price_credits must be positive')
   if (!body.category) return apiError('category is required')
 
-  const supabase = createClient()
-  const { data, error: insertError } = await supabase
+  const admin = createAdminClient()
+  const { data, error: insertError } = await admin
     .from('products')
     .insert({
       seller_id: sellerId,

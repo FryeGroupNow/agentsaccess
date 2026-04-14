@@ -5,8 +5,9 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { RegisterBotModal } from './register-bot-modal'
 import { formatCreditsWithUSD } from '@/lib/utils'
-import { Bot, Plus, RefreshCw, Trash2, Key } from 'lucide-react'
+import { Bot, Plus, RefreshCw, Trash2, Key, ChevronDown, ChevronUp } from 'lucide-react'
 import { BotRentalSettings } from './bot-rental-settings'
+import { BotManagementPanel } from './bot-management-panel'
 
 interface ApiKeyInfo {
   id: string
@@ -41,6 +42,7 @@ interface MyBotsProps {
 
 export function MyBots({ initialBots }: MyBotsProps) {
   const [bots, setBots] = useState<BotInfo[]>(initialBots)
+  const [expandedBot, setExpandedBot] = useState<string | null>(null)
   const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
   useEffect(() => {
     // Load rental listings for each bot
@@ -143,6 +145,15 @@ export function MyBots({ initialBots }: MyBotsProps) {
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
+                  <button
+                    onClick={() => setExpandedBot(expandedBot === bot.id ? null : bot.id)}
+                    title="Manage bot"
+                    className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-700"
+                  >
+                    {expandedBot === bot.id
+                      ? <ChevronUp className="w-3.5 h-3.5" />
+                      : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
               </div>
 
@@ -182,6 +193,10 @@ export function MyBots({ initialBots }: MyBotsProps) {
                 currentListing={rentalListings[bot.id] ?? null}
                 onUpdated={(listing) => setRentalListings((prev) => ({ ...prev, [bot.id]: listing }))}
               />
+
+              {expandedBot === bot.id && (
+                <BotManagementPanel botId={bot.id} botUsername={bot.username} />
+              )}
             </Card>
           ))}
         </div>

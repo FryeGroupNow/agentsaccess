@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
-import { authenticateApiKey, apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const FREE_POSTS_PER_DAY  = 3
 const PAID_POSTS_PER_DAY  = 10
@@ -69,20 +69,13 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  // Accept both API key (agents) and session (humans) auth
-  let authorId: string
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId: authorId } = actor
 
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const auth = await authenticateApiKey(request)
-    if (!auth.ok) return apiError(auth.error, 401)
-    authorId = auth.agent.id
-  } else {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return apiError('Authentication required', 401)
-    authorId = user.id
-  }
+  // Check owner-imposed bot restrictions
+  const restriction = await checkBotRestriction(authorId, 'post')
+  if (!restriction.ok) return apiError(restriction.error, restriction.status)
 
   let body: { content?: string; tags?: string[]; parent_id?: string; pay_for_post?: boolean }
   try {
@@ -97,16 +90,32 @@ export async function POST(request: NextRequest) {
   // Replies (parent_id set) don't count toward the daily limit
   const isReply = Boolean(body.parent_id)
 
-  const supabaseAdmin = createAdminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
+  const admin = createAdminClient()
   const today = new Date().toISOString().slice(0, 10) // YYYY-MM-DD UTC
 
   if (!isReply) {
+    // Check owner-imposed per-bot daily post limit
+    const { data: botSettings } = await admin
+      .from('bot_settings')
+      .select('daily_post_limit')
+      .eq('bot_id', authorId)
+      .maybeSingle()
+
+    if (botSettings?.daily_post_limit) {
+      const { data: countRow } = await admin
+        .from('daily_post_counts')
+        .select('free_used, paid_used')
+        .eq('profile_id', authorId)
+        .eq('post_date', today)
+        .maybeSingle()
+      const usedToday = (countRow?.free_used ?? 0) + (countRow?.paid_used ?? 0)
+      if (usedToday >= botSettings.daily_post_limit) {
+        return apiError(`Bot daily post limit of ${botSettings.daily_post_limit} reached`, 429)
+      }
+    }
+
     // Fetch or create today's count row
-    const { data: countRow } = await supabaseAdmin
+    const { data: countRow } = await admin
       .from('daily_post_counts')
       .select('free_used, paid_used')
       .eq('profile_id', authorId)
@@ -125,7 +134,6 @@ export async function POST(request: NextRequest) {
     const payForPost = body.pay_for_post === true
 
     if (!hasFreePosts && !payForPost) {
-      // Inform client they need to pay
       return apiSuccess({
         requires_payment: true,
         free_used: freeUsed,
@@ -138,8 +146,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!hasFreePosts && payForPost) {
-      // Charge 1 AA from the author's balance
-      const { data: profile } = await supabaseAdmin
+      const { data: profile } = await admin
         .from('profiles')
         .select('credit_balance')
         .eq('id', authorId)
@@ -149,33 +156,31 @@ export async function POST(request: NextRequest) {
         return apiError(`Insufficient AA balance. Extra posts cost ${PAID_POST_COST_AA} AA.`, 402)
       }
 
-      // Debit the account and record the transaction
-      const { error: debitError } = await supabaseAdmin
+      const { error: debitError } = await admin
         .from('profiles')
         .update({ credit_balance: profile.credit_balance - PAID_POST_COST_AA })
         .eq('id', authorId)
 
       if (debitError) return apiError('Failed to debit AA balance', 500)
 
-      await supabaseAdmin.from('transactions').insert({
+      await admin.from('transactions').insert({
         from_id: authorId,
         amount: PAID_POST_COST_AA,
-        type: 'buy_product',  // closest existing type; TODO: add 'paid_post' type
+        type: 'buy_product',
         notes: 'Extra feed post slot',
       })
     }
 
-    // Upsert count row
     const newFree = hasFreePosts ? freeUsed + 1 : freeUsed
     const newPaid = !hasFreePosts ? paidUsed + 1 : paidUsed
 
-    await supabaseAdmin
+    await admin
       .from('daily_post_counts')
       .upsert({ profile_id: authorId, post_date: today, free_used: newFree, paid_used: newPaid })
   }
 
   // Check sponsor restrictions for agent posters
-  const { data: authorProfile } = await supabaseAdmin
+  const { data: authorProfile } = await admin
     .from('profiles')
     .select('user_type')
     .eq('id', authorId)
@@ -183,7 +188,7 @@ export async function POST(request: NextRequest) {
 
   let isApproved = true
   if (authorProfile?.user_type === 'agent' && !isReply) {
-    const { data: activeSponsor } = await supabaseAdmin
+    const { data: activeSponsor } = await admin
       .from('sponsor_agreements')
       .select('paused, post_restriction')
       .eq('bot_id', authorId)
@@ -200,8 +205,8 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const supabase = createClient()
-  const { data, error } = await supabase
+  // Use admin client — session client is anon for API-key-authenticated agents
+  const { data, error } = await admin
     .from('posts')
     .insert({
       author_id: authorId,

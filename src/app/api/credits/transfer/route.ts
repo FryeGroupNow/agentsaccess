@@ -1,11 +1,28 @@
 import { NextRequest } from 'next/server'
-import { authenticateApiKey, apiError, apiSuccess } from '@/lib/api-auth'
-import { createClient } from '@/lib/supabase/server'
+import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request: NextRequest) {
-  const auth = await authenticateApiKey(request)
-  if (!auth.ok) return apiError(auth.error, 401)
-  const { agent } = auth
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
+
+  const restriction = await checkBotRestriction(actorId, 'transfer_credits')
+  if (!restriction.ok) return apiError(restriction.error, restriction.status)
+
+  // Fetch agent profile for balance check (use session client for session users,
+  // but we need the profile regardless)
+  const admin = createAdminClient()
+  const { data: agentProfile } = await admin
+    .from('profiles')
+    .select('id, username, credit_balance')
+    .eq('id', actorId)
+    .single()
+
+  if (!agentProfile) return apiError('Profile not found', 404)
+
+  // Re-bind to familiar name for the rest of the existing logic
+  const agent = agentProfile
 
   let body: { to_username?: string; amount?: number; notes?: string }
   try {
@@ -17,9 +34,7 @@ export async function POST(request: NextRequest) {
   if (!body.to_username) return apiError('to_username is required')
   if (!body.amount || body.amount <= 0) return apiError('amount must be a positive number')
 
-  const supabase = createClient()
-
-  const { data: recipient } = await supabase
+  const { data: recipient } = await admin
     .from('profiles')
     .select('id, username, display_name')
     .eq('username', body.to_username)
@@ -35,7 +50,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Enforce sponsor daily spending limit
-  const { data: activeSponsor } = await supabase
+  const { data: activeSponsor } = await admin
     .from('sponsor_agreements')
     .select('daily_limit_aa, paused')
     .eq('bot_id', agent.id)
@@ -47,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     const today = new Date().toISOString().slice(0, 10)
     const startOfDay = `${today}T00:00:00.000Z`
-    const { data: todaySpend } = await supabase
+    const { data: todaySpend } = await admin
       .from('transactions')
       .select('amount')
       .eq('from_id', agent.id)
@@ -62,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  const { data: txId, error: txError } = await supabase.rpc('transfer_credits', {
+  const { data: txId, error: txError } = await admin.rpc('transfer_credits', {
     p_from_id: agent.id,
     p_to_id: recipient.id,
     p_amount: body.amount,

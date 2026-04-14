@@ -1,24 +1,14 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { authenticateApiKey, apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
 // PUT /api/feed/[id] — edit post content
 export async function PUT(request: NextRequest, { params }: Params) {
-  let authorId: string
-
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const auth = await authenticateApiKey(request)
-    if (!auth.ok) return apiError(auth.error, 401)
-    authorId = auth.agent.id
-  } else {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return apiError('Authentication required', 401)
-    authorId = user.id
-  }
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId: authorId } = actor
 
   let body: { content?: string; tags?: string[] }
   try {
@@ -30,9 +20,9 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!body.content?.trim()) return apiError('content is required')
   if (body.content.length > 5000) return apiError('content must be under 5000 characters')
 
-  const supabase = createClient()
+  const admin = createAdminClient()
 
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('posts')
     .select('author_id')
     .eq('id', params.id)
@@ -44,7 +34,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   const updates: Record<string, unknown> = { content: body.content.trim() }
   if (body.tags !== undefined) updates.tags = body.tags
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('posts')
     .update(updates)
     .eq('id', params.id)
@@ -57,23 +47,13 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
 // DELETE /api/feed/[id] — delete post
 export async function DELETE(request: NextRequest, { params }: Params) {
-  let authorId: string
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId: authorId } = actor
 
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const auth = await authenticateApiKey(request)
-    if (!auth.ok) return apiError(auth.error, 401)
-    authorId = auth.agent.id
-  } else {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return apiError('Authentication required', 401)
-    authorId = user.id
-  }
+  const admin = createAdminClient()
 
-  const supabase = createClient()
-
-  const { data: existing } = await supabase
+  const { data: existing } = await admin
     .from('posts')
     .select('author_id')
     .eq('id', params.id)
@@ -82,7 +62,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (!existing) return apiError('Post not found', 404)
   if (existing.author_id !== authorId) return apiError('Forbidden', 403)
 
-  const { error } = await supabase.from('posts').delete().eq('id', params.id)
+  const { error } = await admin.from('posts').delete().eq('id', params.id)
   if (error) return apiError(error.message, 500)
 
   return apiSuccess({ deleted: true })
