@@ -5,7 +5,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light;
 }
+
+/* Dark mode via OS preference is intentionally disabled. Per-component
+   dark: variants are not yet in place across the app, so honoring
+   prefers-color-scheme leaves text unreadable on cards and forms.
+   Re-enable this block once every component has dark: variants.
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -13,6 +19,7 @@
     --foreground: #ededed;
   }
 }
+*/
 
 body {
   color: var(--foreground);

@@ -4,13 +4,11 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
-  UserCircle, Lock, Bell, Shield, KeyRound, Receipt, Palette, LogOut, Check, Coins,
-  Sun, Moon, Monitor,
+  UserCircle, Lock, Bell, Shield, KeyRound, Receipt, LogOut, Check, Coins,
 } from 'lucide-react'
-import type { SpendPreference, ThemePreference } from '@/types'
-import { useTheme } from '@/components/providers/theme-provider'
+import type { SpendPreference } from '@/types'
 
-type Tab = 'profile' | 'password' | 'spending' | 'notifications' | 'privacy' | 'api-keys' | 'billing' | 'theme'
+type Tab = 'profile' | 'password' | 'spending' | 'notifications' | 'privacy' | 'api-keys' | 'billing'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'profile',       label: 'Edit Profile',             icon: <UserCircle className="w-4 h-4" /> },
@@ -20,7 +18,6 @@ const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: 'privacy',       label: 'Privacy Settings',          icon: <Shield className="w-4 h-4" /> },
   { id: 'api-keys',      label: 'API Keys',                  icon: <KeyRound className="w-4 h-4" /> },
   { id: 'billing',       label: 'Billing History',           icon: <Receipt className="w-4 h-4" /> },
-  { id: 'theme',         label: 'Theme Preferences',         icon: <Palette className="w-4 h-4" /> },
 ]
 
 interface Props {
@@ -29,7 +26,6 @@ interface Props {
 }
 
 export function AccountSettingsPanel({ initialTab, profile }: Props) {
-  const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<Tab>((initialTab as Tab) ?? 'profile')
 
   // Profile form state
@@ -433,45 +429,10 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
             </div>
           )}
 
-          {activeTab === 'theme' && (
-            <div className="space-y-4 max-w-md">
-              <h3 className="font-semibold text-gray-900">Theme Preferences</h3>
-              <p className="text-sm text-gray-500">
-                Pick how AgentsAccess looks on your screen. Saved to your profile and applied
-                across devices.
-              </p>
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { id: 'light' as const,  label: 'Light',  icon: Sun,     desc: 'Bright UI' },
-                  { id: 'dark' as const,   label: 'Dark',   icon: Moon,    desc: 'Low-light UI' },
-                  { id: 'system' as const, label: 'System', icon: Monitor, desc: 'Match OS' },
-                ]).map(({ id, label, icon: Icon, desc }) => {
-                  const active = theme === id
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setTheme(id as ThemePreference)}
-                      className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${
-                        active
-                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40'
-                          : 'border-gray-200 text-gray-600 hover:border-indigo-200 bg-white dark:bg-gray-800'
-                      }`}
-                    >
-                      <Icon className={`w-5 h-5 ${active ? 'text-indigo-600' : 'text-gray-400'}`} />
-                      <span className="text-xs font-semibold">{label}</span>
-                      <span className="text-[10px] text-gray-400">{desc}</span>
-                    </button>
-                  )
-                })}
-              </div>
-              <p className="text-[11px] text-gray-400 leading-relaxed">
-                Note: dark mode visual coverage is being rolled out across components. Core pages
-                will use your preference today; a few screens may still show light styling until
-                their dark variants ship.
-              </p>
-            </div>
-          )}
+          {/* Theme tab removed while dark mode is disabled. The ThemeProvider,
+              /api/profile/preferences theme column, and migration 021 are
+              still in place; restore this block and re-add the ThemeProvider
+              wrapper in src/app/layout.tsx to bring it back. */}
         </div>
       </div>
     </div>
