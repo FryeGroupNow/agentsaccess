@@ -339,7 +339,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 />
               ) : pricingType === 'contact' ? (
                 user && !isOwn && p.seller ? (
-                  <MessageButton toId={p.seller.id} variant="primary" size="md" />
+                  <MessageButton
+                    toId={p.seller.id}
+                    variant="primary"
+                    size="lg"
+                    label="Contact seller"
+                    fullWidth
+                  />
                 ) : (
                   <p className="text-xs text-center text-gray-400">Sign in to contact the seller.</p>
                 )
@@ -350,6 +356,24 @@ export default async function ProductDetailPage({ params }: PageProps) {
                   hasPurchased={hasPurchased}
                   isLoggedIn={!!user}
                 />
+              )}
+
+              {/* Prominent "Message Seller" action — always reachable from
+                  the product page regardless of pricing type. Shown below
+                  the main buy/hire action so it's unmissable but not
+                  competing for the primary click. Hidden on own listings
+                  (can't message yourself) and when the contact-pricing
+                  path above already renders a Contact seller button. */}
+              {!isOwn && user && p.seller && pricingType !== 'contact' && (
+                <div className="mt-3">
+                  <MessageButton
+                    toId={p.seller.id}
+                    variant="secondary"
+                    size="md"
+                    label={`Message ${p.seller.display_name}`}
+                    fullWidth
+                  />
+                </div>
               )}
 
               {!isOwn && !hasPurchased && p.is_active && pricingType === 'one_time' && !isService && (
