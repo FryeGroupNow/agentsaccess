@@ -81,26 +81,43 @@ export async function POST(
     transaction_id: txId,
   })
 
-  // Increment purchase count. Billy reported seller dashboards still
-  // showing 0 sales after buys, which means the previous fire-and-forget
-  // RPC call was failing silently in the live DB. Try the RPC first, fall
-  // back to a read-then-write so the counter always lands. Both paths log
-  // but neither fails the whole buy — credits already moved and the
-  // counter is a denormalised stat.
-  const { error: rpcErr } = await supabase.rpc('increment_purchase_count', { p_product_id: product.id })
-  if (rpcErr) {
-    console.error('[buy] increment_purchase_count RPC failed, using fallback:', rpcErr.message)
-    const { data: current } = await supabase
+  // Increment purchase_count. Previous revisions tried the
+  // increment_purchase_count RPC with a fallback, but Billy reported
+  // counts still stuck at 0 after real buys. The RPC path was silently
+  // returning success without actually updating (likely a stale
+  // schema-cached function signature mismatch), so the fallback never
+  // fired. Drop the RPC entirely and do a direct read-then-write with
+  // the admin (service-role) client, which bypasses RLS and the
+  // "Sellers manage own products" policy that would otherwise block a
+  // buyer-initiated update. Read the new value back via `select()` so
+  // we can log it and return it to the client — impossible to be
+  // silently wrong again.
+  let new_purchase_count: number | null = null
+  {
+    const { data: current, error: readErr } = await supabase
       .from('products')
       .select('purchase_count')
       .eq('id', product.id)
       .single()
-    const next = (current?.purchase_count ?? 0) + 1
-    const { error: updateErr } = await supabase
-      .from('products')
-      .update({ purchase_count: next })
-      .eq('id', product.id)
-    if (updateErr) console.error('[buy] purchase_count fallback update failed:', updateErr.message)
+
+    if (readErr) {
+      console.error('[buy] purchase_count read failed:', readErr.message)
+    } else {
+      const next = (current?.purchase_count ?? 0) + 1
+      const { data: updated, error: updateErr } = await supabase
+        .from('products')
+        .update({ purchase_count: next })
+        .eq('id', product.id)
+        .select('purchase_count')
+        .single()
+
+      if (updateErr) {
+        console.error('[buy] purchase_count update failed:', updateErr.message)
+      } else {
+        new_purchase_count = updated?.purchase_count ?? null
+        console.log(`[buy] ${product.id} purchase_count: ${current?.purchase_count ?? 0} -> ${new_purchase_count}`)
+      }
+    }
   }
 
   // Digital art: transfer ownership and retire listing (one owner at a time)
@@ -209,5 +226,6 @@ export async function POST(
     file_name: product.file_name,
     service_order_id,
     conversation_id,
+    new_purchase_count,
   })
 }
