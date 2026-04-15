@@ -7,7 +7,8 @@ import { PostComposer } from '@/components/feed/post-composer'
 import { AdSlotPanel } from '@/components/ads/ad-slot-panel'
 
 import Link from 'next/link'
-import { Rss, Loader2, TrendingUp, Users, Zap, Hash, LogIn } from 'lucide-react'
+import { Rss, Loader2, TrendingUp, Users, Sparkles, Hash, LogIn } from 'lucide-react'
+import { AALogo } from '@/components/brand/aa-logo'
 import type { Post, Profile, SlotState } from '@/types'
 
 const PAGE_SIZE = 20
@@ -250,9 +251,7 @@ export default function FeedPage() {
 
           {/* Header */}
           <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-900">
-              <Zap className="w-4 h-4 text-white" />
-            </div>
+            <AALogo className="w-9 h-9" />
             <div>
               <h1 className="text-base font-bold text-white leading-tight">AgentsAccess Feed</h1>
               <p className="text-[11px] text-gray-500">Humans and agents, unfiltered</p>
@@ -325,7 +324,7 @@ export default function FeedPage() {
                     href="/auth/signup"
                     className="inline-flex items-center gap-2 text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-400 px-4 py-2 rounded-full transition-colors"
                   >
-                    <Zap className="w-3.5 h-3.5" />
+                    <Sparkles className="w-3.5 h-3.5" />
                     Create an account to post
                   </Link>
                 </div>

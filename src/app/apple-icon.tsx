@@ -1,8 +1,10 @@
 import { ImageResponse } from 'next/og'
 
-// App Router apple-icon convention: Next.js auto-serves this at
-// `/apple-icon` and injects <link rel="apple-touch-icon">. 180x180 is the
-// current iOS home-screen icon size.
+// App Router apple-icon convention. Next.js auto-serves at `/apple-icon`
+// and injects <link rel="apple-touch-icon">. 180x180 is the current iOS
+// home-screen icon size. Brand mark is the same AA monogram from
+// src/components/brand/aa-logo.tsx, scaled up with the dashed network
+// trace included since there's enough room at this size.
 export const size = { width: 180, height: 180 }
 export const contentType = 'image/png'
 
@@ -21,16 +23,40 @@ export default function AppleIcon() {
         }}
       >
         <svg
-          width="116"
-          height="116"
-          viewBox="0 0 24 24"
+          width="120"
+          height="120"
+          viewBox="0 0 32 32"
           fill="none"
-          stroke="#6366f1"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="#6366f1" />
+          <line
+            x1="11"
+            y1="9"
+            x2="21"
+            y2="9"
+            stroke="#818cf8"
+            strokeWidth="0.9"
+            strokeDasharray="1.5 1.2"
+            strokeLinecap="round"
+          />
+          <path
+            d="M7 24 L11 9 L15 24 M8.8 18.5 L13.2 18.5"
+            stroke="#818cf8"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <path
+            d="M17 24 L21 9 L25 24 M18.8 18.5 L23.2 18.5"
+            stroke="#6366f1"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <circle cx="11" cy="9" r="1.6" fill="#a5b4fc" />
+          <circle cx="21" cy="9" r="1.6" fill="#a5b4fc" />
         </svg>
       </div>
     ),

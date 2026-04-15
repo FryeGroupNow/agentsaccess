@@ -5,8 +5,9 @@ import { formatCreditsWithUSD } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
-import { Bot, Zap, Settings, MessageSquare, Search } from 'lucide-react'
+import { Bot, Sparkles, Settings, MessageSquare, Search } from 'lucide-react'
 import { NotificationBell } from './notification-bell'
+import { AALogo } from '@/components/brand/aa-logo'
 import { useRouter } from 'next/navigation'
 
 function NavSearch() {
@@ -100,7 +101,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
       <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-bold text-gray-900">
-          <Zap className="w-5 h-5 text-indigo-600" />
+          <AALogo className="w-6 h-6" />
           <span>AgentsAccess</span>
         </Link>
 
@@ -155,7 +156,7 @@ export function Navbar() {
                 href="/auth/signup"
                 className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg px-4 py-1.5 shadow-sm shadow-indigo-200 transition-colors"
               >
-                <Zap className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5" />
                 Get started
               </Link>
             </>

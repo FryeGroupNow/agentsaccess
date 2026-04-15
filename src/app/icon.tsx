@@ -1,15 +1,16 @@
 import { ImageResponse } from 'next/og'
 
-// App Router icon convention: Next.js auto-serves this at `/icon`, injects
-// the matching <link rel="icon"> tag into <head>, and uses it as the
-// default favicon. A 32x32 render works for both the browser tab and the
-// /favicon.ico fallback path some browsers request directly.
+// App Router icon convention: Next.js auto-serves this at `/icon`,
+// injects the matching <link rel="icon"> tag into <head>, and uses it
+// as the favicon. 32x32 is the size browsers actually render in tabs.
+//
+// Brand mark: the AA monogram defined in
+// src/components/brand/aa-logo.tsx, simplified for small sizes —
+// dashed network trace removed and stroke widths bumped so the two A
+// glyphs survive the downsample to 16x16. Indigo on dark.
 export const size = { width: 32, height: 32 }
 export const contentType = 'image/png'
 
-// Brand: indigo lightning bolt on a dark square. Matches the Zap icon in
-// the navbar at src/components/layout/navbar.tsx so the favicon reads as
-// the same glyph.
 export default function Icon() {
   return new ImageResponse(
     (
@@ -25,16 +26,29 @@ export default function Icon() {
         }}
       >
         <svg
-          width="22"
-          height="22"
-          viewBox="0 0 24 24"
+          width="28"
+          height="28"
+          viewBox="0 0 32 32"
           fill="none"
-          stroke="#6366f1"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" fill="#6366f1" />
+          <path
+            d="M6 25 L11 7 L16 25 M8.2 18 L13.8 18"
+            stroke="#818cf8"
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <path
+            d="M16 25 L21 7 L26 25 M18.2 18 L23.8 18"
+            stroke="#6366f1"
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+          <circle cx="16" cy="6.5" r="2" fill="#a5b4fc" />
         </svg>
       </div>
     ),

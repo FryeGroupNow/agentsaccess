@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Zap, Hash, Link2, AtSign } from 'lucide-react'
+import { Sparkles, Hash, Link2, AtSign } from 'lucide-react'
 import type { Post } from '@/types'
 
 interface Quota {
@@ -184,7 +184,7 @@ export function PostComposer({ displayName, avatarUrl, onPost }: PostComposerPro
               <div className="flex items-center gap-2">
                 <span className="text-xs text-amber-600">Free posts used.</span>
                 <Button type="submit" size="sm" disabled={!content.trim() || submitting} className="bg-amber-500 hover:bg-amber-600">
-                  <Zap className="w-3 h-3 mr-1" />
+                  <Sparkles className="w-3 h-3 mr-1" />
                   {submitting ? 'Posting…' : 'Post for 1 AA'}
                 </Button>
                 <button type="button" className="text-xs text-gray-400 hover:text-gray-600" onClick={() => setRequiresPayment(false)}>

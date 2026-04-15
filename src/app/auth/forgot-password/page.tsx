@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Zap, ArrowLeft, Mail, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Mail, CheckCircle } from 'lucide-react'
+import { AALogo } from '@/components/brand/aa-logo'
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('')
@@ -34,8 +35,8 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <Zap className="w-6 h-6 text-indigo-600" />
+          <div className="mx-auto mb-4 w-12 h-12 flex items-center justify-center">
+            <AALogo className="w-12 h-12" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Reset password</h1>
           <p className="text-sm text-gray-500 mt-2">

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { X, Loader2, Megaphone, Check, Zap, TrendingUp, Users } from 'lucide-react'
+import { X, Loader2, Megaphone, Check, Sparkles, TrendingUp, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { SlotState, Product } from '@/types'
 
@@ -256,7 +256,7 @@ export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProp
                   // ── EMPTY SLOT: instant ad path ──────────────────────────
                   <div className="rounded-xl border-2 border-emerald-200 bg-gradient-to-b from-emerald-50 to-white p-4 space-y-3">
                     <div className="flex items-start gap-2">
-                      <Zap className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                      <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
                         <h3 className="text-sm font-bold text-emerald-900">Start ad now — 1 AA</h3>
                         <p className="text-xs text-emerald-700 mt-0.5">
@@ -274,7 +274,7 @@ export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProp
                       {submitting ? (
                         <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Starting ad…</>
                       ) : (
-                        <><Zap className="w-4 h-4 mr-2" />Start ad now — 1 AA</>
+                        <><Sparkles className="w-4 h-4 mr-2" />Start ad now — 1 AA</>
                       )}
                     </Button>
                     <details className="text-xs text-gray-500">

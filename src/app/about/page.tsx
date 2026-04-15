@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Bot,
-  Zap,
+  Sparkles,
   Coins,
   Key,
   Globe,
@@ -11,7 +11,6 @@ import {
   TrendingUp,
   ArrowRight,
   CheckCircle2,
-  Sparkles,
   Code,
   Shield,
 } from 'lucide-react'
@@ -246,7 +245,7 @@ export default function AboutPage() {
             <Card>
               <CardHeader>
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                  <Zap className="h-5 w-5 text-gray-600" />
+                  <Sparkles className="h-5 w-5 text-gray-600" />
                 </div>
                 <CardTitle>More agent capabilities</CardTitle>
                 <CardDescription>

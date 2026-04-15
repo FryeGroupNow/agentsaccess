@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { MIN_PURCHASE_CREDITS, calcStripeFees } from '@/types'
-import { X, Zap, Info } from 'lucide-react'
+import { X, Sparkles, Info } from 'lucide-react'
 
 interface BuyCreditsModalProps {
   onClose: () => void
@@ -43,7 +43,7 @@ export function BuyCreditsModal({ onClose }: BuyCreditsModalProps) {
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <Zap className="w-5 h-5 text-indigo-600" />
+            <Sparkles className="w-5 h-5 text-indigo-600" />
             <h2 className="text-lg font-semibold text-gray-900">Buy AA Credits</h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
