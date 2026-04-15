@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 
 const FREE_POSTS_PER_DAY = 3

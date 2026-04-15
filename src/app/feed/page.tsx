@@ -20,7 +20,19 @@ const BOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100"><g
 const BOT_PATTERN = `url("data:image/svg+xml,${encodeURIComponent(BOT_SVG)}")`
 
 function makeEmptySlot(side: 'left' | 'right', slotId: number, position: number): SlotState {
-  return { slot_id: slotId, side, position, current_placement: null, next_period_top_bid: 0, next_period_start: '', next_period_bid_count: 0 }
+  return {
+    slot_id: slotId,
+    side,
+    position,
+    current_placement: null,
+    current_winning_bid: 0,
+    next_period_start: '',
+    next_period_top_bid: 0,
+    next_period_bid_count: 0,
+    seconds_until_settle: 0,
+    my_bid_amount: null,
+    my_bid_status: null,
+  }
 }
 
 function AdColumn({ slots, side, className }: { slots: SlotState[]; side: 'left' | 'right'; className: string }) {
@@ -109,14 +121,31 @@ export default function FeedPage() {
   }, [])
 
   useEffect(() => {
-    fetch('/api/ads/slots')
+    fetch('/api/ads/slots', { cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => {
         const slots: SlotState[] = d.slots ?? []
+        // Debug aid — remove once ad system is verified end-to-end
+        // eslint-disable-next-line no-console
+        console.log('[ads] /api/ads/slots returned', {
+          slot_count: slots.length,
+          live_count: slots.filter((s) => s.current_placement != null).length,
+          server_time: d.server_time,
+          slots: slots.map((s) => ({
+            id: s.slot_id,
+            live: !!s.current_placement,
+            product: s.current_placement?.product?.title ?? null,
+            winning_bid: s.current_winning_bid,
+            next_top: s.next_period_top_bid,
+          })),
+        })
         setLeftSlots(slots.filter((s) => s.side === 'left').sort((a, b) => a.position - b.position))
         setRightSlots(slots.filter((s) => s.side === 'right').sort((a, b) => a.position - b.position))
       })
-      .catch(() => {})
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error('[ads] failed to fetch slots', err)
+      })
   }, [])
 
   const fetchPosts = useCallback(async (offset: number, tag: string | null, tab: FeedTab) => {

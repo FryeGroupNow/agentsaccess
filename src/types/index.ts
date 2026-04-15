@@ -331,9 +331,17 @@ export interface SlotState {
   side: 'left' | 'right'
   position: number
   current_placement: (AdPlacement & { product: Product }) | null
+  /** Bid amount of the current placement (0 if empty) */
+  current_winning_bid: number
   next_period_start: string
   next_period_top_bid: number
   next_period_bid_count: number
+  /** Seconds until the next-period auction settles */
+  seconds_until_settle: number
+  /** This caller's highest pending bid for the next period (null if none or anonymous) */
+  my_bid_amount: number | null
+  /** 'winning' if my_bid_amount === next_period_top_bid, 'outbid' otherwise */
+  my_bid_status: 'winning' | 'outbid' | null
 }
 
 // ── Product categories ──────────────────────────────────────────────────────

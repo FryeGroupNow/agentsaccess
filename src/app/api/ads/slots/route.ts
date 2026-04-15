@@ -1,17 +1,48 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
+import { createClient as createServerClient } from '@/lib/supabase/server'
+import { authenticateApiKey } from '@/lib/api-auth'
 import type { SlotState } from '@/types'
 
-// Returns current state of all 6 ad slots.
-// Lazily settles auctions for the current period on each request.
-export async function GET() {
+// GET /api/ads/slots
+//
+// Returns the current state of all 6 ad slots, including:
+//   - the live placement (if any) for the current hour
+//   - the top bid + bidder count for the next hour's auction
+//   - seconds until that auction settles
+//   - if the caller is authenticated, their own bid amount and
+//     winning/outbid status for each slot's next-period auction
+//
+// Auth is OPTIONAL. Anonymous callers see all the public fields but
+// my_bid_amount / my_bid_status come back null. Both session cookies
+// and Bearer API keys work.
+//
+// As a side effect this route lazily settles the auctions for the
+// current period — that's how next-period bids become live ads when
+// no instant-ad path is used.
+export async function GET(request: NextRequest) {
   const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // ── Optional auth (works with cookie OR Bearer key) ───────────────────
+  let actorId: string | null = null
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const auth = await authenticateApiKey(request)
+    if (auth.ok) actorId = auth.agent.id
+  } else {
+    try {
+      const supabase = createServerClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      actorId = user?.id ?? null
+    } catch {
+      actorId = null
+    }
+  }
+
   const now = new Date()
-  // Truncate to current hour in UTC
   const currentPeriod = new Date(Math.floor(now.getTime() / 3_600_000) * 3_600_000)
   const nextPeriod    = new Date(currentPeriod.getTime() + 3_600_000)
 
@@ -25,7 +56,7 @@ export async function GET() {
     )
   )
 
-  // Fetch current placements with product data
+  // Current placements with full product data
   const { data: placements } = await admin
     .from('ad_placements')
     .select(`
@@ -43,7 +74,7 @@ export async function GET() {
     .in('slot_id', [1, 2, 3, 4, 5, 6])
     .eq('period_start', currentPeriod.toISOString())
 
-  // Fetch next-period bid summaries
+  // Next-period bid summaries (top bid + count)
   const { data: nextBids } = await admin
     .from('ad_bids')
     .select('slot_id, amount_credits')
@@ -51,7 +82,22 @@ export async function GET() {
     .eq('period_start', nextPeriod.toISOString())
     .eq('status', 'pending')
 
-  // Build per-slot lookup
+  // The caller's own pending bids for next period (if authenticated)
+  const myBids = new Map<number, number>()
+  if (actorId) {
+    const { data: mine } = await admin
+      .from('ad_bids')
+      .select('slot_id, amount_credits')
+      .eq('bidder_id', actorId)
+      .eq('period_start', nextPeriod.toISOString())
+      .eq('status', 'pending')
+
+    for (const b of mine ?? []) {
+      const existing = myBids.get(b.slot_id) ?? 0
+      if (b.amount_credits > existing) myBids.set(b.slot_id, b.amount_credits)
+    }
+  }
+
   const placementBySlot = new Map(
     (placements ?? []).map((p) => [p.slot_id as number, p])
   )
@@ -75,15 +121,34 @@ export async function GET() {
     { id: 6, side: 'right', position: 3 },
   ]
 
-  const slots: SlotState[] = SLOT_DEFS.map(({ id, side, position }) => ({
-    slot_id: id,
-    side,
-    position,
-    current_placement: (placementBySlot.get(id) ?? null) as SlotState['current_placement'],
-    next_period_start: nextPeriod.toISOString(),
-    next_period_top_bid: nextBidsBySlot.get(id)?.top ?? 0,
-    next_period_bid_count: nextBidsBySlot.get(id)?.count ?? 0,
-  }))
+  const secondsUntilSettle = Math.max(0, Math.floor((nextPeriod.getTime() - now.getTime()) / 1000))
 
-  return NextResponse.json({ slots })
+  const slots: SlotState[] = SLOT_DEFS.map(({ id, side, position }) => {
+    const placement = (placementBySlot.get(id) ?? null) as SlotState['current_placement']
+    const topBid = nextBidsBySlot.get(id)?.top ?? 0
+    const myBid = myBids.get(id) ?? null
+    const myStatus: SlotState['my_bid_status'] =
+      myBid == null ? null : myBid >= topBid ? 'winning' : 'outbid'
+
+    return {
+      slot_id: id,
+      side,
+      position,
+      current_placement: placement,
+      current_winning_bid: placement?.winning_bid_credits ?? 0,
+      next_period_start: nextPeriod.toISOString(),
+      next_period_top_bid: topBid,
+      next_period_bid_count: nextBidsBySlot.get(id)?.count ?? 0,
+      seconds_until_settle: secondsUntilSettle,
+      my_bid_amount: myBid,
+      my_bid_status: myStatus,
+    }
+  })
+
+  return NextResponse.json({
+    slots,
+    server_time: now.toISOString(),
+    current_period_start: currentPeriod.toISOString(),
+    next_period_start: nextPeriod.toISOString(),
+  })
 }
