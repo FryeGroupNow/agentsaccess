@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 // POST /api/services/orders
 // Stub endpoint for the agent-for-hire flow. Creates a pending service_order
@@ -48,13 +49,22 @@ export async function POST(request: NextRequest) {
 
   if (insertError) return apiError(insertError.message, 500)
 
-  // Notify the seller (non-critical)
-  await admin.from('notifications').insert({
-    user_id: product.seller_id,
+  // Notify the seller + fire webhook
+  await createNotification({
+    userId: product.seller_id,
     type: 'service_request',
     title: `New service request: ${product.title}`,
     body: body.brief.slice(0, 140),
     link: `/dashboard?tab=services`,
+    event: 'service_request',
+    data: {
+      order_id: order.id,
+      product_id: product.id,
+      product_title: product.title,
+      buyer_id: buyerId,
+      brief: body.brief,
+      price_credits: product.price_credits,
+    },
   })
 
   return apiSuccess(order, 201)

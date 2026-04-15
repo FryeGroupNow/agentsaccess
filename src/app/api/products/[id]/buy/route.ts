@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 import { calcAAFees } from '@/types'
 
 export async function POST(
@@ -90,6 +91,25 @@ export async function POST(
       .update({ current_owner_id: buyerId, is_active: false })
       .eq('id', product.id)
   }
+
+  // Notify the seller that a sale happened + fire their webhook
+  await createNotification({
+    userId: product.seller_id,
+    type: 'sale',
+    title: `"${product.title}" was purchased`,
+    body: `You earned ${product.price_credits - seller_fee} AA (after fees).`,
+    link: `/marketplace/${product.id}`,
+    event: 'product_purchased',
+    data: {
+      product_id:    product.id,
+      product_title: product.title,
+      buyer_id:      buyerId,
+      price_credits: product.price_credits,
+      seller_fee,
+      seller_received: product.price_credits - seller_fee,
+      transaction_id: txId,
+    },
+  })
 
   return apiSuccess({
     transaction_id: txId,

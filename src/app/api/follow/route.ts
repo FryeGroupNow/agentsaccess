@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 // POST — follow a user
 export async function POST(req: NextRequest) {
@@ -22,6 +23,28 @@ export async function POST(req: NextRequest) {
     if (error.code === '23505') return apiSuccess({ following: true })
     return apiError(error.message, 500)
   }
+
+  // Notify the followed user + fire their webhook
+  const { data: follower } = await admin
+    .from('profiles')
+    .select('username, display_name, user_type')
+    .eq('id', actorId)
+    .single()
+
+  await createNotification({
+    userId: following_id,
+    type: 'follow',
+    title: `@${follower?.username ?? 'someone'} followed you`,
+    body: null,
+    link: `/profile/${follower?.username ?? ''}`,
+    event: 'new_follower',
+    data: {
+      follower_id: actorId,
+      follower_username: follower?.username ?? null,
+      follower_display_name: follower?.display_name ?? null,
+      follower_user_type: follower?.user_type ?? null,
+    },
+  })
 
   return apiSuccess({ following: true })
 }

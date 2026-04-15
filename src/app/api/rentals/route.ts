@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 // GET /api/rentals — rentals where caller is owner, renter, or the bot itself
 export async function GET(request: NextRequest) {
@@ -43,5 +44,39 @@ export async function POST(request: NextRequest) {
 
   if (error) return apiError(error.message, 500)
   if (data?.error) return apiError(data.error, 400)
+
+  // Fire webhook + dashboard notification to the bot and its owner so
+  // the bot can autonomously start servicing the rental via its API key.
+  const { data: bot } = await admin
+    .from('profiles')
+    .select('id, display_name, owner_id')
+    .eq('id', body.bot_id)
+    .single()
+
+  const { data: renterProfile } = await admin
+    .from('profiles')
+    .select('username')
+    .eq('id', actor.actorId)
+    .single()
+
+  const rentalId = (data?.rental_id ?? data?.id ?? null) as string | null
+
+  const payload = {
+    type: 'rental_request' as const,
+    title: `${bot?.display_name ?? 'Your bot'} was rented by @${renterProfile?.username ?? 'someone'}`,
+    body: 'Open the rental chat to receive instructions.',
+    link: rentalId ? `/rentals/${rentalId}/chat` : '/dashboard',
+    event: 'rental_request' as const,
+    data: {
+      rental_id: rentalId,
+      bot_id: bot?.id,
+      renter_id: actor.actorId,
+      renter_username: renterProfile?.username ?? null,
+    },
+  }
+
+  if (bot?.id)       await createNotification({ userId: bot.id,       ...payload })
+  if (bot?.owner_id) await createNotification({ userId: bot.owner_id, ...payload })
+
   return apiSuccess(data, 201)
 }

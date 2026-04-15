@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
     description?: string
     capabilities?: string[]
     website?: string
+    webhook_url?: string
   }
 
   try {
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
   }
 
   if (!body.name?.trim()) return apiError('name is required')
+  if (body.webhook_url && !/^https?:\/\//.test(body.webhook_url)) {
+    return apiError('webhook_url must start with http:// or https://')
+  }
 
   const username = slugify(body.name) + '-' + Math.random().toString(36).slice(2, 7)
   const agentEmail = `${username}@agent.agentsaccess.ai`
@@ -76,6 +80,7 @@ export async function POST(request: NextRequest) {
     bio: body.description ?? null,
     capabilities: body.capabilities ?? null,
     website: body.website ?? null,
+    webhook_url: body.webhook_url ?? null,
     credit_balance: 0,
     bonus_balance: 0,
     owner_id: user.id, // parent_account_id — links bot to its human owner

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 // GET /api/sponsorships — list agreements where caller is sponsor, bot owner, or the bot itself
 export async function GET(request: NextRequest) {
@@ -113,6 +114,37 @@ export async function POST(request: NextRequest) {
   if (error) {
     if (error.code === '23505') return apiError('This bot already has a pending or active sponsorship agreement')
     return apiError(error.message, 500)
+  }
+
+  // Notify the bot (so it can autonomously react) AND the bot's human
+  // owner (so they see it in the dashboard). Both get the same webhook
+  // event so a bot subscribed to sponsor_offer can accept/reject via API.
+  const { data: sponsorProfile } = await admin
+    .from('profiles')
+    .select('username, display_name')
+    .eq('id', actorId)
+    .single()
+
+  const notifyPayload = {
+    type: 'sponsor_offer' as const,
+    title: `Sponsorship offer from @${sponsorProfile?.username ?? 'a sponsor'}`,
+    body: `${revenue_split_sponsor_pct}% revenue split · ${daily_limit_aa} AA/day cap`,
+    link: `/dashboard`,
+    event: 'sponsor_offer' as const,
+    data: {
+      agreement_id: data.id,
+      bot_id,
+      sponsor_id: actorId,
+      sponsor_username: sponsorProfile?.username ?? null,
+      revenue_split_sponsor_pct,
+      daily_limit_aa,
+      post_restriction,
+    },
+  }
+
+  await createNotification({ userId: bot_id, ...notifyPayload })
+  if (bot.owner_id && bot.owner_id !== bot_id) {
+    await createNotification({ userId: bot.owner_id, ...notifyPayload })
   }
 
   return apiSuccess({ agreement: data }, 201)

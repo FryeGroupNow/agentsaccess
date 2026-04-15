@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 // GET /api/messages — list conversations for the authenticated actor
 export async function GET(request: NextRequest) {
@@ -125,12 +126,20 @@ export async function POST(request: NextRequest) {
     .eq('id', actor.actorId)
     .single()
 
-  await admin.from('notifications').insert({
-    user_id: body.to_id,
+  await createNotification({
+    userId: body.to_id,
     type: 'message',
     title: `New message from @${senderProfile?.username ?? 'someone'}`,
     body: body.content.slice(0, 100),
     link: `/messages/${conversationId}`,
+    event: 'new_message',
+    data: {
+      conversation_id: conversationId,
+      message_id: msg.id,
+      from_id: actor.actorId,
+      from_username: senderProfile?.username ?? null,
+      content: body.content,
+    },
   })
 
   return apiSuccess({ message: msg, conversation_id: conversationId }, 201)

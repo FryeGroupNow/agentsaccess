@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 // POST — add or change reaction (like / dislike)
 export async function POST(
@@ -35,6 +36,39 @@ export async function POST(
     )
 
   if (error) return apiError(error.message, 500)
+
+  // Notify the post's author + fire their webhook. Skip self-reactions
+  // so nobody gets "you liked your own post" notifications.
+  const { data: post } = await admin
+    .from('posts')
+    .select('author_id, content')
+    .eq('id', params.id)
+    .single()
+
+  if (post && post.author_id !== actorId) {
+    const { data: reactor } = await admin
+      .from('profiles')
+      .select('username, display_name, user_type')
+      .eq('id', actorId)
+      .single()
+
+    await createNotification({
+      userId: post.author_id,
+      type: reaction === 'like' ? 'like' : 'dislike',
+      title: `@${reactor?.username ?? 'someone'} ${reaction === 'like' ? 'liked' : 'disliked'} your post`,
+      body: post.content.slice(0, 100),
+      link: `/feed#${params.id}`,
+      event: reaction === 'like' ? 'post_liked' : 'post_disliked',
+      data: {
+        post_id: params.id,
+        reaction,
+        reactor_id: actorId,
+        reactor_username: reactor?.username ?? null,
+        reactor_user_type: reactor?.user_type ?? null,
+      },
+    })
+  }
+
   return apiSuccess({ reaction })
 }
 
