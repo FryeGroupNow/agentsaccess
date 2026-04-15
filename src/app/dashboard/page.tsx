@@ -18,6 +18,7 @@ import { AdAnalytics } from '@/components/ads/ad-analytics'
 import { SponsorAgreements } from '@/components/dashboard/sponsor-agreements'
 import { AccountSettingsPanel } from '@/components/dashboard/account-settings-panel'
 import { InviteSection } from '@/components/dashboard/invite-section'
+import { DashboardCard } from '@/components/dashboard/dashboard-card'
 import type { Transaction, Product } from '@/types'
 
 const TX_LABELS: Record<string, string> = {
@@ -168,7 +169,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   )
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-10">
+    <main className="max-w-6xl mx-auto px-4 py-10 bg-gray-50/40 min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4 mb-8">
         <div className="flex items-center gap-4">
@@ -264,17 +265,16 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </Card>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-2 gap-5">
 
-        {/* ── Left column: Earnings, Transactions, Bots, Listings ── */}
-        <div className="space-y-6">
+        {/* ────────── LEFT COLUMN ────────── */}
+        <div className="space-y-5 rounded-2xl bg-slate-50/60 border border-slate-100 p-4">
 
-          {/* Earnings summary — bigger card now that it has full half-width */}
-          <Card className="p-6">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-amber-500" />
-              Earnings Summary
-            </h2>
+          {/* Earnings Summary */}
+          <DashboardCard
+            title="Earnings Summary"
+            icon={<TrendingUp className="w-5 h-5 text-amber-500" />}
+          >
             <div className="space-y-3">
               {[
                 { label: 'From product sales', value: transactions.filter((t) => t.to_id === user.id && t.type === 'sell_product').reduce((s, t) => s + t.amount, 0), color: 'text-green-600' },
@@ -291,19 +291,23 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 <span className="text-lg font-bold text-gray-900">{formatCredits(totalEarned)}</span>
               </div>
             </div>
-          </Card>
+          </DashboardCard>
 
-          {/* Transaction history */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Transaction History</h2>
-            <Card className="p-0 divide-y divide-gray-50">
-              {transactions.length === 0 ? (
-                <p className="text-sm text-gray-400 p-5">No transactions yet.</p>
-              ) : (
-                transactions.map((tx) => {
+          {/* Transaction History */}
+          <DashboardCard
+            title="Transaction History"
+            count={transactions.length}
+            flush
+            scrollMax="max-h-[360px]"
+          >
+            {transactions.length === 0 ? (
+              <p className="text-sm text-gray-400 p-5">No transactions yet.</p>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {transactions.map((tx) => {
                   const isIncoming = tx.to_id === user.id
                   return (
-                    <div key={tx.id} className="flex items-center gap-3 px-4 py-3">
+                    <div key={tx.id} className="flex items-center gap-3 px-5 py-3">
                       <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0">
                         <TxIcon type={tx.type} isIncoming={isIncoming} />
                       </div>
@@ -311,9 +315,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                         <div className="text-[15px] font-medium text-gray-800">
                           {TX_LABELS[tx.type] ?? tx.type}
                         </div>
-                        {tx.notes && (
-                          <div className="text-xs text-gray-400 truncate">{tx.notes}</div>
-                        )}
+                        {tx.notes && <div className="text-xs text-gray-400 truncate">{tx.notes}</div>}
                       </div>
                       <div className={`text-[15px] font-semibold ${isIncoming ? 'text-green-600' : 'text-gray-700'}`}>
                         {isIncoming ? '+' : '-'}{formatCredits(tx.amount)}
@@ -323,89 +325,88 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       </div>
                     </div>
                   )
-                })
-              )}
-            </Card>
-          </div>
+                })}
+              </div>
+            )}
+          </DashboardCard>
 
-          {/* Top performing listings */}
+          {/* My Bots (humans only) */}
+          {profile.user_type === 'human' && (
+            <DashboardCard
+              title="My Bots"
+              count={bots.length}
+              icon={<ArrowUpRight className="w-5 h-5 text-purple-500" />}
+              action={{ label: 'Register new', href: '/agent/register' }}
+              scrollMax="max-h-[420px]"
+            >
+              <MyBots initialBots={bots} hideHeader />
+            </DashboardCard>
+          )}
+
+          {/* My Listings */}
+          <DashboardCard
+            title="My Listings"
+            count={listings.length}
+            icon={<ShoppingBag className="w-5 h-5 text-indigo-500" />}
+            action={{ label: 'Create listing', href: '/marketplace' }}
+            scrollMax="max-h-[420px]"
+          >
+            <MyListings initialListings={listings} hideHeader />
+          </DashboardCard>
+
+          {/* Sponsorship agreements */}
+          <DashboardCard
+            title="Sponsorships"
+            icon={<TrendingUp className="w-5 h-5 text-emerald-500" />}
+          >
+            <SponsorAgreements
+              currentUserId={user.id}
+              ownedBotIds={bots.map((b) => b.id)}
+              hideHeader
+            />
+          </DashboardCard>
+
+          {/* Top listings summary */}
           {listings.length > 0 && (
-            <div>
-              <h2 className="text-base font-semibold text-gray-700 mb-2">Top Listings</h2>
-              <div className="space-y-1.5">
+            <DashboardCard title="Top Listings">
+              <div className="space-y-2">
                 {[...listings]
                   .sort((a, b) => b.purchase_count - a.purchase_count)
                   .slice(0, 5)
                   .map((p) => (
-                    <Card key={p.id} className="p-3">
+                    <div key={p.id} className="rounded-lg border border-gray-100 p-3">
                       <div className="flex items-center gap-2">
                         <ShoppingBag className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                        <span className="text-xs text-gray-800 truncate flex-1 font-medium">{p.title}</span>
+                        <span className="text-sm text-gray-800 truncate flex-1 font-medium">{p.title}</span>
                       </div>
-                      <div className="flex items-center justify-between mt-1.5 text-[10px] text-gray-400">
+                      <div className="flex items-center justify-between mt-1.5 text-xs text-gray-400">
                         <span>{p.purchase_count} sale{p.purchase_count !== 1 ? 's' : ''}</span>
                         <span className="text-indigo-600 font-semibold">{formatCredits(p.purchase_count * p.price_credits)} earned</span>
                       </div>
-                    </Card>
+                    </div>
                   ))}
               </div>
-            </div>
+            </DashboardCard>
           )}
-
-          {/* Recent purchases */}
-          <div>
-            <h2 className="text-base font-semibold text-gray-700 mb-2">Purchased</h2>
-            {purchases.length === 0 ? (
-              <Card className="p-3">
-                <p className="text-xs text-gray-400">Nothing purchased yet.</p>
-              </Card>
-            ) : (
-              <div className="space-y-1.5">
-                {purchases.map((p) => {
-                  const prod = p.products as unknown as Product | null
-                  if (!prod) return null
-                  return (
-                    <Card key={p.product_id} className="p-3 flex items-center gap-2">
-                      <ShoppingBag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="text-xs text-gray-800 truncate">{prod.title}</span>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* My Bots (humans only) */}
-          {profile.user_type === 'human' && (
-            <MyBots initialBots={bots} />
-          )}
-
-          {/* Sponsorship agreements */}
-          <SponsorAgreements
-            currentUserId={user.id}
-            ownedBotIds={bots.map((b) => b.id)}
-          />
-
-          {/* My Listings */}
-          <MyListings initialListings={listings} />
 
           {/* Ad analytics */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Megaphone className="w-4 h-4 text-amber-500" />
-              <h2 className="text-base font-semibold text-gray-900">Ad History</h2>
-            </div>
+          <DashboardCard
+            title="Ad History"
+            icon={<Megaphone className="w-5 h-5 text-amber-500" />}
+          >
             <AdAnalytics />
-          </div>
+          </DashboardCard>
 
         </div>
 
-        {/* ── Right column: Quick Actions, Feed, Account Settings ── */}
-        <div className="space-y-6">
+        {/* ────────── RIGHT COLUMN ────────── */}
+        <div className="space-y-5 rounded-2xl bg-indigo-50/30 border border-indigo-100/60 p-4">
 
-          {/* Quick actions — bigger tiles now that they have half-page width */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-800 mb-3">Quick Actions</h2>
+          {/* Quick Actions */}
+          <DashboardCard
+            title="Quick Actions"
+            icon={<Zap className="w-5 h-5 text-indigo-500" />}
+          >
             <div className="grid grid-cols-2 gap-3">
               {[
                 { href: '/feed', icon: Zap, label: 'Post to Feed', sub: 'Share with the community', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-100' },
@@ -414,35 +415,84 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 { href: '/agent/register', icon: ArrowUpRight, label: 'Register Bot', sub: 'Add an AI agent', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100 border-purple-100' },
               ].map(({ href, icon: Icon, label, sub, color }) => (
                 <Link key={label} href={href}>
-                  <div className={`flex flex-col gap-2 rounded-xl p-5 border transition-colors cursor-pointer ${color}`}>
-                    <Icon className="w-7 h-7" />
+                  <div className={`flex flex-col gap-2 rounded-xl p-4 border transition-colors cursor-pointer h-full ${color}`}>
+                    <Icon className="w-6 h-6" />
                     <div>
                       <div className="text-sm font-semibold leading-tight">{label}</div>
-                      <div className="text-xs opacity-70 mt-0.5 leading-tight">{sub}</div>
+                      <div className="text-[11px] opacity-70 mt-0.5 leading-tight">{sub}</div>
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
-          </div>
+          </DashboardCard>
+
+          {/* Recent purchases */}
+          <DashboardCard
+            title="Purchased"
+            count={purchases.length}
+            icon={<ShoppingBag className="w-5 h-5 text-gray-400" />}
+          >
+            {purchases.length === 0 ? (
+              <p className="text-xs text-gray-400">Nothing purchased yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {purchases.map((p) => {
+                  const prod = p.products as unknown as Product | null
+                  if (!prod) return null
+                  return (
+                    <div key={p.product_id} className="rounded-lg border border-gray-100 p-2.5 flex items-center gap-2">
+                      <ShoppingBag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span className="text-sm text-gray-800 truncate">{prod.title}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </DashboardCard>
 
           {/* My Posts */}
-          <MyFeed initialPosts={myPosts} currentUserId={user.id} />
+          <DashboardCard
+            title="My Posts"
+            count={myPosts.length}
+            icon={<Zap className="w-5 h-5 text-indigo-500" />}
+            action={{ label: 'View all', href: `/profile/${profile.username}` }}
+            scrollMax="max-h-[400px]"
+          >
+            <MyFeed initialPosts={myPosts} currentUserId={user.id} hideHeader />
+          </DashboardCard>
 
           {/* Following feed */}
-          <FollowingFeed />
+          <DashboardCard
+            title="Following"
+            icon={<TrendingUp className="w-5 h-5 text-emerald-500" />}
+            action={{ label: 'Open feed', href: '/feed' }}
+            scrollMax="max-h-[400px]"
+          >
+            <FollowingFeed hideHeader />
+          </DashboardCard>
 
           {/* Account settings */}
           <div id="account-settings">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Account Settings</h2>
-            <AccountSettingsPanel
-              initialTab={accountSettingsTabs.has(activeTab) ? activeTab : undefined}
-              profile={{ id: user.id, display_name: profile.display_name, username: profile.username, bio: profile.bio ?? null, avatar_url: profile.avatar_url ?? null }}
-            />
+            <DashboardCard
+              title="Account Settings"
+              icon={<ArrowUpRight className="w-5 h-5 text-gray-500" />}
+              flush
+            >
+              <AccountSettingsPanel
+                initialTab={accountSettingsTabs.has(activeTab) ? activeTab : undefined}
+                profile={{ id: user.id, display_name: profile.display_name, username: profile.username, bio: profile.bio ?? null, avatar_url: profile.avatar_url ?? null }}
+              />
+            </DashboardCard>
           </div>
 
           {/* Invite section */}
-          <InviteSection />
+          <DashboardCard
+            title="Invite Friends"
+            icon={<ArrowUpRight className="w-5 h-5 text-pink-500" />}
+          >
+            <InviteSection hideHeader />
+          </DashboardCard>
 
         </div>
       </div>

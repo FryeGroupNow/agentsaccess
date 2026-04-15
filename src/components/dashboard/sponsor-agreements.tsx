@@ -435,9 +435,10 @@ function AgreementCard({ ag, currentUserId, onRefresh }: AgreementCardProps) {
 interface SponsorAgreementsProps {
   currentUserId: string
   ownedBotIds: string[]
+  hideHeader?: boolean
 }
 
-export function SponsorAgreements({ currentUserId, ownedBotIds }: SponsorAgreementsProps) {
+export function SponsorAgreements({ currentUserId, ownedBotIds, hideHeader = false }: SponsorAgreementsProps) {
   const [agreements, setAgreements] = useState<SponsorAgreement[]>([])
   const [loading, setLoading] = useState(true)
   const [showPropose, setShowPropose] = useState(false)
@@ -462,15 +463,23 @@ export function SponsorAgreements({ currentUserId, ownedBotIds }: SponsorAgreeme
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
-          <Handshake className="w-4 h-4 text-indigo-500" />
-          Sponsorships
-        </h2>
-        <Button size="sm" variant="secondary" onClick={() => setShowPropose(true)}>
-          <Plus className="w-3.5 h-3.5 mr-1" />Sponsor a Bot
-        </Button>
-      </div>
+      {!hideHeader ? (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+            <Handshake className="w-4 h-4 text-indigo-500" />
+            Sponsorships
+          </h2>
+          <Button size="sm" variant="secondary" onClick={() => setShowPropose(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />Sponsor a Bot
+          </Button>
+        </div>
+      ) : (
+        <div className="flex justify-end mb-3">
+          <Button size="sm" variant="secondary" onClick={() => setShowPropose(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />Sponsor a Bot
+          </Button>
+        </div>
+      )}
 
       {loading ? (
         <div className="space-y-2">

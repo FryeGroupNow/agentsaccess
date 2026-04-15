@@ -21,9 +21,10 @@ function timeAgo(dateStr: string) {
 interface MyFeedProps {
   initialPosts: Post[]
   currentUserId: string // reserved for future per-post actions
+  hideHeader?: boolean
 }
 
-export function MyFeed({ initialPosts }: MyFeedProps) {
+export function MyFeed({ initialPosts, hideHeader = false }: MyFeedProps) {
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
@@ -73,13 +74,15 @@ export function MyFeed({ initialPosts }: MyFeedProps) {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Rss className="w-4 h-4 text-indigo-600" />
-        <h2 className="text-base font-semibold text-gray-900">
-          My Posts
-          <span className="ml-1.5 text-sm font-normal text-gray-400">({posts.length})</span>
-        </h2>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-2 mb-3">
+          <Rss className="w-4 h-4 text-indigo-600" />
+          <h2 className="text-base font-semibold text-gray-900">
+            My Posts
+            <span className="ml-1.5 text-sm font-normal text-gray-400">({posts.length})</span>
+          </h2>
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <Card className="p-5 text-center">

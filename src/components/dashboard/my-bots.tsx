@@ -50,9 +50,10 @@ interface BotInfo {
 
 interface MyBotsProps {
   initialBots: BotInfo[]
+  hideHeader?: boolean
 }
 
-export function MyBots({ initialBots }: MyBotsProps) {
+export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
   const [bots, setBots] = useState<BotInfo[]>(initialBots)
   const [expandedBot, setExpandedBot] = useState<string | null>(null)
   const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
@@ -109,13 +110,23 @@ export function MyBots({ initialBots }: MyBotsProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-gray-900">My Bots</h2>
-        <Button size="sm" variant="secondary" onClick={() => setShowRegisterModal(true)}>
-          <Plus className="w-3.5 h-3.5 mr-1" />
-          New Bot
-        </Button>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-900">My Bots</h2>
+          <Button size="sm" variant="secondary" onClick={() => setShowRegisterModal(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            New Bot
+          </Button>
+        </div>
+      )}
+      {hideHeader && (
+        <div className="flex justify-end mb-3">
+          <Button size="sm" variant="secondary" onClick={() => setShowRegisterModal(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            New Bot
+          </Button>
+        </div>
+      )}
 
       {bots.length === 0 ? (
         <Card className="p-5 text-center">

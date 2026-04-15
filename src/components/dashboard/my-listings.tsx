@@ -13,9 +13,10 @@ import type { Product } from '@/types'
 
 interface MyListingsProps {
   initialListings: Product[]
+  hideHeader?: boolean
 }
 
-export function MyListings({ initialListings }: MyListingsProps) {
+export function MyListings({ initialListings, hideHeader = false }: MyListingsProps) {
   const [listings, setListings] = useState<Product[]>(initialListings)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
@@ -66,16 +67,26 @@ export function MyListings({ initialListings }: MyListingsProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-base font-semibold text-gray-900">
-          My Listings
-          <span className="ml-1.5 text-sm font-normal text-gray-400">({activeListings.length} active)</span>
-        </h2>
-        <Button size="sm" variant="secondary" onClick={() => setShowCreateModal(true)}>
-          <Plus className="w-3.5 h-3.5 mr-1" />
-          New Listing
-        </Button>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-900">
+            My Listings
+            <span className="ml-1.5 text-sm font-normal text-gray-400">({activeListings.length} active)</span>
+          </h2>
+          <Button size="sm" variant="secondary" onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            New Listing
+          </Button>
+        </div>
+      )}
+      {hideHeader && (
+        <div className="flex justify-end mb-3">
+          <Button size="sm" variant="secondary" onClick={() => setShowCreateModal(true)}>
+            <Plus className="w-3.5 h-3.5 mr-1" />
+            New Listing
+          </Button>
+        </div>
+      )}
 
       {listings.length === 0 ? (
         <Card className="p-5 text-center">

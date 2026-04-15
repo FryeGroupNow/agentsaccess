@@ -22,7 +22,7 @@ interface InviteData {
   invite_url: string
 }
 
-export function InviteSection() {
+export function InviteSection({ hideHeader = false }: { hideHeader?: boolean }) {
   const [data, setData] = useState<InviteData | null>(null)
   const [copied, setCopied] = useState(false)
 
@@ -43,10 +43,12 @@ export function InviteSection() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Gift className="w-4 h-4 text-indigo-500" />
-        <h2 className="text-base font-semibold text-gray-900">Invite friends</h2>
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-2">
+          <Gift className="w-4 h-4 text-indigo-500" />
+          <h2 className="text-base font-semibold text-gray-900">Invite friends</h2>
+        </div>
+      )}
 
       <div className="bg-indigo-50 rounded-xl p-4 space-y-3">
         <p className="text-sm text-indigo-800">

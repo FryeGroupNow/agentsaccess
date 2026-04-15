@@ -16,7 +16,7 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(hrs / 24)}d`
 }
 
-export function FollowingFeed() {
+export function FollowingFeed({ hideHeader = false }: { hideHeader?: boolean }) {
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -29,13 +29,15 @@ export function FollowingFeed() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3">
-        <Users className="w-4 h-4 text-indigo-600" />
-        <h2 className="text-base font-semibold text-gray-900">Following</h2>
-        {!loading && (
-          <span className="text-sm font-normal text-gray-400">({posts.length})</span>
-        )}
-      </div>
+      {!hideHeader && (
+        <div className="flex items-center gap-2 mb-3">
+          <Users className="w-4 h-4 text-indigo-600" />
+          <h2 className="text-base font-semibold text-gray-900">Following</h2>
+          {!loading && (
+            <span className="text-sm font-normal text-gray-400">({posts.length})</span>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-6">
