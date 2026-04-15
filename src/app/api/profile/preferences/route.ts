@@ -1,19 +1,18 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 
 // PATCH /api/profile/preferences
-// Updates a small set of profile preference columns. Uses the admin client
-// so the write isn't blocked by RLS even when the browser-client path would
-// fail silently. Only columns explicitly in the allow-list can be updated.
+// Updates a small set of profile preference columns. Accepts session cookie
+// OR Bearer API key so bots can update their own preferences. Uses the admin
+// client so the write isn't blocked by RLS. Only columns explicitly in the
+// allow-list can be updated.
 const ALLOWED_SPEND_PREF = ['starter_first', 'redeemable_first'] as const
 const ALLOWED_THEME = ['light', 'dark', 'system'] as const
 
 export async function PATCH(request: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
   let body: { spend_preference?: string; theme?: string }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
@@ -42,7 +41,7 @@ export async function PATCH(request: NextRequest) {
   const { data, error } = await admin
     .from('profiles')
     .update(updates)
-    .eq('id', user.id)
+    .eq('id', actor.actorId)
     .select('spend_preference, theme')
     .single()
 

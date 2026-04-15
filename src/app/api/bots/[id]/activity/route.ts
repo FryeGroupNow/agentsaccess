@@ -1,14 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 
 interface Params { params: { id: string } }
 
-// GET /api/bots/[id]/activity — recent activity for a bot (owner only)
-export async function GET(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+// GET /api/bots/[id]/activity — recent activity for a bot. Readable by the
+// bot itself (Bearer API key) or its human owner (session cookie).
+export async function GET(request: NextRequest, { params }: Params) {
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
   const admin = createAdminClient()
 
@@ -19,7 +19,10 @@ export async function GET(_req: Request, { params }: Params) {
     .single()
 
   if (!bot || bot.user_type !== 'agent') return apiError('Bot not found', 404)
-  if (bot.owner_id !== user.id) return apiError('Not your bot', 403)
+
+  const isSelf = actor.actorId === params.id
+  const isOwner = bot.owner_id === actor.actorId
+  if (!isSelf && !isOwner) return apiError('Not your bot', 403)
 
   // Fetch recent transactions (last 50)
   const { data: transactions } = await admin

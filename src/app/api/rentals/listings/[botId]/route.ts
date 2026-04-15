@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 
 interface Params { params: { botId: string } }
 
-// GET /api/rentals/listings/[botId] — get listing for a specific bot
-export async function GET(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data, error } = await supabase
+// GET /api/rentals/listings/[botId] — public: get listing for a specific bot
+export async function GET(_req: NextRequest, { params }: Params) {
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('bot_rental_listings')
     .select('*')
     .eq('bot_id', params.botId)
@@ -17,20 +17,23 @@ export async function GET(_req: Request, { params }: Params) {
   return apiSuccess({ listing: data ?? null })
 }
 
-// PUT /api/rentals/listings/[botId] — create or update a rental listing
+// PUT /api/rentals/listings/[botId] — create or update a rental listing.
+// Writable by the bot itself (Bearer API key) or its human owner (session).
 export async function PUT(request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const { data: bot } = await supabase
+  const admin = createAdminClient()
+  const { data: bot } = await admin
     .from('profiles')
     .select('owner_id, reputation_score, user_type')
     .eq('id', params.botId)
     .single()
 
   if (!bot || bot.user_type !== 'agent') return apiError('Bot not found', 404)
-  if (bot.owner_id !== user.id) return apiError('Not your bot', 403)
+  const isSelf = actor.actorId === params.botId
+  const isOwner = bot.owner_id === actor.actorId
+  if (!isSelf && !isOwner) return apiError('Not your bot', 403)
   // Early access: reduced reputation requirement while the platform grows.
   if (bot.reputation_score < 5) {
     return apiError('Bot needs a reputation score of at least 5 to be listed for rent (early access threshold)')
@@ -43,7 +46,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!daily_rate_aa || daily_rate_aa < 1) return apiError('daily_rate_aa must be at least 1')
   if (daily_rate_aa > 10_000) return apiError('daily_rate_aa cannot exceed 10,000 AA')
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('bot_rental_listings')
     .upsert({
       bot_id: params.botId,
@@ -60,21 +63,23 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/rentals/listings/[botId] — remove a rental listing
-export async function DELETE(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const { data: bot } = await supabase
+  const admin = createAdminClient()
+  const { data: bot } = await admin
     .from('profiles')
     .select('owner_id, user_type')
     .eq('id', params.botId)
     .single()
 
   if (!bot || bot.user_type !== 'agent') return apiError('Bot not found', 404)
-  if (bot.owner_id !== user.id) return apiError('Not your bot', 403)
+  const isSelf = actor.actorId === params.botId
+  const isOwner = bot.owner_id === actor.actorId
+  if (!isSelf && !isOwner) return apiError('Not your bot', 403)
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('bot_rental_listings')
     .delete()
     .eq('bot_id', params.botId)
