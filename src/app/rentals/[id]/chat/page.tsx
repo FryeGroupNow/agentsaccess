@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Avatar } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Send, Bot, User, Loader2, Sparkles } from 'lucide-react'
+import { ArrowLeft, Send, Bot, User, Loader2, Sparkles, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { BotRental, RentalMessage } from '@/types'
 
@@ -22,8 +22,10 @@ export default function RentalChatPage() {
   const [sending, setSending] = useState(false)
   const [content, setContent] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const [uploading, setUploading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const latestMsgId = useRef<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Load current user
   useEffect(() => {
@@ -69,6 +71,57 @@ export default function RentalChatPage() {
     const interval = setInterval(loadMessages, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
   }, [myId, loading, loadMessages])
+
+  // Upload a file to the bot's private file store via /api/bots/[botId]/files.
+  // The route's access helper recognises an active rental and tags the upload
+  // with rental_id automatically. On success we post a chat message pointing
+  // at the file so both sides see it in the thread.
+  async function uploadFile(file: File) {
+    if (!rental?.bot_id) return
+    if (file.size > 50 * 1024 * 1024) {
+      setError('File exceeds 50 MB limit')
+      return
+    }
+    setUploading(true)
+    setError(null)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(`/api/bots/${rental.bot_id}/files`, {
+        method: 'POST',
+        body: form,
+      })
+      const json = await res.json()
+      if (!res.ok) {
+        setError(json.error ?? 'Upload failed')
+        return
+      }
+      // Post a chat message referencing the file
+      const f = json.data?.file ?? json.file
+      const noteRes = await fetch(`/api/rentals/${id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `📎 Shared file: **${f.filename}** (${Math.round(f.size_bytes / 1024)} KB) — available in the bot's files.`,
+        }),
+      })
+      const noteJson = await noteRes.json()
+      const msg = noteJson.data?.message ?? noteJson.message
+      if (msg) {
+        setMessages((prev) => [...prev, msg as RentalMessage])
+        latestMsgId.current = msg.id
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+      }
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  function onFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0]
+    if (f) uploadFile(f)
+  }
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -219,6 +272,23 @@ export default function RentalChatPage() {
       {/* Input */}
       {isActive ? (
         <form onSubmit={sendMessage} className="flex gap-2 flex-shrink-0">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={onFileInput}
+          />
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="px-3 rounded-xl border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors disabled:opacity-40"
+            title="Share a file with the bot"
+          >
+            {uploading
+              ? <Loader2 className="w-4 h-4 animate-spin" />
+              : <Paperclip className="w-4 h-4" />}
+          </button>
           <input
             value={content}
             onChange={(e) => setContent(e.target.value)}

@@ -4,10 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Settings, Activity, Tag, Pause, Play,
-  Shield, Zap, FileText, DollarSign,
+  Shield, Zap, FileText, DollarSign, FolderLock,
   CheckCircle, XCircle, AlertTriangle,
 } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
+import { BotFilesPanel } from './bot-files-panel'
 
 interface BotSettings {
   bot_id: string
@@ -32,7 +33,7 @@ interface ActivityItem {
   amount?: number
 }
 
-type Tab = 'restrictions' | 'limits' | 'rental' | 'sponsorship' | 'activity'
+type Tab = 'restrictions' | 'limits' | 'rental' | 'sponsorship' | 'files' | 'activity'
 
 interface BotManagementPanelProps {
   botId: string
@@ -173,6 +174,7 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     { id: 'limits',       label: 'Limits',       icon: <Zap className="w-3.5 h-3.5" /> },
     { id: 'rental',       label: 'Rental',        icon: <Tag className="w-3.5 h-3.5" /> },
     { id: 'sponsorship',  label: 'Sponsorship',   icon: <DollarSign className="w-3.5 h-3.5" /> },
+    { id: 'files',        label: 'Files',         icon: <FolderLock className="w-3.5 h-3.5" /> },
     { id: 'activity',     label: 'Activity',      icon: <Activity className="w-3.5 h-3.5" /> },
   ]
 
@@ -306,6 +308,10 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
           </div>
         )}
 
+        {tab === 'files' && (
+          <BotFilesPanel botId={botId} botUsername={botUsername} />
+        )}
+
         {tab === 'activity' && (
           <div>
             {activityLoading ? (
@@ -347,8 +353,8 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
         )}
       </div>
 
-      {/* Save button (not needed for activity or pause toggle) */}
-      {tab !== 'activity' && (
+      {/* Save button (not needed for activity, files, or the pause toggle) */}
+      {tab !== 'activity' && tab !== 'files' && (
         <div className="mt-3 flex justify-end">
           <Button size="sm" onClick={save} disabled={saving || saved}>
             {saved ? <><CheckCircle className="w-3 h-3 mr-1" />Saved</> : saving ? 'Saving…' : 'Save Changes'}
