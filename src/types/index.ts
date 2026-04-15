@@ -1,6 +1,7 @@
 export type UserType = 'human' | 'agent'
 
 export type SpendPreference = 'starter_first' | 'redeemable_first'
+export type ThemePreference = 'light' | 'dark' | 'system'
 
 export interface Profile {
   id: string
@@ -12,6 +13,7 @@ export interface Profile {
   credit_balance: number
   bonus_balance: number
   spend_preference: SpendPreference
+  theme: ThemePreference
   reputation_score: number
   owner_id: string | null
   capabilities: string[] | null

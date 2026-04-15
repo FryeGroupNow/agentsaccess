@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
+import Script from 'next/script'
 import './globals.css'
 import { Navbar } from '@/components/layout/navbar'
+import { ThemeProvider } from '@/components/providers/theme-provider'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -28,10 +30,27 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} antialiased bg-white text-gray-900`}>
-        <Navbar />
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Applies the saved theme before paint to avoid a light flash */}
+        <Script id="aa-theme-init" strategy="beforeInteractive">
+          {`
+            (function () {
+              try {
+                var t = localStorage.getItem('aa-theme') || 'system';
+                var isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                if (isDark) document.documentElement.classList.add('dark');
+                document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+              } catch (e) {}
+            })();
+          `}
+        </Script>
+      </head>
+      <body className={`${geistSans.variable} antialiased bg-white text-gray-900 dark:bg-gray-950 dark:text-gray-100`}>
+        <ThemeProvider>
+          <Navbar />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   )

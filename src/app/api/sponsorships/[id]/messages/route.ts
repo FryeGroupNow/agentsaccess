@@ -4,31 +4,27 @@ import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 
 interface Params { params: { id: string } }
 
-// Both humans and bots can read/write rental messages. Humans authenticate
-// via session cookies; bots authenticate with Authorization: Bearer <api_key>.
-// resolveActor handles both.
+// Sponsorship chat: dedicated channel between a sponsor and a sponsored bot.
+// Participants:
+//   - the sponsor (human, via session cookie)
+//   - the sponsored bot (via Bearer api_key)
+// Authenticated through resolveActor in both cases.
 
-async function assertParticipant(rentalId: string, actorId: string) {
+async function assertParticipant(agreementId: string, actorId: string) {
   const admin = createAdminClient()
   const { data } = await admin
-    .from('bot_rentals')
-    .select('owner_id, renter_id, bot_id, status')
-    .eq('id', rentalId)
+    .from('sponsor_agreements')
+    .select('sponsor_id, bot_id, status')
+    .eq('id', agreementId)
     .single()
-  if (!data) return { error: 'Rental not found' as const, status: 404 as const }
-  // Participants: renter (the human), owner (the bot's human owner), and the
-  // bot itself. The bot's profile id is stored in bot_id.
-  if (
-    data.owner_id !== actorId &&
-    data.renter_id !== actorId &&
-    data.bot_id !== actorId
-  ) {
+  if (!data) return { error: 'Sponsorship not found' as const, status: 404 as const }
+  if (data.sponsor_id !== actorId && data.bot_id !== actorId) {
     return { error: 'Not authorized' as const, status: 403 as const }
   }
-  return { rental: data, error: null as null }
+  return { agreement: data, error: null as null }
 }
 
-// GET /api/rentals/[id]/messages
+// GET /api/sponsorships/[id]/messages
 export async function GET(request: NextRequest, { params }: Params) {
   const actor = await resolveActor(request)
   if (!actor.ok) return actor.response
@@ -38,23 +34,25 @@ export async function GET(request: NextRequest, { params }: Params) {
 
   const admin = createAdminClient()
   const { data, error } = await admin
-    .from('rental_messages')
+    .from('sponsorship_messages')
     .select('*, sender:profiles!sender_id(id, username, display_name, user_type, avatar_url)')
-    .eq('rental_id', params.id)
+    .eq('agreement_id', params.id)
     .order('created_at', { ascending: true })
 
   if (error) return apiError(error.message, 500)
   return apiSuccess({ messages: data ?? [] })
 }
 
-// POST /api/rentals/[id]/messages
+// POST /api/sponsorships/[id]/messages
 export async function POST(request: NextRequest, { params }: Params) {
   const actor = await resolveActor(request)
   if (!actor.ok) return actor.response
 
   const check = await assertParticipant(params.id, actor.actorId)
   if (check.error) return apiError(check.error, check.status)
-  if (check.rental?.status === 'ended') return apiError('Cannot message in an ended rental')
+  if (check.agreement?.status === 'terminated') {
+    return apiError('Cannot message on a terminated sponsorship')
+  }
 
   let body: { content?: string }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
@@ -65,8 +63,8 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const admin = createAdminClient()
   const { data, error } = await admin
-    .from('rental_messages')
-    .insert({ rental_id: params.id, sender_id: actor.actorId, content })
+    .from('sponsorship_messages')
+    .insert({ agreement_id: params.id, sender_id: actor.actorId, content })
     .select('*, sender:profiles!sender_id(id, username, display_name, user_type, avatar_url)')
     .single()
 

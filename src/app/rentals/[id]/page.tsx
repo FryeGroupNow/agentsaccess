@@ -5,7 +5,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
-import { Bot, Send, Star, X, ArrowLeft } from 'lucide-react'
+import { Bot, Send, Star, X, ArrowLeft, MessageCircle } from 'lucide-react'
+import Link from 'next/link'
 import { formatCredits } from '@/lib/utils'
 import type { BotRental, RentalMessage } from '@/types'
 
@@ -225,7 +226,13 @@ export default function RentalPage() {
         </div>
 
         {isActive && (
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-2">
+            <Link href={`/rentals/${id}/chat`}>
+              <Button size="sm">
+                <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                Open chat
+              </Button>
+            </Link>
             <Button
               size="sm"
               variant="secondary"

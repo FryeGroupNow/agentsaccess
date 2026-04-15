@@ -6,8 +6,10 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
   UserCircle, Lock, Bell, Shield, KeyRound, Receipt, Palette, LogOut, Check, Coins,
+  Sun, Moon, Monitor,
 } from 'lucide-react'
-import type { SpendPreference } from '@/types'
+import type { SpendPreference, ThemePreference } from '@/types'
+import { useTheme } from '@/components/providers/theme-provider'
 
 type Tab = 'profile' | 'password' | 'spending' | 'notifications' | 'privacy' | 'api-keys' | 'billing' | 'theme'
 
@@ -29,6 +31,7 @@ interface Props {
 
 export function AccountSettingsPanel({ initialTab, profile }: Props) {
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<Tab>((initialTab as Tab) ?? 'profile')
 
   // Profile form state
@@ -38,7 +41,8 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   const [saved, setSaved] = useState(false)
   const [saveError, setSaveError] = useState('')
 
-  // Password form state
+  // Password form state (now with required current-password verification)
+  const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pwSaving, setPwSaving] = useState(false)
@@ -64,16 +68,26 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   }, [profile.id])
 
   async function saveSpendPref(next: SpendPreference) {
+    if (next === spendPref || spendSaving) return
+    // Optimistic update so the single click is immediately reflected in the UI
+    const previous = spendPref
+    setSpendPref(next)
     setSpendSaving(true)
     setSpendSaved(false)
     setSpendError('')
-    const supabase = createClient()
-    const { error } = await supabase
-      .from('profiles')
-      .update({ spend_preference: next })
-      .eq('id', profile.id)
-    if (error) { setSpendError(error.message) }
-    else { setSpendPref(next); setSpendSaved(true); setTimeout(() => setSpendSaved(false), 1800) }
+    const res = await fetch('/api/profile/preferences', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spend_preference: next }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setSpendError(data.error ?? 'Failed to update preference')
+      setSpendPref(previous) // roll back on failure
+    } else {
+      setSpendSaved(true)
+      setTimeout(() => setSpendSaved(false), 1800)
+    }
     setSpendSaving(false)
   }
 
@@ -93,13 +107,48 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
 
   async function changePassword(e: React.FormEvent) {
     e.preventDefault()
-    if (newPassword !== confirmPassword) { setPwError('Passwords do not match'); return }
-    if (newPassword.length < 8) { setPwError('Password must be at least 8 characters'); return }
-    setPwSaving(true)
     setPwError('')
+    setPwSaved(false)
+
+    if (!currentPassword) { setPwError('Current password is required'); return }
+    if (newPassword !== confirmPassword) { setPwError('New passwords do not match'); return }
+    if (newPassword.length < 8) { setPwError('New password must be at least 8 characters'); return }
+    if (newPassword === currentPassword) { setPwError('New password must differ from current'); return }
+
+    setPwSaving(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.updateUser({ password: newPassword })
-    if (error) { setPwError(error.message) } else { setPwSaved(true); setNewPassword(''); setConfirmPassword('') }
+
+    // Step 1: verify the current password by re-authenticating. This uses
+    // the currently-authenticated user's email, so it doesn't require the
+    // user to re-enter their identity. If the password is wrong,
+    // signInWithPassword returns an error and we reject the change.
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user || !user.email) {
+      setPwError('Could not resolve current session. Sign in again and retry.')
+      setPwSaving(false)
+      return
+    }
+
+    const { error: verifyError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    })
+    if (verifyError) {
+      setPwError('Current password is incorrect')
+      setPwSaving(false)
+      return
+    }
+
+    // Step 2: update to the new password
+    const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+    if (updateError) {
+      setPwError(updateError.message)
+    } else {
+      setPwSaved(true)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    }
     setPwSaving(false)
   }
 
@@ -195,6 +244,20 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
           {activeTab === 'password' && (
             <form onSubmit={changePassword} className="space-y-4 max-w-md">
               <h3 className="font-semibold text-gray-900">Change Password</h3>
+              <p className="text-xs text-gray-500">
+                For security, you must enter your current password before setting a new one.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
                 <input
@@ -202,6 +265,8 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   minLength={8}
+                  required
+                  autoComplete="new-password"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 />
               </div>
@@ -211,13 +276,15 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  autoComplete="new-password"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 />
               </div>
               {pwError && <p className="text-red-500 text-xs">{pwError}</p>}
               {pwSaved && <p className="text-green-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" />Password updated!</p>}
               <Button type="submit" size="sm" disabled={pwSaving}>
-                {pwSaving ? 'Updating…' : 'Update password'}
+                {pwSaving ? 'Verifying…' : 'Update password'}
               </Button>
             </form>
           )}
@@ -369,21 +436,42 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
           )}
 
           {activeTab === 'theme' && (
-            <div className="space-y-3 max-w-md">
+            <div className="space-y-4 max-w-md">
               <h3 className="font-semibold text-gray-900">Theme Preferences</h3>
-              <p className="text-sm text-gray-500">Light and dark mode settings coming soon.</p>
-              <div className="flex gap-3">
-                {['Light', 'Dark', 'System'].map((theme) => (
-                  <button
-                    key={theme}
-                    className={`px-4 py-2 rounded-xl border text-sm transition-colors ${
-                      theme === 'Light' ? 'border-indigo-300 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600'
-                    }`}
-                  >
-                    {theme}
-                  </button>
-                ))}
+              <p className="text-sm text-gray-500">
+                Pick how AgentsAccess looks on your screen. Saved to your profile and applied
+                across devices.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { id: 'light' as const,  label: 'Light',  icon: Sun,     desc: 'Bright UI' },
+                  { id: 'dark' as const,   label: 'Dark',   icon: Moon,    desc: 'Low-light UI' },
+                  { id: 'system' as const, label: 'System', icon: Monitor, desc: 'Match OS' },
+                ]).map(({ id, label, icon: Icon, desc }) => {
+                  const active = theme === id
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTheme(id as ThemePreference)}
+                      className={`flex flex-col items-center gap-1.5 p-4 rounded-xl border-2 transition-all ${
+                        active
+                          ? 'border-indigo-600 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40'
+                          : 'border-gray-200 text-gray-600 hover:border-indigo-200 bg-white dark:bg-gray-800'
+                      }`}
+                    >
+                      <Icon className={`w-5 h-5 ${active ? 'text-indigo-600' : 'text-gray-400'}`} />
+                      <span className="text-xs font-semibold">{label}</span>
+                      <span className="text-[10px] text-gray-400">{desc}</span>
+                    </button>
+                  )
+                })}
               </div>
+              <p className="text-[11px] text-gray-400 leading-relaxed">
+                Note: dark mode visual coverage is being rolled out across components. Core pages
+                will use your preference today; a few screens may still show light styling until
+                their dark variants ship.
+              </p>
             </div>
           )}
         </div>
