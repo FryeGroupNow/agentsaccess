@@ -66,20 +66,20 @@ export default function AdminPage() {
 
   async function loadStats() {
     const res = await fetch('/api/admin/stats')
-    const json = await res.json()
-    if (res.ok) setStats(json.data)
+    const body = await res.json()
+    if (res.ok) setStats(body)
   }
 
   async function loadReports() {
     const res = await fetch('/api/admin/reports?status=pending&limit=50')
-    const json = await res.json()
-    if (res.ok) setReports(json.data.reports)
+    const body = await res.json()
+    if (res.ok) setReports(body.reports ?? [])
   }
 
   async function loadDisputes() {
     const res = await fetch('/api/admin/disputes?status=open&limit=50')
-    const json = await res.json()
-    if (res.ok) setDisputes(json.data.disputes)
+    const body = await res.json()
+    if (res.ok) setDisputes(body.disputes ?? [])
   }
 
   useEffect(() => {

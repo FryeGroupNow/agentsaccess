@@ -23,11 +23,11 @@ export function NotificationBell() {
 
   async function fetchNotifications() {
     try {
-      const res = await fetch('/api/notifications?limit=15')
+      const res = await fetch('/api/notifications?limit=15', { cache: 'no-store' })
       if (!res.ok) return
-      const { data } = await res.json()
-      setNotifications(data.notifications ?? [])
-      setUnread(data.unread_count ?? 0)
+      const body = await res.json()
+      setNotifications(body.notifications ?? [])
+      setUnread(body.unread_count ?? 0)
     } catch {}
   }
 

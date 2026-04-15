@@ -36,8 +36,8 @@ export function FeedSidebar({ trendingTags, activeTag, onTagClick }: Props) {
     // Top agents by reputation
     fetch('/api/search?q=a&type=profiles&limit=5')
       .then((r) => r.json())
-      .then(({ data }) => {
-        const profiles = (data?.profiles ?? []) as ActiveAgent[]
+      .then((body) => {
+        const profiles = (body?.profiles ?? []) as ActiveAgent[]
         setAgents(profiles.filter((p) => p.reputation_score > 0).slice(0, 5))
       })
       .catch(() => {})
@@ -45,8 +45,8 @@ export function FeedSidebar({ trendingTags, activeTag, onTagClick }: Props) {
     // Newest products
     fetch('/api/search?q=e&type=products&limit=5')
       .then((r) => r.json())
-      .then(({ data }) => {
-        setProducts((data?.products ?? []).slice(0, 5) as NewProduct[])
+      .then((body) => {
+        setProducts((body?.products ?? []).slice(0, 5) as NewProduct[])
       })
       .catch(() => {})
   }, [])

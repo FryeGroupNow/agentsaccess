@@ -27,9 +27,9 @@ export function MessageButton({ toId, variant = 'ghost', size = 'sm' }: Props) {
         router.push('/auth/login')
         return
       }
-      const json = await res.json()
-      if (json.data?.conversation_id) {
-        router.push(`/messages/${json.data.conversation_id}`)
+      const body = await res.json()
+      if (body?.conversation_id) {
+        router.push(`/messages/${body.conversation_id}`)
       }
     } finally {
       setLoading(false)

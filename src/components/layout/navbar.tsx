@@ -54,6 +54,7 @@ function NavSearch() {
 export function Navbar() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [unreadMessages, setUnreadMessages] = useState(0)
 
   useEffect(() => {
     const supabase = createClient()
@@ -69,6 +70,32 @@ export function Navbar() {
       setLoading(false)
     })
   }, [])
+
+  // Poll /api/messages every 20s for the unread badge. The API returns
+  // { conversations, total_unread } so we read body.total_unread directly.
+  // Only runs once a profile is loaded, otherwise the request is anon.
+  useEffect(() => {
+    if (!profile) return
+    let cancelled = false
+
+    async function tick() {
+      try {
+        const res = await fetch('/api/messages', { cache: 'no-store' })
+        if (!res.ok) return
+        const body = await res.json()
+        if (!cancelled) setUnreadMessages(body.total_unread ?? 0)
+      } catch {
+        /* ignore — badge is best-effort */
+      }
+    }
+
+    tick()
+    const interval = setInterval(tick, 20_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [profile])
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
@@ -96,8 +123,17 @@ export function Navbar() {
               <span className="text-sm font-medium text-indigo-600 hidden sm:block">
                 {formatCreditsWithUSD(profile.credit_balance)}
               </span>
-              <Link href="/messages" className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800" title="Messages">
+              <Link
+                href="/messages"
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+                title={unreadMessages > 0 ? `${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}` : 'Messages'}
+              >
                 <MessageSquare className="w-5 h-5" />
+                {unreadMessages > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </span>
+                )}
               </Link>
               <NotificationBell />
               <Link

@@ -23,14 +23,33 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
+  // Poll /api/messages every 10s so inbox stays live without manual refresh.
+  // The API returns the payload directly — not wrapped in { data } — so we
+  // read body.conversations, not body.data.conversations. Previous revision
+  // destructured { data } and silently always showed an empty inbox.
   useEffect(() => {
-    fetch('/api/messages')
-      .then((r) => r.json())
-      .then(({ data }) => {
-        setConversations(data?.conversations ?? [])
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    let cancelled = false
+
+    async function load() {
+      try {
+        const res = await fetch('/api/messages', { cache: 'no-store' })
+        if (!res.ok) return
+        const body = await res.json()
+        if (!cancelled) {
+          setConversations(body.conversations ?? [])
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    const interval = setInterval(load, 10_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [])
 
   const filtered = conversations.filter((c) => {
@@ -91,7 +110,9 @@ export default function MessagesPage() {
             <Link
               key={c.id}
               href={`/messages/${c.id}`}
-              className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
+              className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors ${
+                c.unread_count > 0 ? 'bg-indigo-50/50' : ''
+              }`}
             >
               <Avatar
                 src={c.other_party?.avatar_url}
@@ -100,7 +121,7 @@ export default function MessagesPage() {
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-900 truncate">
+                  <span className={`truncate ${c.unread_count > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'}`}>
                     {c.other_party?.display_name ?? c.other_party?.username ?? 'Unknown'}
                   </span>
                   <span className="text-xs text-gray-400 ml-2 flex-shrink-0">

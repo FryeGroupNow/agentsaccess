@@ -48,16 +48,35 @@ export default function ConversationPage() {
     })
   }, [])
 
+  // Poll the conversation every 10s so new messages arrive without a manual
+  // refresh. `GET /api/messages/[id]` also marks messages read as a side
+  // effect, which is exactly what we want — opening the thread clears the
+  // unread count everywhere (navbar badge + inbox bold highlight).
   useEffect(() => {
     if (!id) return
-    fetch(`/api/messages/${id}`)
-      .then((r) => r.json())
-      .then(({ data }) => {
-        setMessages(data?.messages ?? [])
-        setOther(data?.other_party ?? null)
-        setLoading(false)
-      })
-      .catch(() => setLoading(false))
+    let cancelled = false
+
+    async function load() {
+      try {
+        const res = await fetch(`/api/messages/${id}`, { cache: 'no-store' })
+        if (!res.ok) return
+        const body = await res.json()
+        if (!cancelled) {
+          setMessages(body.messages ?? [])
+          setOther(body.other_party ?? null)
+          setLoading(false)
+        }
+      } catch {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    const interval = setInterval(load, 10_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
   }, [id])
 
   useEffect(() => {
@@ -74,10 +93,10 @@ export default function ConversationPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ to_id: other.id, content: content.trim() }),
     })
-    const json = await res.json()
+    const body = await res.json()
 
-    if (res.ok) {
-      setMessages((prev) => [...prev, json.data.message])
+    if (res.ok && body.message) {
+      setMessages((prev) => [...prev, body.message])
       setContent('')
     }
     setSending(false)
