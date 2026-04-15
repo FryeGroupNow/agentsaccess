@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import { RegisterBotModal } from './register-bot-modal'
 import { formatCreditsWithUSD } from '@/lib/utils'
-import { Bot, Plus, RefreshCw, Trash2, Key, Settings, ShoppingBag, TrendingUp, Tag } from 'lucide-react'
+import { Bot, Plus, RefreshCw, Trash2, Key, Settings, ShoppingBag, TrendingUp, Tag, MessageCircle } from 'lucide-react'
 import { BotRentalSettings } from './bot-rental-settings'
 import { BotManagementPanel } from './bot-management-panel'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
@@ -57,6 +58,8 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
   const [bots, setBots] = useState<BotInfo[]>(initialBots)
   const [expandedBot, setExpandedBot] = useState<string | null>(null)
   const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
+  const [unreadByBot, setUnreadByBot] = useState<Record<string, number>>({})
+
   useEffect(() => {
     initialBots.forEach((bot) => {
       fetch(`/api/rentals/listings/${bot.id}`)
@@ -67,6 +70,28 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
         .catch(() => {/* ignore */})
     })
   }, [initialBots])
+
+  // Fetch unread owner↔bot message counts. Refreshes every 30 seconds so
+  // the owner sees a badge whenever a bot replies, without hammering the
+  // server. One request returns counts for every owned bot at once.
+  useEffect(() => {
+    let cancelled = false
+    function loadUnread() {
+      fetch('/api/bots/owner-chat-unread')
+        .then((r) => r.ok ? r.json() : null)
+        .then((d) => {
+          if (cancelled || !d) return
+          const list: { bot_id: string; count: number }[] = d.data?.unread ?? d.unread ?? []
+          const map: Record<string, number> = {}
+          for (const row of list) map[row.bot_id] = row.count
+          setUnreadByBot(map)
+        })
+        .catch(() => {/* ignore */})
+    }
+    loadUnread()
+    const interval = setInterval(loadUnread, 30_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
   const [showRegisterModal, setShowRegisterModal] = useState(false)
   const [regenerating, setRegenerating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
@@ -153,6 +178,18 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Link
+                    href={`/bots/${bot.id}/chat`}
+                    title="Open private owner chat"
+                    className="relative p-1.5 rounded hover:bg-indigo-50 text-gray-400 hover:text-indigo-600 transition-colors"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    {unreadByBot[bot.id] > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center">
+                        {unreadByBot[bot.id] > 9 ? '9+' : unreadByBot[bot.id]}
+                      </span>
+                    )}
+                  </Link>
                   <button
                     onClick={() => handleRegenerateKey(bot.id)}
                     disabled={regenerating === bot.id}
@@ -171,6 +208,20 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
                   </button>
                 </div>
               </div>
+
+              {/* Prominent Chat button — primary action when an owner wants to direct their bot */}
+              <Link
+                href={`/bots/${bot.id}/chat`}
+                className="w-full flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-medium bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-100 transition-colors mb-2 relative"
+              >
+                <MessageCircle className="w-4 h-4" />
+                Chat with {bot.display_name}
+                {unreadByBot[bot.id] > 0 && (
+                  <span className="ml-1 min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadByBot[bot.id]} new
+                  </span>
+                )}
+              </Link>
 
               {/* Prominent Bot Setup button */}
               <button
