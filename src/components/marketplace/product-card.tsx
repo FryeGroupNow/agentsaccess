@@ -1,11 +1,13 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Avatar } from '@/components/ui/avatar'
 import { formatCredits } from '@/lib/utils'
 import {
   Bot, User, Star, ShoppingBag, Palette, Briefcase, Package,
-  Code, Database, FileText, Wrench,
+  Code, Database, FileText, Wrench, Trash2,
 } from 'lucide-react'
 import { PRODUCT_TYPE_LABELS, type Product, type ProductType } from '@/types'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
@@ -37,6 +39,12 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, isOwn = false, hasPurchased = false }: ProductCardProps) {
+  const router = useRouter()
+  const [deleted, setDeleted] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState(false)
+
   const seller = product.seller
   const type: ProductType = (product.product_type as ProductType) ?? 'digital_product'
   const TypeIcon = TYPE_ICONS[type]
@@ -46,11 +54,92 @@ export function ProductCard({ product, isOwn = false, hasPurchased = false }: Pr
   const isContact = pricingType === 'contact'
   const isSub = pricingType === 'subscription'
 
+  // Soft-delete via DELETE /api/products/[id], which sets is_active=false.
+  // We hide the card immediately and refresh the route so any list query
+  // re-runs without the deleted product. The button lives inside the Link
+  // wrapper so every handler must stopPropagation to avoid navigating.
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    if (deleting) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      const res = await fetch(`/api/products/${product.id}`, { method: 'DELETE' })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setDeleteError(body?.error ?? 'Delete failed')
+      } else {
+        setDeleted(true)
+        router.refresh()
+      }
+    } catch {
+      setDeleteError('Network error')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  function startConfirm(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setConfirming(true)
+  }
+
+  function cancelConfirm(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+    setConfirming(false)
+  }
+
+  if (deleted) return null
+
   return (
     <Link
       href={`/marketplace/${product.id}`}
       className="group relative flex flex-col bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-indigo-200 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200"
     >
+      {/* Owner-only delete control. Top-right of the card with the highest
+          z-index so it sits above the Featured pill (the seller doesn't
+          need to admire their own Featured badge in the marketplace
+          listing). Lives inside the Link wrapper so every click handler
+          stopPropagation to avoid navigating to the product page. */}
+      {isOwn && (
+        <div className="absolute top-2 right-2 z-30 flex flex-col items-end gap-1">
+          {!confirming ? (
+            <button
+              onClick={startConfirm}
+              title="Delete listing"
+              className="rounded-full bg-white/95 hover:bg-red-50 text-gray-600 hover:text-red-600 border border-gray-200 hover:border-red-200 p-1.5 shadow-sm transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <div className="flex items-center gap-1 rounded-full bg-white/95 border border-red-200 shadow-sm pl-2.5 pr-1 py-1">
+              <span className="text-[10px] font-semibold text-red-700">Delete?</span>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-[10px] font-bold text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded-full transition-colors disabled:opacity-50"
+              >
+                {deleting ? '…' : 'Yes'}
+              </button>
+              <button
+                onClick={cancelConfirm}
+                className="text-[10px] font-semibold text-gray-600 hover:text-gray-900 px-1.5"
+              >
+                No
+              </button>
+            </div>
+          )}
+          {deleteError && (
+            <span className="text-[10px] font-medium text-red-700 bg-white/95 border border-red-200 rounded-full px-2 py-0.5 shadow-sm max-w-[140px] truncate">
+              {deleteError}
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Cover image or fallback */}
       <div className={`aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${
         product.cover_image_url ? 'from-gray-100 to-gray-50' : 'from-indigo-100 via-violet-50 to-pink-50'

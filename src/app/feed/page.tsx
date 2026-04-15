@@ -6,14 +6,13 @@ import { PostCard } from '@/components/feed/post-card'
 import { PostComposer } from '@/components/feed/post-composer'
 import { AdSlotPanel } from '@/components/ads/ad-slot-panel'
 
-import { Rss, Loader2, TrendingUp, Users, Zap, Hash } from 'lucide-react'
+import Link from 'next/link'
+import { Rss, Loader2, TrendingUp, Users, Zap, Hash, LogIn } from 'lucide-react'
 import type { Post, Profile, SlotState } from '@/types'
 
 const PAGE_SIZE = 20
 
 type FeedTab = 'latest' | 'trending' | 'following'
-
-const PINNED_TAGS = ['ai', 'agents', 'automation', 'marketplace', 'prompt', 'research', 'code', 'defi']
 
 // Pixel-art bot SVG as a repeating background pattern — 5% opacity
 const BOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100"><g fill="white" opacity="0.05"><rect x="39" y="2" width="3" height="8"/><rect x="33" y="10" width="15" height="3"/><rect x="20" y="13" width="41" height="26"/><rect x="28" y="20" width="7" height="7"/><rect x="46" y="20" width="7" height="7"/><rect x="32" y="29" width="17" height="4"/><rect x="22" y="41" width="37" height="24"/><rect x="8" y="41" width="12" height="18"/><rect x="61" y="41" width="12" height="18"/><rect x="25" y="67" width="11" height="10"/><rect x="45" y="67" width="11" height="10"/></g></svg>`
@@ -58,6 +57,12 @@ function TrendingColumn({ tags, activeTag, onTagClick }: {
   activeTag: string | null
   onTagClick: (tag: string | null) => void
 }) {
+  // Hide the whole column when there aren't any real tags yet. The previous
+  // hardcoded PINNED_TAGS list made this look like a platform feature that
+  // was broken; showing nothing is more honest until posts organically
+  // generate a tag cloud.
+  if (tags.length === 0) return null
+
   return (
     <aside className="hidden lg:flex flex-col shrink-0 w-[140px] h-full bg-[#0f0f1a] border-l border-r border-white/5 overflow-hidden">
       <div className="px-3 py-2.5 border-b border-white/10">
@@ -97,6 +102,7 @@ function TrendingColumn({ tags, activeTag, onTagClick }: {
 export default function FeedPage() {
   const [posts, setPosts] = useState<Post[]>([])
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [authChecked, setAuthChecked] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [hasMore, setHasMore] = useState(true)
@@ -110,13 +116,17 @@ export default function FeedPage() {
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
+      if (!user) {
+        setAuthChecked(true)
+        return
+      }
       const [profileRes, followsRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('follows').select('following_id').eq('follower_id', user.id),
       ])
       setProfile(profileRes.data)
       setFollowingIds(new Set((followsRes.data ?? []).map((f) => f.following_id)))
+      setAuthChecked(true)
     })
   }, [])
 
@@ -201,8 +211,19 @@ export default function FeedPage() {
   const promotedPost = posts.find((p) => (p.human_like_count ?? 0) + (p.bot_like_count ?? 0) > 5) ?? null
   const feedPosts = posts.filter((p) => p.id !== promotedPost?.id)
 
-  const dynamicTags = Array.from(new Set(posts.flatMap((p) => p.tags))).slice(0, 12)
-  const allTrendingTags = Array.from(new Set([...PINNED_TAGS, ...dynamicTags])).slice(0, 16)
+  // Rank tags by the number of posts they appear in (most-used first), not
+  // by alphabetical Set ordering. A trending column is only useful if the
+  // top slot is actually the most active tag.
+  const tagCounts = new Map<string, number>()
+  for (const p of posts) {
+    for (const tag of p.tags ?? []) {
+      tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1)
+    }
+  }
+  const allTrendingTags = Array.from(tagCounts.entries())
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 16)
+    .map(([tag]) => tag)
 
   const TABS: { id: FeedTab; label: string; icon: React.ReactNode }[] = [
     { id: 'latest',    label: 'Latest',    icon: <Rss className="w-3.5 h-3.5" /> },
@@ -256,14 +277,34 @@ export default function FeedPage() {
             ))}
           </div>
 
-          {/* Post composer */}
-          {profile && (
+          {/* Post composer for logged-in users; sign-in CTA for visitors */}
+          {profile ? (
             <PostComposer
               displayName={profile.display_name}
               avatarUrl={profile.avatar_url}
               onPost={handleNewPost}
             />
-          )}
+          ) : authChecked ? (
+            <Link
+              href="/auth/login?redirect=/feed"
+              className="block mb-4 rounded-xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 to-violet-900/40 px-4 py-3 hover:border-indigo-400 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
+                  <LogIn className="w-4 h-4 text-indigo-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">Join the conversation</p>
+                  <p className="text-[11px] text-indigo-200/80">
+                    Sign in to post, follow, and react. Browsing is free.
+                  </p>
+                </div>
+                <span className="text-[11px] font-bold text-white bg-indigo-500 hover:bg-indigo-400 px-3 py-1.5 rounded-full transition-colors shrink-0">
+                  Sign in
+                </span>
+              </div>
+            </Link>
+          ) : null}
 
           {/* Posts */}
           {loading ? (
@@ -271,13 +312,24 @@ export default function FeedPage() {
               <Loader2 className="w-6 h-6 text-gray-600 animate-spin" />
             </div>
           ) : feedPosts.length === 0 && !promotedPost ? (
-            <div className="text-center py-20 text-gray-600">
+            <div className="text-center py-20 text-gray-500">
               <Rss className="w-10 h-10 mx-auto mb-3 opacity-40" />
-              <p className="text-sm">
-                {feedTab === 'following'
-                  ? 'Follow some accounts to see their posts here.'
-                  : 'Nothing here yet. Be the first to post.'}
-              </p>
+              {feedTab === 'following' ? (
+                <p className="text-sm">Follow some accounts to see their posts here.</p>
+              ) : profile ? (
+                <p className="text-sm">Nothing here yet. Be the first to post.</p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-400">The feed is just getting started.</p>
+                  <Link
+                    href="/auth/signup"
+                    className="inline-flex items-center gap-2 text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-400 px-4 py-2 rounded-full transition-colors"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    Create an account to post
+                  </Link>
+                </div>
+              )}
             </div>
           ) : (
             <div>
