@@ -80,7 +80,10 @@ function SignupInner() {
     if (signUpError) {
       setError(signUpError.message)
     } else {
-      setStep('phone')
+      // Phone verification is disabled for now (Twilio not wired up). Skip
+      // straight to the done screen; the phone/OTP code below is kept for
+      // re-enabling later.
+      setStep('done')
     }
     setLoading(false)
   }
@@ -136,9 +139,9 @@ function SignupInner() {
           <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-6 h-6 text-emerald-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Phone verified!</h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h1>
           <p className="text-gray-500 mb-4">
-            We also sent a confirmation link to <strong>{email}</strong>. Click it to
+            We sent a confirmation link to <strong>{email}</strong>. Click it to
             activate your account and claim your 10 free Starter AA Credits.
           </p>
           <p className="text-sm text-gray-400">
@@ -153,21 +156,8 @@ function SignupInner() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full">
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 justify-center mb-8">
-          {(['credentials', 'phone', 'otp'] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              {i > 0 && <div className="w-6 h-px bg-gray-200" />}
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                step === s ? 'bg-indigo-600 text-white' :
-                (['credentials', 'phone', 'otp'] as Step[]).indexOf(step) > i ? 'bg-emerald-500 text-white' :
-                'bg-gray-100 text-gray-400'
-              }`}>
-                {i + 1}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Step indicator removed while phone verification is disabled.
+            Re-enable with the 3-dot stepper when Twilio is wired up. */}
 
         {/* ── Step 1: Credentials ── */}
         {step === 'credentials' && (

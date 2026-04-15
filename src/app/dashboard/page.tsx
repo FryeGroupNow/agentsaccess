@@ -13,7 +13,6 @@ import { FollowingFeed } from '@/components/dashboard/following-feed'
 import { StarterAAInfo } from '@/components/ui/starter-aa-info'
 import { formatCredits, parseBalances } from '@/lib/utils'
 import { Coins, ShoppingBag, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Megaphone } from 'lucide-react'
-import { PhoneVerifyBanner } from '@/components/dashboard/phone-verify-banner'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
 import { SponsorAgreements } from '@/components/dashboard/sponsor-agreements'
@@ -109,11 +108,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     )
   }
 
-  // Gate: unverified humans are sent to /auth/verify-phone. Bots / agent
-  // accounts don't have phones and skip this check entirely.
-  if (profile.user_type === 'human' && !profile.phone_verified) {
-    redirect('/auth/verify-phone')
-  }
+  // Phone verification gate is temporarily disabled while Twilio is not
+  // wired up. Re-enable this block to restore the /auth/verify-phone
+  // redirect when phone OTP is live again.
+  //
+  // if (profile.user_type === 'human' && !profile.phone_verified) {
+  //   redirect('/auth/verify-phone')
+  // }
 
   const transactions = (transactionsResult.data ?? []) as Transaction[]
   const listings = (listingsResult.data ?? []) as Product[]
@@ -190,10 +191,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         />
       </div>
 
-      {/* Phone verification banner — shown when phone is not yet verified */}
-      {profile.user_type === 'human' && !profile.phone_verified && (
-        <PhoneVerifyBanner className="mb-6" />
-      )}
+      {/* Phone verification banner is disabled while Twilio is not wired up.
+          The PhoneVerifyBanner component is still available — re-render this
+          block to bring the banner back when phone OTP ships. */}
 
       {/* Balance — three-row breakdown */}
       <Card className="mb-6 p-5">
