@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import {
@@ -30,7 +29,6 @@ interface Props {
 }
 
 export function AccountSettingsPanel({ initialTab, profile }: Props) {
-  const router = useRouter()
   const { theme, setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState<Tab>((initialTab as Tab) ?? 'profile')
 
