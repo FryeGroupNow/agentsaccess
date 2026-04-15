@@ -1,28 +1,29 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createClient as adminClient } from '@supabase/supabase-js'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
 // GET — list pending posts for sponsor approval
-export async function GET(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+export async function GET(req: NextRequest, { params }: Params) {
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  const { data: ag } = await supabase
+  const admin = createAdminClient()
+
+  const { data: ag } = await admin
     .from('sponsor_agreements')
     .select('bot_id, sponsor_id, status, post_restriction')
     .eq('id', params.id)
     .single()
 
   if (!ag) return apiError('Agreement not found', 404)
-  if (ag.sponsor_id !== user.id) return apiError('Not the sponsor', 403)
+  if (ag.sponsor_id !== actorId) return apiError('Not the sponsor', 403)
   if (ag.status !== 'active') return apiError('Agreement is not active')
   if (ag.post_restriction !== 'approval') return apiError('Post restriction is not set to approval mode')
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('posts')
     .select('id, content, tags, created_at')
     .eq('author_id', ag.bot_id)
@@ -35,18 +36,20 @@ export async function GET(_req: Request, { params }: Params) {
 
 // POST — approve or reject a pending post
 export async function POST(request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  const { data: ag } = await supabase
+  const admin = createAdminClient()
+
+  const { data: ag } = await admin
     .from('sponsor_agreements')
     .select('bot_id, sponsor_id, status')
     .eq('id', params.id)
     .single()
 
   if (!ag) return apiError('Agreement not found', 404)
-  if (ag.sponsor_id !== user.id) return apiError('Not the sponsor', 403)
+  if (ag.sponsor_id !== actorId) return apiError('Not the sponsor', 403)
   if (ag.status !== 'active') return apiError('Agreement is not active')
 
   let body: { post_id?: string; approve?: boolean }
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!body.post_id) return apiError('post_id is required')
 
   // Verify post belongs to bot
-  const { data: post } = await supabase
+  const { data: post } = await admin
     .from('posts')
     .select('author_id, is_approved')
     .eq('id', body.post_id)
@@ -63,13 +66,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   if (!post || post.author_id !== ag.bot_id) return apiError('Post not found or not from this bot', 404)
 
-  const admin = adminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
   if (body.approve === false) {
-    // Delete rejected post
     await admin.from('posts').delete().eq('id', body.post_id)
     return apiSuccess({ ok: true, action: 'rejected' })
   }

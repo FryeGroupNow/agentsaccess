@@ -1,16 +1,17 @@
-import { createClient } from '@/lib/supabase/server'
-import { createClient as adminClient } from '@supabase/supabase-js'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { NextRequest } from 'next/server'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
 // GET /api/rentals/[id]
-export async function GET(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+export async function GET(req: NextRequest, { params }: Params) {
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('bot_rentals')
     .select(`
       *,
@@ -22,7 +23,7 @@ export async function GET(_req: Request, { params }: Params) {
     .single()
 
   if (error || !data) return apiError('Rental not found', 404)
-  if (data.owner_id !== user.id && data.renter_id !== user.id) {
+  if (data.owner_id !== actorId && data.renter_id !== actorId && data.bot_id !== actorId) {
     return apiError('Not authorized', 403)
   }
 
@@ -30,19 +31,14 @@ export async function GET(_req: Request, { params }: Params) {
 }
 
 // DELETE /api/rentals/[id] — end rental
-export async function DELETE(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+export async function DELETE(req: NextRequest, { params }: Params) {
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
 
-  const admin = adminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
+  const admin = createAdminClient()
   const { data, error } = await admin.rpc('end_rental', {
     p_rental_id: params.id,
-    p_user_id: user.id,
+    p_user_id: actor.actorId,
   })
 
   if (error) return apiError(error.message, 500)

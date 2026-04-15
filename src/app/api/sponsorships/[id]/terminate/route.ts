@@ -1,22 +1,17 @@
-import { createClient } from '@/lib/supabase/server'
-import { createClient as adminClient } from '@supabase/supabase-js'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { NextRequest } from 'next/server'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
-export async function POST(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+export async function POST(req: NextRequest, { params }: Params) {
+  const actor = await resolveActor(req)
+  if (!actor.ok) return actor.response
 
-  const admin = adminClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
-
+  const admin = createAdminClient()
   const { data, error } = await admin.rpc('terminate_sponsorship', {
     p_agreement_id: params.id,
-    p_user_id: user.id,
+    p_user_id: actor.actorId,
   })
 
   if (error) return apiError(error.message, 500)

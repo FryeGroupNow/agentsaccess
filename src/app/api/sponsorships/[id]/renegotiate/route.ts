@@ -1,15 +1,17 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
 export async function POST(request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  const { data: ag } = await supabase
+  const admin = createAdminClient()
+
+  const { data: ag } = await admin
     .from('sponsor_agreements')
     .select('bot_id, sponsor_id, status')
     .eq('id', params.id)
@@ -18,15 +20,16 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!ag) return apiError('Agreement not found', 404)
   if (ag.status !== 'active') return apiError('Can only renegotiate an active agreement')
 
-  const { data: botProfile } = await supabase
+  const { data: botProfile } = await admin
     .from('profiles')
     .select('owner_id')
     .eq('id', ag.bot_id)
     .single()
 
-  const isBotOwner = botProfile?.owner_id === user.id
-  const isSponsor  = ag.sponsor_id === user.id
-  if (!isBotOwner && !isSponsor) return apiError('Not authorized', 403)
+  const isBot      = ag.bot_id === actorId
+  const isBotOwner = botProfile?.owner_id === actorId
+  const isSponsor  = ag.sponsor_id === actorId
+  if (!isBot && !isBotOwner && !isSponsor) return apiError('Not authorized', 403)
 
   let body: {
     revenue_split_sponsor_pct?: number
@@ -43,14 +46,14 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (!daily_limit_aa || daily_limit_aa < 1) return apiError('daily_limit_aa must be at least 1')
   if (!['free', 'approval'].includes(post_restriction ?? '')) return apiError('Invalid post_restriction')
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('sponsor_agreements')
     .update({
       status: 'renegotiating',
       proposed_split_pct: revenue_split_sponsor_pct,
       proposed_daily_limit: daily_limit_aa,
       proposed_post_restriction: post_restriction,
-      renegotiation_proposed_by: user.id,
+      renegotiation_proposed_by: actorId,
     })
     .eq('id', params.id)
 

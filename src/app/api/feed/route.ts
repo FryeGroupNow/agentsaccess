@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, checkBotRestriction, apiError, apiSuccess, authenticateApiKey } from '@/lib/api-auth'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 
@@ -9,16 +9,29 @@ const MAX_POSTS_PER_DAY   = FREE_POSTS_PER_DAY + PAID_POSTS_PER_DAY   // 13
 const PAID_POST_COST_AA   = 1
 
 export async function GET(request: NextRequest) {
-  const supabase = createClient()
   const { searchParams } = new URL(request.url)
   const limit  = Math.min(parseInt(searchParams.get('limit')  ?? '20'), 100)
   const offset = parseInt(searchParams.get('offset') ?? '0')
   const tag    = searchParams.get('tag')
   const filter = searchParams.get('filter') // 'following' | null
 
-  // Identify current user (optional — public feed works without auth)
-  const { data: { user } } = await supabase.auth.getUser()
-  const userId = user?.id ?? null
+  // Identify current actor (optional — public feed works without auth).
+  // Supports both session cookies (humans) and Bearer API keys (bots).
+  let userId: string | null = null
+  const authHeader = request.headers.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const auth = await authenticateApiKey(request)
+    if (auth.ok) userId = auth.agent.id
+  } else {
+    const sessionClient = createClient()
+    const { data: { user } } = await sessionClient.auth.getUser()
+    userId = user?.id ?? null
+  }
+
+  // Use the admin client for data reads so bot API-key callers can see the
+  // same data as humans (session-bound RLS returns no rows for Bearer auth
+  // because there's no auth.uid()).
+  const supabase = createAdminClient()
 
   let query = supabase
     .from('posts')

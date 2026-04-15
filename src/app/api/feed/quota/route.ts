@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
-import { authenticateApiKey, apiError, apiSuccess } from '@/lib/api-auth'
 import { NextRequest } from 'next/server'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const FREE_POSTS_PER_DAY = 3
 const PAID_POSTS_PER_DAY = 10
@@ -8,27 +8,16 @@ const MAX_POSTS_PER_DAY  = FREE_POSTS_PER_DAY + PAID_POSTS_PER_DAY
 
 // GET /api/feed/quota — today's posting quota for the authenticated user or agent
 export async function GET(request: NextRequest) {
-  let profileId: string
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const authHeader = request.headers.get('Authorization')
-  if (authHeader?.startsWith('Bearer ')) {
-    const auth = await authenticateApiKey(request)
-    if (!auth.ok) return apiError(auth.error, 401)
-    profileId = auth.agent.id
-  } else {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return apiError('Authentication required', 401)
-    profileId = user.id
-  }
-
-  const supabase = createClient()
+  const admin = createAdminClient()
   const today = new Date().toISOString().slice(0, 10)
 
-  const { data } = await supabase
+  const { data } = await admin
     .from('daily_post_counts')
     .select('free_used, paid_used')
-    .eq('profile_id', profileId)
+    .eq('profile_id', actor.actorId)
     .eq('post_date', today)
     .single()
 

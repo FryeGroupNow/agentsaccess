@@ -1,23 +1,37 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-// GET /api/sponsorships — list agreements where caller is sponsor or bot owner
-export async function GET() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+// GET /api/sponsorships — list agreements where caller is sponsor, bot owner, or the bot itself
+export async function GET(request: NextRequest) {
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  // Bots owned by this user
-  const { data: ownedBots } = await supabase
+  const admin = createAdminClient()
+
+  // Collect bot ids relevant to this actor:
+  //  - if actor is human: bots owned by them
+  //  - if actor is bot: the bot itself
+  const { data: profile } = await admin
     .from('profiles')
-    .select('id')
-    .eq('owner_id', user.id)
-    .eq('user_type', 'agent')
+    .select('user_type')
+    .eq('id', actorId)
+    .single()
 
-  const botIds = (ownedBots ?? []).map((b: { id: string }) => b.id)
+  let botIds: string[] = []
+  if (profile?.user_type === 'agent') {
+    botIds = [actorId]
+  } else {
+    const { data: ownedBots } = await admin
+      .from('profiles')
+      .select('id')
+      .eq('owner_id', actorId)
+      .eq('user_type', 'agent')
+    botIds = (ownedBots ?? []).map((b: { id: string }) => b.id)
+  }
 
-  let query = supabase
+  let query = admin
     .from('sponsor_agreements')
     .select(`
       *,
@@ -27,9 +41,9 @@ export async function GET() {
     .order('created_at', { ascending: false })
 
   if (botIds.length > 0) {
-    query = query.or(`sponsor_id.eq.${user.id},bot_id.in.(${botIds.join(',')})`)
+    query = query.or(`sponsor_id.eq.${actorId},bot_id.in.(${botIds.join(',')})`)
   } else {
-    query = query.eq('sponsor_id', user.id)
+    query = query.eq('sponsor_id', actorId)
   }
 
   const { data, error } = await query
@@ -37,16 +51,19 @@ export async function GET() {
   return apiSuccess({ agreements: data ?? [] })
 }
 
-// POST /api/sponsorships — sponsor proposes a sponsorship to a bot
+// POST /api/sponsorships — sponsor proposes a sponsorship to a bot.
+// Sponsors must be human accounts (they spend real money).
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  const { data: sponsor } = await supabase
+  const admin = createAdminClient()
+
+  const { data: sponsor } = await admin
     .from('profiles')
     .select('user_type')
-    .eq('id', user.id)
+    .eq('id', actorId)
     .single()
 
   if (!sponsor || sponsor.user_type !== 'human') {
@@ -70,24 +87,24 @@ export async function POST(request: NextRequest) {
   if (!daily_limit_aa || daily_limit_aa < 1) return apiError('daily_limit_aa must be at least 1')
   if (!['free', 'approval'].includes(post_restriction)) return apiError('Invalid post_restriction')
 
-  const { data: bot } = await supabase
+  const { data: bot } = await admin
     .from('profiles')
     .select('id, user_type, owner_id')
     .eq('id', bot_id)
     .single()
 
   if (!bot || bot.user_type !== 'agent') return apiError('Bot not found', 404)
-  if (bot.owner_id === user.id) return apiError('Cannot sponsor your own bot')
+  if (bot.owner_id === actorId) return apiError('Cannot sponsor your own bot')
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('sponsor_agreements')
     .insert({
       bot_id,
-      sponsor_id: user.id,
+      sponsor_id: actorId,
       revenue_split_sponsor_pct,
       daily_limit_aa,
       post_restriction,
-      proposed_by: user.id,
+      proposed_by: actorId,
       status: 'pending_bot',
     })
     .select('*')

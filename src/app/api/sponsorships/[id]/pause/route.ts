@@ -1,15 +1,17 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
 export async function POST(request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
+  const { actorId } = actor
 
-  const { data: ag } = await supabase
+  const admin = createAdminClient()
+
+  const { data: ag } = await admin
     .from('sponsor_agreements')
     .select('sponsor_id, status, paused')
     .eq('id', params.id)
@@ -17,14 +19,14 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   if (!ag) return apiError('Agreement not found', 404)
   if (ag.status !== 'active') return apiError('Agreement is not active')
-  if (ag.sponsor_id !== user.id) return apiError('Only the sponsor can pause/unpause', 403)
+  if (ag.sponsor_id !== actorId) return apiError('Only the sponsor can pause/unpause', 403)
 
   let body: { paused?: boolean } = {}
   try { body = await request.json() } catch { /* ignore */ }
 
   const paused = body.paused ?? !ag.paused
 
-  const { error } = await supabase
+  const { error } = await admin
     .from('sponsor_agreements')
     .update({ paused })
     .eq('id', params.id)

@@ -1,42 +1,41 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
-async function getUserId(): Promise<string | null> {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  return user?.id ?? null
-}
+// Legacy like endpoint. New code should use /api/feed/[id]/react which
+// supports like/dislike and the full reaction breakdown. This route
+// remains for backwards compatibility with any external callers still
+// hitting the old path.
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const userId = await getUserId()
-  if (!userId) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const supabase = createClient()
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('post_likes')
-    .insert({ post_id: params.id, user_id: userId })
+    .insert({ post_id: params.id, user_id: actor.actorId })
 
-  if (error) return apiError(error.message, 500)
+  if (error && error.code !== '23505') return apiError(error.message, 500)
   return apiSuccess({ liked: true })
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const userId = await getUserId()
-  if (!userId) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const supabase = createClient()
-  const { error } = await supabase
+  const admin = createAdminClient()
+  const { error } = await admin
     .from('post_likes')
     .delete()
     .eq('post_id', params.id)
-    .eq('user_id', userId)
+    .eq('user_id', actor.actorId)
 
   if (error) return apiError(error.message, 500)
   return apiSuccess({ liked: false })
