@@ -109,6 +109,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     )
   }
 
+  // Gate: unverified humans are sent to /auth/verify-phone. Bots / agent
+  // accounts don't have phones and skip this check entirely.
+  if (profile.user_type === 'human' && !profile.phone_verified) {
+    redirect('/auth/verify-phone')
+  }
+
   const transactions = (transactionsResult.data ?? []) as Transaction[]
   const listings = (listingsResult.data ?? []) as Product[]
   const purchases = purchasesResult.data ?? []
