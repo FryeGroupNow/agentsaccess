@@ -71,3 +71,21 @@ ALTER TABLE profiles
 -- ── owner_id (bot parent account, from 005) ─────────────────────────────
 ALTER TABLE profiles
   ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES profiles(id) ON DELETE SET NULL;
+
+-- ── increment_purchase_count (from 001) ─────────────────────────────────
+--
+-- Billy reported seller dashboards still showing 0 sales after real buys,
+-- which means this RPC was either missing or broken in the live DB. Define
+-- it explicitly here so the re-run is authoritative. SECURITY DEFINER is
+-- important: the buy route calls the RPC via the service-role admin
+-- client, but making it SECURITY DEFINER also keeps it safe when reached
+-- from a session client that RLS would otherwise block from updating the
+-- products row.
+CREATE OR REPLACE FUNCTION increment_purchase_count(p_product_id uuid)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE products
+     SET purchase_count = COALESCE(purchase_count, 0) + 1
+   WHERE id = p_product_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -15,6 +15,8 @@ import { formatCredits, parseBalances } from '@/lib/utils'
 import { Coins, ShoppingBag, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Megaphone } from 'lucide-react'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
+import { ServiceOrdersPanel } from '@/components/dashboard/service-orders-panel'
+import { BotAlertsBanner } from '@/components/dashboard/bot-alerts-banner'
 import { SponsorAgreements } from '@/components/dashboard/sponsor-agreements'
 import { AccountSettingsPanel } from '@/components/dashboard/account-settings-panel'
 import { InviteSection } from '@/components/dashboard/invite-section'
@@ -75,10 +77,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .order('created_at', { ascending: false }),
     supabase
       .from('purchases')
-      .select('product_id, products(id, title, price_credits, category)')
+      .select('product_id, created_at, products(id, title, price_credits, category, product_type, file_url, file_name, cover_image_url)')
       .eq('buyer_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(10),
+      .limit(20),
     supabase
       .from('profiles')
       .select('id, username, display_name, bio, capabilities, credit_balance, bonus_balance, reputation_score, created_at, api_keys(id, name, last_used_at, created_at)')
@@ -191,6 +193,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           phoneVerified={profile.phone_verified ?? false}
         />
       </div>
+
+      {/* Bot alerts — prominent red banner when any owned bot has pending work */}
+      {profile.user_type === 'human' && <BotAlertsBanner />}
 
       {/* Phone verification banner is disabled while Twilio is not wired up.
           The PhoneVerifyBanner component is still available — re-render this
@@ -366,6 +371,16 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             />
           </DashboardCard>
 
+          {/* Service orders (hire flow) */}
+          <div id="services">
+            <DashboardCard
+              title="Services"
+              icon={<TrendingUp className="w-5 h-5 text-indigo-500" />}
+            >
+              <ServiceOrdersPanel currentUserId={user.id} />
+            </DashboardCard>
+          </div>
+
           {/* Top listings summary */}
           {listings.length > 0 && (
             <DashboardCard title="Top Listings">
@@ -436,14 +451,42 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             {purchases.length === 0 ? (
               <p className="text-xs text-gray-400">Nothing purchased yet.</p>
             ) : (
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {purchases.map((p) => {
-                  const prod = p.products as unknown as Product | null
+                  const prod = p.products as unknown as (Product & { file_url?: string | null; file_name?: string | null }) | null
                   if (!prod) return null
+                  const isService = prod.product_type === 'service'
                   return (
-                    <div key={p.product_id} className="rounded-lg border border-gray-100 p-2.5 flex items-center gap-2">
-                      <ShoppingBag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                      <span className="text-sm text-gray-800 truncate">{prod.title}</span>
+                    <div key={p.product_id} className="rounded-lg border border-gray-100 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <ShoppingBag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <Link href={`/marketplace/${prod.id}`} className="text-sm text-gray-800 truncate flex-1 hover:text-indigo-600">
+                          {prod.title}
+                        </Link>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        {prod.file_url && (
+                          <a
+                            href={prod.file_url}
+                            download={prod.file_name ?? undefined}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-1"
+                          >
+                            <ArrowDownLeft className="w-3 h-3 rotate-90" />
+                            Download
+                          </a>
+                        )}
+                        {isService && (
+                          <Link
+                            href="/dashboard?tab=services"
+                            className="inline-flex items-center gap-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium px-2 py-1"
+                          >
+                            <Zap className="w-3 h-3" />
+                            Open session
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   )
                 })}

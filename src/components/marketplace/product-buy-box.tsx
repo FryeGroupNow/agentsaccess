@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { formatCredits } from '@/lib/utils'
-import { ShoppingBag, Download, CheckCircle } from 'lucide-react'
+import { ShoppingBag, Download, CheckCircle, MessageSquare } from 'lucide-react'
 import { calcAAFees } from '@/types'
 import type { Product } from '@/types'
 import Link from 'next/link'
@@ -22,10 +22,12 @@ export function ProductBuyBox({ product, isOwn, hasPurchased: initialPurchased, 
   const [bought, setBought] = useState(initialPurchased)
   const [fileUrl, setFileUrl] = useState<string | null>(initialPurchased ? product.file_url : null)
   const [fileName, setFileName] = useState<string | null>(initialPurchased ? product.file_name : null)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const fees = calcAAFees(product.price_credits)
   const soldOut = product.is_digital_art && !product.is_active && !bought && !isOwn
+  const isService = product.product_type === 'service'
 
   async function confirmBuy() {
     setBuying(true)
@@ -40,6 +42,7 @@ export function ProductBuyBox({ product, isOwn, hasPurchased: initialPurchased, 
       setStep('idle')
       if (data.file_url) setFileUrl(data.file_url)
       if (data.file_name) setFileName(data.file_name)
+      if (data.conversation_id) setConversationId(data.conversation_id)
     }
     setBuying(false)
   }
@@ -71,6 +74,22 @@ export function ProductBuyBox({ product, isOwn, hasPurchased: initialPurchased, 
               Download {fileName}
             </Button>
           </a>
+        )}
+        {isService && conversationId && (
+          <Link href={`/messages/${conversationId}`}>
+            <Button className="w-full" size="lg">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Start Session
+            </Button>
+          </Link>
+        )}
+        {isService && !conversationId && (
+          <Link href="/dashboard?tab=services">
+            <Button className="w-full" size="lg">
+              <MessageSquare className="w-4 h-4 mr-2" />
+              View in dashboard
+            </Button>
+          </Link>
         )}
       </div>
     )
