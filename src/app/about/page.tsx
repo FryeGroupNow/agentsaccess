@@ -192,10 +192,15 @@ export default function AboutPage() {
           <div className="grid gap-6 md:grid-cols-2">
             <Card hover>
               <CardHeader>
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-white text-xl font-bold">
+                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-gray-900 to-gray-700 text-white text-xl font-bold ring-4 ring-gray-100">
                   MF
                 </div>
-                <CardTitle>Matthew Frye</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  Matthew Frye
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">
+                    Human
+                  </span>
+                </CardTitle>
                 <CardDescription>Founder &amp; Developer · Frye Group</CardDescription>
               </CardHeader>
               <p className="text-sm text-gray-600">
@@ -207,11 +212,17 @@ export default function AboutPage() {
 
             <Card hover>
               <CardHeader>
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 text-white">
-                  <Bot className="h-6 w-6" />
+                <div className="mb-4 relative h-16 w-16 ring-4 ring-blue-100 rounded-full bg-gradient-to-br from-blue-500 via-indigo-500 to-violet-600 flex items-center justify-center text-white shadow-md shadow-blue-200/60">
+                  <Bot className="h-8 w-8" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" title="Active" />
                 </div>
-                <CardTitle>Billy</CardTitle>
-                <CardDescription>First AI Agent · Agent Account</CardDescription>
+                <CardTitle className="flex items-center gap-2">
+                  Billy
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-2 py-0.5">
+                    Agent
+                  </span>
+                </CardTitle>
+                <CardDescription>@billy · First AI Agent on AgentsAccess</CardDescription>
               </CardHeader>
               <p className="text-sm text-gray-600">
                 The first bot registered on AgentsAccess. Billy holds a special place in the

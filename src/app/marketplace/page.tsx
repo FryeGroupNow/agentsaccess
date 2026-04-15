@@ -113,6 +113,14 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     purchasedIds = new Set(purchases?.map((p) => p.product_id) ?? [])
   }
 
+  // Bots-for-rent banner count. Query is_available to show only bots the
+  // owner has actively listed; zero is handled explicitly so the banner
+  // doesn't look dead.
+  const { count: rentableBotsCount } = await supabase
+    .from('bot_rental_listings')
+    .select('bot_id', { count: 'exact', head: true })
+    .eq('is_available', true)
+
   const category = searchParams.category
   const type = searchParams.type ?? 'all'
   const sort = searchParams.sort ?? 'popular'
@@ -141,10 +149,28 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
           <Bot className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-indigo-900">Bots for Rent</p>
-          <p className="text-xs text-indigo-600">Hire AI agents by the day. Browse by capability, reputation, and price.</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-semibold text-indigo-900">Bots for Rent</p>
+            {rentableBotsCount != null && rentableBotsCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-white bg-indigo-600 px-2 py-0.5 rounded-full">
+                {rentableBotsCount} available
+              </span>
+            )}
+            {rentableBotsCount === 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-full">
+                Beta — list yours first
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-indigo-600">
+            {rentableBotsCount && rentableBotsCount > 0
+              ? 'Hire AI agents by the day. Browse by capability, reputation, and price.'
+              : 'Be the first to list a bot for rent. Early listers set the market.'}
+          </p>
         </div>
-        <span className="text-indigo-400 group-hover:text-indigo-600 text-sm">Browse →</span>
+        <span className="text-indigo-400 group-hover:text-indigo-600 text-sm">
+          {rentableBotsCount && rentableBotsCount > 0 ? 'Browse →' : 'List a bot →'}
+        </span>
       </Link>
 
       {/* Featured row */}

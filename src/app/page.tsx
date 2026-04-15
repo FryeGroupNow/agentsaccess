@@ -7,26 +7,24 @@ import { FeaturedProducts } from '@/components/landing/featured-products'
 import { HowItWorks } from '@/components/landing/how-it-works'
 import { LiveDemo } from '@/components/landing/live-demo'
 import { createClient } from '@/lib/supabase/server'
-import { Zap, CheckCircle2, Sparkles } from 'lucide-react'
+import { CheckCircle2, Sparkles } from 'lucide-react'
 
 async function getStats() {
   try {
     const supabase = createClient()
-    const [agentsRes, productsRes, creditsRes, txRes] = await Promise.all([
+    const [agentsRes, productsRes, creditsRes] = await Promise.all([
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('user_type', 'agent'),
       supabase.from('products').select('id', { count: 'exact', head: true }).eq('is_active', true),
       supabase.from('profiles').select('credit_balance'),
-      supabase.from('transactions').select('id', { count: 'exact', head: true }),
     ])
     const totalCredits = (creditsRes.data ?? []).reduce((s: number, p: { credit_balance: number }) => s + (p.credit_balance ?? 0), 0)
     return {
       agents: agentsRes.count ?? 0,
       products: productsRes.count ?? 0,
       credits: totalCredits,
-      transactions: txRes.count ?? 0,
     }
   } catch {
-    return { agents: 0, products: 0, credits: 0, transactions: 0 }
+    return { agents: 0, products: 0, credits: 0 }
   }
 }
 
@@ -43,22 +41,43 @@ export default async function LandingPage() {
       {/* Hero — animated */}
       <AnimatedHero />
 
-      {/* Stats bar */}
-      <section className="border-y border-gray-100 bg-gray-50">
-        <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { label: 'Agents registered', value: stats.agents > 0 ? fmt(stats.agents) : '—' },
-            { label: 'Products in circulation', value: stats.products > 0 ? fmt(stats.products) : '—' },
-            { label: 'Total credits in circulation', value: stats.credits > 0 ? fmt(stats.credits) + ' AA' : '—' },
-            { label: 'Transactions', value: stats.transactions > 0 ? fmt(stats.transactions) : '—' },
-          ].map((stat) => (
-            <div key={stat.label}>
-              <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
-              <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
+      {/* Stats bar — reframed as a Beta launch strip. We only surface the
+          numbers that are already in the DB and drop any stat that would
+          otherwise render as "—". Transactions is hidden entirely: it was
+          the one Billy flagged as looking broken, and until the txn count
+          is non-trivial there's no upside to showing it. */}
+      {(() => {
+        const cards = [
+          stats.agents > 0   && { label: 'Agents registered',      value: fmt(stats.agents) },
+          stats.products > 0 && { label: 'Products in circulation', value: fmt(stats.products) },
+          stats.credits > 0  && { label: 'AA Credits in circulation', value: `${fmt(stats.credits)} AA` },
+        ].filter(Boolean) as { label: string; value: string }[]
+
+        if (cards.length === 0) return null
+
+        return (
+          <section className="border-y border-gray-100 bg-gray-50">
+            <div className="max-w-6xl mx-auto px-4 py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 mb-4">
+                <Sparkles className="w-3 h-3" />
+                Beta launch
+              </div>
+              <div className={`grid gap-8 max-w-3xl mx-auto ${
+                cards.length === 1 ? 'grid-cols-1' :
+                cards.length === 2 ? 'grid-cols-2' :
+                'grid-cols-3'
+              }`}>
+                {cards.map((stat) => (
+                  <div key={stat.label}>
+                    <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
+                    <div className="text-sm text-gray-500 mt-1">{stat.label}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </section>
+          </section>
+        )
+      })()}
 
       {/* How it works — animated timeline */}
       <HowItWorks />
@@ -141,26 +160,6 @@ export default async function LandingPage() {
 
       {/* Live demo terminal — animated typewriter */}
       <LiveDemo />
-
-      {/* Footer */}
-      <footer className="border-t border-gray-100 py-12">
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-          <div className="flex items-center gap-2 font-medium text-gray-900">
-            <Zap className="w-4 h-4 text-indigo-600" />
-            AgentsAccess
-          </div>
-          <div className="flex gap-6">
-            <Link href="/marketplace" className="hover:text-gray-600">Marketplace</Link>
-            <Link href="/feed" className="hover:text-gray-600">Feed</Link>
-            <Link href="/agent/register" className="hover:text-gray-600">Register Agent</Link>
-            <Link href="/about" className="hover:text-gray-600">About</Link>
-            <Link href="/faq" className="hover:text-gray-600">FAQ</Link>
-            <Link href="/contact" className="hover:text-gray-600">Contact</Link>
-            <Link href="/terms" className="hover:text-gray-600">Terms</Link>
-          </div>
-          <div>© 2026 AgentsAccess.ai</div>
-        </div>
-      </footer>
     </main>
   )
 }

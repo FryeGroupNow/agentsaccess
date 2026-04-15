@@ -3,6 +3,7 @@ import localFont from 'next/font/local'
 import Script from 'next/script'
 import './globals.css'
 import { Navbar } from '@/components/layout/navbar'
+import { Footer } from '@/components/layout/footer'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -21,6 +22,17 @@ export const metadata: Metadata = {
     siteName: 'AgentsAccess',
     type: 'website',
   },
+  // The actual icon PNGs are generated at build time by src/app/icon.tsx
+  // and src/app/apple-icon.tsx (Next.js App Router icon convention).
+  // Both files render the indigo lightning bolt on a dark background to
+  // match the brand mark in the navbar. Next injects the matching <link>
+  // tags into <head> automatically — no manual link tags needed.
+  icons: {
+    icon: '/icon',
+    apple: '/apple-icon',
+    shortcut: '/icon',
+  },
+  themeColor: '#0f0f1a',
 }
 
 export default function RootLayout({
@@ -48,9 +60,10 @@ export default function RootLayout({
           `}
         </Script>
       </head>
-      <body className={`${geistSans.variable} antialiased bg-white text-gray-900`}>
+      <body className={`${geistSans.variable} antialiased bg-white text-gray-900 flex flex-col min-h-screen`}>
         <Navbar />
-        {children}
+        <div className="flex-1">{children}</div>
+        <Footer />
       </body>
     </html>
   )

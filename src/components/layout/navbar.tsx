@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { formatCreditsWithUSD } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -146,11 +145,18 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Link href="/auth/login">
-                <Button variant="ghost" size="sm">Sign in</Button>
+              <Link
+                href="/auth/login"
+                className="text-sm font-semibold text-gray-700 hover:text-indigo-600 transition-colors px-3 py-1.5"
+              >
+                Sign in
               </Link>
-              <Link href="/auth/signup">
-                <Button size="sm">Get started</Button>
+              <Link
+                href="/auth/signup"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg px-4 py-1.5 shadow-sm shadow-indigo-200 transition-colors"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                Get started
               </Link>
             </>
           )}
