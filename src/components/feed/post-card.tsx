@@ -188,57 +188,67 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
           )}
 
           {/* Engagement bar */}
-          <div className="flex items-center gap-1 pt-1 border-t border-gray-50">
-            {/* Like button + count */}
+          <div className="flex items-center gap-2 pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 flex-wrap">
+            {/* Like button — always visible, solid chip */}
             <button
               onClick={() => handleReact('like')}
               disabled={!currentUserId || reacting}
+              aria-label="Like this post"
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all',
                 myReaction === 'like'
-                  ? 'bg-indigo-100 text-indigo-700'
-                  : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50',
-                !currentUserId && 'cursor-default'
+                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 dark:hover:bg-indigo-950/40',
+                !currentUserId && 'cursor-default opacity-80'
               )}
             >
-              <ThumbsUp className={cn('w-3.5 h-3.5', myReaction === 'like' && 'fill-current')} />
-              {totalLikes > 0 && <span>{totalLikes}</span>}
+              <ThumbsUp className={cn('w-4 h-4', myReaction === 'like' && 'fill-current')} />
+              <span>{totalLikes}</span>
             </button>
 
-            {/* Dislike button + count */}
+            {/* Dislike button — always visible, solid chip */}
             <button
               onClick={() => handleReact('dislike')}
               disabled={!currentUserId || reacting}
+              aria-label="Dislike this post"
               className={cn(
-                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all',
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all',
                 myReaction === 'dislike'
-                  ? 'bg-red-100 text-red-600'
-                  : 'text-gray-400 hover:text-red-500 hover:bg-red-50',
-                !currentUserId && 'cursor-default'
+                  ? 'bg-red-600 text-white border-red-600 shadow-sm'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-950/40',
+                !currentUserId && 'cursor-default opacity-80'
               )}
             >
-              <ThumbsDown className={cn('w-3.5 h-3.5', myReaction === 'dislike' && 'fill-current')} />
-              {totalDislikes > 0 && <span>{totalDislikes}</span>}
+              <ThumbsDown className={cn('w-4 h-4', myReaction === 'dislike' && 'fill-current')} />
+              <span>{totalDislikes}</span>
             </button>
 
-            {/* Human/Bot breakdown */}
-            <div className="flex items-center gap-2 ml-1 text-xs text-gray-400 border-l border-gray-100 pl-3">
-              <span className="flex items-center gap-1">
-                <User className="w-3 h-3" />
-                <span className="text-indigo-500">{humanLikes}</span>
-                <span className="text-red-400 text-[10px]">−{humanDislikes}</span>
+            {/* Human/Bot breakdown — readable size */}
+            <div className="flex items-center gap-2 ml-1 pl-3 border-l border-gray-200 dark:border-gray-700">
+              {/* Humans */}
+              <span
+                className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-gray-200"
+                title={`${humanLikes} human likes, ${humanDislikes} human dislikes`}
+              >
+                <User className="w-4 h-4 text-indigo-500" />
+                <span className="text-indigo-600 dark:text-indigo-400">{humanLikes}↑</span>
+                <span className="text-red-500 dark:text-red-400">{humanDislikes}↓</span>
               </span>
-              <span className="flex items-center gap-1">
-                <Bot className="w-3 h-3" />
-                <span className="text-violet-500">{botLikes}</span>
-                <span className="text-red-400 text-[10px]">−{botDislikes}</span>
+              {/* Bots */}
+              <span
+                className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-gray-200"
+                title={`${botLikes} bot likes, ${botDislikes} bot dislikes`}
+              >
+                <Bot className="w-4 h-4 text-violet-500" />
+                <span className="text-violet-600 dark:text-violet-400">{botLikes}↑</span>
+                <span className="text-red-500 dark:text-red-400">{botDislikes}↓</span>
               </span>
             </div>
 
             {/* Reply count */}
             {post.reply_count > 0 && (
-              <span className="flex items-center gap-1 text-xs text-gray-400 ml-auto">
-                <MessageSquare className="w-3.5 h-3.5" />
+              <span className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-300 ml-auto">
+                <MessageSquare className="w-4 h-4" />
                 {post.reply_count}
               </span>
             )}
