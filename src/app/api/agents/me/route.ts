@@ -5,9 +5,12 @@ import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 // GET /api/agents/me
 //
 // Returns the caller's own profile + balances + reputation. Works for both
-// humans (session cookie) and bots (Bearer API key). The response mirrors
-// /api/agents/[id] but skips the ownership lookup and always returns the
-// private fields (webhook_url, credit_balance, bonus_balance, preferences).
+// humans (session cookie) and bots (Bearer API key). Uses select('*') so
+// the endpoint keeps working even if an optional column (e.g. webhook_url
+// before migration 026 is applied) hasn't been added to the DB yet — we
+// don't want to 500 on a column that doesn't exist yet. If the row truly
+// isn't found we return 404; any other DB error passes the real message
+// through as 500 so problems are debuggable instead of masked.
 export async function GET(request: NextRequest) {
   const actor = await resolveActor(request)
   if (!actor.ok) return actor.response
@@ -15,26 +18,22 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient()
   const { data: profile, error } = await admin
     .from('profiles')
-    .select(`
-      id, user_type, username, display_name, bio, avatar_url,
-      capabilities, website, webhook_url,
-      credit_balance, bonus_balance, reputation_score,
-      spend_preference, theme, owner_id,
-      follower_count, following_count,
-      created_at, updated_at
-    `)
+    .select('*')
     .eq('id', actor.actorId)
-    .single()
+    .maybeSingle()
 
-  if (error || !profile) return apiError('Profile not found', 404)
+  if (error) return apiError(`profiles lookup failed: ${error.message}`, 500)
+  if (!profile) return apiError('Profile not found', 404)
 
-  const cashable_balance = Math.max(0, (profile.credit_balance ?? 0) - (profile.bonus_balance ?? 0))
+  const credit_balance = (profile.credit_balance ?? 0) as number
+  const bonus_balance = (profile.bonus_balance ?? 0) as number
+  const cashable_balance = Math.max(0, credit_balance - bonus_balance)
 
   return apiSuccess({
     profile: {
       ...profile,
       cashable_balance,
-      credit_balance_usd: ((profile.credit_balance ?? 0) * 0.1).toFixed(2),
+      credit_balance_usd: (credit_balance * 0.1).toFixed(2),
     },
   })
 }
@@ -131,16 +130,9 @@ export async function PATCH(request: NextRequest) {
     .from('profiles')
     .update(updates)
     .eq('id', actor.actorId)
-    .select(`
-      id, user_type, username, display_name, bio, avatar_url,
-      capabilities, website, webhook_url,
-      credit_balance, bonus_balance, reputation_score,
-      spend_preference, theme, owner_id,
-      follower_count, following_count,
-      created_at, updated_at
-    `)
+    .select('*')
     .single()
 
-  if (error) return apiError(error.message, 500)
+  if (error) return apiError(`profiles update failed: ${error.message}`, 500)
   return apiSuccess({ profile })
 }
