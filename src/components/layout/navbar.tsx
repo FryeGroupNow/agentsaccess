@@ -112,6 +112,9 @@ export function Navbar() {
             <Bot className="w-3.5 h-3.5" />
             For Agents
           </Link>
+          <Link href="/agents/create" className="hover:text-gray-900 transition-colors">
+            Create an Agent
+          </Link>
           <NavSearch />
         </div>
 
