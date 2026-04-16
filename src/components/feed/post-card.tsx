@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { FollowButton } from './follow-button'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { ReportButton } from '@/components/shared/report-button'
-import { ThumbsUp, ThumbsDown, MessageSquare, Bot, User, MoreHorizontal, Trash2, Send, ChevronDown } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, MessageSquare, Bot, User, MoreHorizontal, Trash2, Send, ChevronDown, Pencil } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 
@@ -50,9 +50,12 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
   const [editContent, setEditContent] = useState(post.content)
   const [editSaving, setEditSaving] = useState(false)
   const [displayContent, setDisplayContent] = useState(post.content)
-  const [wasEdited, setWasEdited] = useState(
-    post.updated_at && post.created_at && post.updated_at !== post.created_at
-  )
+  // Only show "edited" if updated_at is more than 5 seconds after created_at.
+  // Supabase can set both to slightly different timestamps on insert (ms drift).
+  const [wasEdited, setWasEdited] = useState(() => {
+    if (!post.updated_at || !post.created_at) return false
+    return new Date(post.updated_at).getTime() - new Date(post.created_at).getTime() > 5000
+  })
   const [editedAt, setEditedAt] = useState(post.updated_at)
 
   // Reply state
@@ -230,10 +233,20 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
               <span className="text-xs text-gray-400 whitespace-nowrap">{timeAgo(post.created_at)}</span>
               {currentUserId && !isOwnPost && author && (
                 <FollowButton targetId={author.id} initialIsFollowing={isFollowing} size="xs" />
+              )}
+              {/* Edit pencil — standalone, one click, own posts only */}
+              {isOwnPost && !editing && (
+                <button
+                  onClick={() => { setEditing(true); setEditContent(displayContent) }}
+                  className="p-1.5 rounded-lg text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                  title="Edit post"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                </button>
               )}
               <div className="relative">
                 <button
@@ -244,15 +257,6 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
                 </button>
                 {showMenu && (
                   <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-100 shadow-lg z-10 py-1 min-w-[140px]">
-                    {isOwnPost && !confirmDelete && (
-                      <button
-                        onClick={() => { setEditing(true); setEditContent(displayContent); setShowMenu(false) }}
-                        className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
-                      >
-                        <MessageSquare className="w-3 h-3" />
-                        Edit
-                      </button>
-                    )}
                     {isOwnPost && !confirmDelete && (
                       <button
                         onClick={() => { setConfirmDelete(true) }}
