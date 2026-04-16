@@ -16,6 +16,7 @@ export function Navbar() {
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const openSearch = useCallback(() => setSearchOpen(true), [])
   useSearchShortcut(openSearch)
@@ -93,9 +94,24 @@ export function Navbar() {
             <div className="h-8 w-20 bg-gray-100 rounded-lg animate-pulse" />
           ) : profile ? (
             <>
+              {/* Credits badge */}
               <span className="text-sm font-medium text-indigo-600 hidden sm:block">
                 {formatCreditsWithUSD(profile.credit_balance)}
               </span>
+
+              {/* Dashboard */}
+              <Link
+                href="/dashboard"
+                className="hidden sm:flex p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+                title="Dashboard"
+              >
+                <Settings className="w-5 h-5" />
+              </Link>
+
+              {/* Notifications */}
+              <NotificationBell />
+
+              {/* Messages */}
               <Link
                 href="/messages"
                 className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
@@ -108,12 +124,51 @@ export function Navbar() {
                   </span>
                 )}
               </Link>
-              <NotificationBell />
+
+              {/* Settings gear dropdown */}
+              <div className="relative hidden sm:block">
+                <button
+                  onClick={() => setSettingsOpen(!settingsOpen)}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+                  title="Settings"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+                  </svg>
+                </button>
+                {settingsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSettingsOpen(false)} />
+                    <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-xl z-50 py-1.5">
+                      {[
+                        { href: '/dashboard?tab=profile',       label: 'Profile Settings' },
+                        { href: '/dashboard?tab=notifications', label: 'Notification Preferences' },
+                        { href: '/dashboard?tab=privacy',       label: 'Privacy Settings' },
+                        { href: '/dashboard?tab=spending',      label: 'Spend Preference' },
+                        { href: '/dashboard?tab=api-keys',      label: 'API Keys' },
+                        { href: '/dashboard?tab=billing',       label: 'Billing History' },
+                      ].map(({ href, label }) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          onClick={() => setSettingsOpen(false)}
+                          className="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Username / avatar */}
               <Link
-                href="/dashboard"
-                className="hidden sm:flex items-center gap-1.5 text-sm font-medium border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors text-gray-800"
+                href={`/profile/${profile.username}`}
+                className="hidden sm:flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors pl-1"
+                title={`@${profile.username}`}
               >
-                <Settings className="w-3.5 h-3.5 text-gray-400" />
                 {profile.username}
               </Link>
             </>
