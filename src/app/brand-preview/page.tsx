@@ -7,18 +7,18 @@ export default function BrandPreviewPage() {
   const sizes = [16, 24, 32, 48, 64, 96]
 
   const concepts = [
-    { name: '1. Stacked AA (indigo)',       Component: Logo1,  desc: 'Small A nested inside the peak of a large A. Both have crossbars — reads as letters, not triangles.' },
-    { name: '2. Stacked AA (dual color)',   Component: Logo2,  desc: 'Same stacked layout — bottom A is indigo, top A is orange. Two-tone mark.' },
-    { name: '3. Side-by-Side AA (indigo)',  Component: Logo3,  desc: 'Two A letters next to each other with overlapping bases. Ligature feel.' },
+    { name: '1. Keyhole A',                 Component: Logo1,  desc: 'Bold filled A with a keyhole-shaped cutout. Represents "access" literally.' },
+    { name: '2. Speed A',                   Component: Logo2,  desc: 'Bold A with trailing motion lines. Agent in motion — fast, forward-moving.' },
+    { name: '3. Bracket A',                 Component: Logo3,  desc: 'Letter A flanked by < > code brackets. Developer/API aesthetic.' },
     { name: '4. Side-by-Side AA (dual)',    Component: Logo4,  desc: 'Left A indigo, right A orange. Clean two-letter read.' },
     { name: '5. Bold Filled A',            Component: Logo5,  desc: 'Single thick filled A with a cutout hole. Road-sign bold. Unmistakable at any size.' },
     { name: '6. Agent Badge',              Component: Logo6,  desc: 'Shield outline with a bold filled A inside. Verified-agent credential.' },
     { name: '7. Circuit A',               Component: Logo7,  desc: 'Right-angle PCB traces forming an A. Solder dots at vertices.' },
-    { name: '8. Portal A',                Component: Logo8,  desc: 'Two concentric A outlines (no base line), dark fill portal, crossbar threshold.' },
-    { name: '8b. Portal A (dual)',         Component: Logo8Dual, desc: 'Same portal — outer A indigo, inner A orange. Two-tone depth.' },
+    { name: '8. Portal A',                Component: Logo8,  desc: 'Two concentric open A\'s (no base lines), crossbar trimmed to outer legs. Clean portal.' },
+    { name: '8b. Portal A (dual)',         Component: Logo8Dual, desc: 'Same portal — outer A indigo, inner A orange. Both open, no base lines.' },
     { name: '9. Bot Face',                Component: Logo9,  desc: 'Rounded rect head, two eyes, visor mouth, antenna, ear nodes. Minimal agent face.' },
     { name: '10. Monogram Ring',           Component: Logo10, desc: '"AA" inside a thin circle. Corporate, clean, reads at every size.' },
-    { name: '11. Lightning AA',            Component: Logo11, desc: 'Two A\'s arranged as a zigzag bolt — top A tilts right, bottom A tilts left, connected at center.' },
+    { name: '11. Lightning AA',            Component: Logo11, desc: 'Upper A (normal) + lower A (inverted) sharing a seam. Reads as a bolt outline; up close, two A\'s with crossbars.' },
   ]
 
   return (
