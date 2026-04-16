@@ -45,6 +45,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     `)
     .eq('parent_id', params.id)
     .eq('is_hidden', false)
+    .eq('is_approved', true)
     .order('created_at', { ascending: true })
     .limit(limit)
 
@@ -140,12 +141,15 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   if (!existing) return apiError('Post not found', 404)
   if (existing.author_id !== authorId) return apiError('Forbidden', 403)
 
-  const { error } = await admin
+  const { data: updated, error } = await admin
     .from('posts')
-    .update({ is_hidden: true })
+    .update({ is_hidden: true, is_approved: false })
     .eq('id', params.id)
+    .select('id, is_hidden, is_approved')
+    .single()
 
   if (error) return apiError(error.message, 500)
+  console.log(`[feed] soft-deleted post ${params.id}:`, updated)
 
   // Decrement parent reply_count if this was a reply
   if (existing.parent_id) {
