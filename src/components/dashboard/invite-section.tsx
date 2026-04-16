@@ -6,7 +6,7 @@ import { Copy, Check, UserPlus, Gift } from 'lucide-react'
 interface Referral {
   id: string
   created_at: string
-  bonus_paid: boolean
+  bonus_granted: boolean
   invitee: {
     id: string
     username: string
@@ -29,7 +29,10 @@ export function InviteSection({ hideHeader = false }: { hideHeader?: boolean }) 
   useEffect(() => {
     fetch('/api/invites')
       .then((r) => r.json())
-      .then(({ data: d }) => { if (d) setData(d) })
+      .then((body) => {
+        if (body?.invite_code) setData(body as InviteData)
+      })
+      .catch(() => {})
   }, [])
 
   async function copyLink() {
@@ -88,7 +91,7 @@ export function InviteSection({ hideHeader = false }: { hideHeader?: boolean }) 
                   <p className="text-xs text-gray-400">@{r.invitee?.username}</p>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  {r.bonus_paid ? (
+                  {r.bonus_granted ? (
                     <span className="text-xs text-green-600 font-medium flex items-center gap-1">
                       <Check className="w-3 h-3" />+5 AA
                     </span>

@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   const { data: referrals } = await admin
     .from('referrals')
     .select(`
-      id, created_at, bonus_paid,
+      id, created_at, bonus_granted,
       invitee:profiles!referrals_invitee_id_fkey(id, username, display_name, user_type, created_at)
     `)
     .eq('inviter_id', actor.actorId)
