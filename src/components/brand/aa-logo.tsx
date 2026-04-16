@@ -1,152 +1,199 @@
 import * as React from 'react'
 
 // ─────────────────────────────────────────────────────────────────────
-// AgentsAccess brand mark — 5 concepts for review (round 2).
+// AgentsAccess brand mark — 10 concepts, round 3.
 //
-// Primary: #4f46e5 (indigo-600). Accent: #818cf8 (indigo-400).
-// All on #0f0f1a dark rounded-square frame, viewBox 0 0 32 32.
+// Each concept is shown in two colorways:
+//   - Indigo (#4f46e5)
+//   - Orange (#f97316)
+// Plus a special dual-color variant where applicable.
+//
+// All on #0f0f1a dark rounded-square, viewBox 0 0 32 32.
 // ─────────────────────────────────────────────────────────────────────
 
 interface Props extends React.SVGProps<SVGSVGElement> {
   className?: string
+  color?: string
 }
 
-const P = '#4f46e5'
-const A = '#818cf8'
-
-// ── 1. Stacked AA ───────────────────────────────────────────────────
-// One A stacked on top of another. Sharp chevron shapes, reads as a
-// monolith/pillar from afar, two distinct A's up close. The bottom A
-// is larger (grounding), the top A is smaller (ascending).
-export function LogoStackedAA({ className = 'w-6 h-6', ...rest }: Props) {
+// ── 1. Stacked AA v2 ────────────────────────────────────────────────
+// Two READABLE A letters stacked — the top A is smaller, the bottom A
+// is larger. Each A has visible crossbars so they clearly read as
+// letters, not triangles. The top A sits inside the peak of the bottom.
+export function Logo1({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill="#0f0f1a" />
-      {/* Top A — smaller */}
-      <path d="M16 4 L10.5 14 L21.5 14 Z" stroke={A} strokeWidth="2" strokeLinejoin="round" fill="none" />
-      <line x1="12.8" y1="11" x2="19.2" y2="11" stroke={A} strokeWidth="1.5" strokeLinecap="round" />
-      {/* Bottom A — larger */}
-      <path d="M16 13 L7 27 L25 27 Z" stroke={P} strokeWidth="2" strokeLinejoin="round" fill="none" />
-      <line x1="10.5" y1="22" x2="21.5" y2="22" stroke={P} strokeWidth="1.8" strokeLinecap="round" />
+      {/* Bottom A — large */}
+      <path d="M6 27 L16 8 L26 27" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="9.5" y1="21" x2="22.5" y2="21" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      {/* Top A — smaller, nested in the peak */}
+      <path d="M12.5 18 L16 10.5 L19.5 18" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="13.8" y1="15.5" x2="18.2" y2="15.5" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
 
-// ── 2. Bot A ────────────────────────────────────────────────────────
-// The letter A where the two legs are literal bot legs, the crossbar
-// is the body/torso, and two small circles sit above as eyes. The
-// apex is the head point. Reads as both "A" and a walking bot.
-export function LogoBotA({ className = 'w-6 h-6', ...rest }: Props) {
+// ── 2. Stacked AA Dual Color ────────────────────────────────────────
+// Same as #1 but top A is orange, bottom A is indigo. Two-tone mark.
+export function Logo2({ className = 'w-6 h-6', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      <path d="M6 27 L16 8 L26 27" stroke="#4f46e5" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="9.5" y1="21" x2="22.5" y2="21" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />
+      <path d="M12.5 18 L16 10.5 L19.5 18" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="13.8" y1="15.5" x2="18.2" y2="15.5" stroke="#f97316" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── 3. Side-by-Side AA ──────────────────────────────────────────────
+// Two distinct A letters next to each other. Both have clear crossbars.
+// Left A slightly overlaps right A at the base for a ligature feel.
+export function Logo3({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      {/* Left A */}
+      <path d="M4 26 L11 6 L18 26" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="6.8" y1="19" x2="15.2" y2="19" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      {/* Right A */}
+      <path d="M14 26 L21 6 L28 26" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="16.8" y1="19" x2="25.2" y2="19" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── 4. Side-by-Side Dual Color ──────────────────────────────────────
+// Left A indigo, right A orange. Clear two-letter read.
+export function Logo4({ className = 'w-6 h-6', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      <path d="M4 26 L11 6 L18 26" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="6.8" y1="19" x2="15.2" y2="19" stroke="#4f46e5" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M14 26 L21 6 L28 26" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="16.8" y1="19" x2="25.2" y2="19" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── 5. Bold Filled A ────────────────────────────────────────────────
+// Single thick A with a filled body and a cutout crossbar. Reads like
+// a road sign A — unmistakable at any size. Solid and confident.
+export function Logo5({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      {/* Filled A with triangular cutout */}
+      <path
+        d="M16 3 L4 28 L10 28 L12.5 21 L19.5 21 L22 28 L28 28 Z"
+        fill={color}
+      />
+      {/* Cutout — dark triangle to form the A hole */}
+      <path d="M16 10 L13 19 L19 19 Z" fill="#0f0f1a" />
+    </svg>
+  )
+}
+
+// ── 6. Agent Badge ──────────────────────────────────────────────────
+// Shield with a bold A inside. Verified-agent mark. Clean lines.
+export function Logo6({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      {/* Shield */}
+      <path
+        d="M16 3 L5 8 L5 17 Q5 26 16 29 Q27 26 27 17 L27 8 Z"
+        stroke={color} strokeWidth="1.8" strokeLinejoin="round" fill="none"
+      />
+      {/* Bold A inside */}
+      <path
+        d="M16 8 L10 24 L13 24 L14.5 20 L17.5 20 L19 24 L22 24 Z"
+        fill={color}
+      />
+      <path d="M16 13 L14.8 18 L17.2 18 Z" fill="#0f0f1a" />
+    </svg>
+  )
+}
+
+// ── 7. Circuit A ────────────────────────────────────────────────────
+// Right-angle traces forming an A. Dots at corners. PCB aesthetic.
+export function Logo7({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      <polyline points="8,27 8,10 16,5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <polyline points="16,5 24,10 24,27" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="8" y1="18" x2="24" y2="18" stroke={color} strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="8" cy="27" r="1.6" fill={color} />
+      <circle cx="8" cy="10" r="1.6" fill={color} />
+      <circle cx="16" cy="5" r="1.8" fill={color} />
+      <circle cx="24" cy="10" r="1.6" fill={color} />
+      <circle cx="24" cy="27" r="1.6" fill={color} />
+    </svg>
+  )
+}
+
+// ── 8. Portal A ─────────────────────────────────────────────────────
+// Two concentric A outlines forming a doorway. Dark fill between them
+// creates depth. Crossbar is the threshold line.
+export function Logo8({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      <path d="M16 3 L5 28 L27 28 Z" stroke={color} strokeWidth="2" strokeLinejoin="round" fill="none" />
+      <path d="M16 10 L10 25 L22 25 Z" stroke={color} strokeWidth="1.2" strokeLinejoin="round" fill="#1e1b4b" />
+      <line x1="8" y1="20" x2="24" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── 9. Bot Face ─────────────────────────────────────────────────────
+// Rounded rect head with two dot eyes and a flat visor line. Antenna
+// on top. Minimal, geometric, reads as "agent" at any size.
+export function Logo9({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill="#0f0f1a" />
       {/* Antenna */}
-      <line x1="16" y1="3" x2="16" y2="7" stroke={A} strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="16" cy="3" r="1.2" fill={A} />
-      {/* Head / apex */}
-      <line x1="16" y1="7" x2="9" y2="19" stroke={P} strokeWidth="2.2" strokeLinecap="round" />
-      <line x1="16" y1="7" x2="23" y2="19" stroke={P} strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="16" y1="3" x2="16" y2="7" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="16" cy="3" r="1.3" fill={color} />
+      {/* Head */}
+      <rect x="7" y="8" width="18" height="16" rx="4" stroke={color} strokeWidth="2" fill="none" />
       {/* Eyes */}
-      <circle cx="13" cy="13" r="1.5" fill={A} />
-      <circle cx="19" cy="13" r="1.5" fill={A} />
-      {/* Body / crossbar */}
-      <line x1="10.5" y1="17" x2="21.5" y2="17" stroke={P} strokeWidth="2.2" strokeLinecap="round" />
-      {/* Bot legs — splayed outward with feet */}
-      <line x1="12" y1="19" x2="8" y2="27" stroke={P} strokeWidth="2.2" strokeLinecap="round" />
-      <line x1="20" y1="19" x2="24" y2="27" stroke={P} strokeWidth="2.2" strokeLinecap="round" />
-      {/* Feet */}
-      <line x1="6" y1="27" x2="10" y2="27" stroke={A} strokeWidth="2" strokeLinecap="round" />
-      <line x1="22" y1="27" x2="26" y2="27" stroke={A} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12.5" cy="15" r="2" fill={color} />
+      <circle cx="19.5" cy="15" r="2" fill={color} />
+      {/* Mouth */}
+      <line x1="12" y1="20" x2="20" y2="20" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
+      {/* Ear nodes */}
+      <circle cx="5" cy="16" r="1.5" fill={color} />
+      <circle cx="27" cy="16" r="1.5" fill={color} />
     </svg>
   )
 }
 
-// ── 3. Circuit A ────────────────────────────────────────────────────
-// The letter A drawn from right-angle circuit traces with solder-dot
-// nodes at every vertex. Pure PCB aesthetic, reads as "A" with a
-// tech overlay. Traces are orthogonal where possible.
-export function LogoCircuitA({ className = 'w-6 h-6', ...rest }: Props) {
+// ── 10. Monogram Ring ───────────────────────────────────────────────
+// "AA" centered inside a thin circle. Clean, corporate, reads at
+// every size. The letters are compact and bold.
+export function Logo10({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill="#0f0f1a" />
-      {/* A drawn as circuit traces — left leg goes up-then-right to apex,
-          right leg mirrors. Crossbar is a horizontal trace with dots. */}
-      {/* Left leg: bottom-left → up → right to apex */}
-      <polyline
-        points="7,27 7,10 16,5"
-        stroke={P} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"
-      />
-      {/* Right leg: apex → right → down to bottom-right */}
-      <polyline
-        points="16,5 25,10 25,27"
-        stroke={P} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"
-      />
-      {/* Crossbar trace */}
-      <line x1="7" y1="18" x2="25" y2="18" stroke={A} strokeWidth="1.8" strokeLinecap="round" />
-      {/* Solder dots at all vertices */}
-      <circle cx="7" cy="27" r="1.8" fill={A} />
-      <circle cx="7" cy="10" r="1.8" fill={A} />
-      <circle cx="16" cy="5" r="2" fill={P} />
-      <circle cx="25" cy="10" r="1.8" fill={A} />
-      <circle cx="25" cy="27" r="1.8" fill={A} />
-      <circle cx="7" cy="18" r="1.4" fill={A} />
-      <circle cx="25" cy="18" r="1.4" fill={A} />
-    </svg>
-  )
-}
-
-// ── 4. Portal A ─────────────────────────────────────────────────────
-// Two parallel strokes forming an A-shaped doorway/portal. The space
-// between the strokes is filled with a lighter tone suggesting depth
-// or passage. Agents walk through into the economy.
-export function LogoPortalA({ className = 'w-6 h-6', ...rest }: Props) {
-  return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
-      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
-      {/* Inner portal fill — the negative space that reads as a doorway */}
-      <path d="M16 5 L9 27 L23 27 Z" fill="#312e81" />
-      {/* Outer A */}
-      <path d="M16 3 L5 28 L27 28 Z" stroke={P} strokeWidth="2" strokeLinejoin="round" fill="none" />
-      {/* Inner A (parallel, smaller) — creates the "two-stroke" portal feel */}
-      <path d="M16 9 L10.5 25 L21.5 25 Z" stroke={A} strokeWidth="1.4" strokeLinejoin="round" fill="none" />
-      {/* Crossbar spanning both — the threshold */}
-      <line x1="8" y1="20" x2="24" y2="20" stroke={P} strokeWidth="2" strokeLinecap="round" />
-      {/* Floor line of inner portal */}
-      <line x1="12" y1="23" x2="20" y2="23" stroke={A} strokeWidth="1.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// ── 5. Agent Badge ──────────────────────────────────────────────────
-// Shield / badge outline with "AA" typeset inside. Professional,
-// official — like a verified-agent credential. Clean shield contour
-// with a flat top and pointed bottom.
-export function LogoAgentBadge({ className = 'w-6 h-6', ...rest }: Props) {
-  return (
-    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
-      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
-      {/* Shield outline */}
-      <path
-        d="M16 3 L5 8 L5 17 Q5 26 16 29 Q27 26 27 17 L27 8 Z"
-        stroke={P} strokeWidth="1.8" strokeLinejoin="round" fill="none"
-      />
-      {/* Inner shield fill — subtle depth */}
-      <path
-        d="M16 5.5 L7 9.5 L7 17 Q7 24.5 16 27 Q25 24.5 25 17 L25 9.5 Z"
-        fill="#1e1b4b"
-      />
-      {/* "AA" text — two small, clean A shapes side by side */}
+      {/* Ring */}
+      <circle cx="16" cy="16" r="12.5" stroke={color} strokeWidth="1.5" fill="none" />
       {/* Left A */}
-      <path d="M9 22 L12.5 11 L16 22 M10.5 19 L14.5 19" stroke={A} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <path d="M7 24 L12 9 L17 24" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="9" y1="19" x2="15" y2="19" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
       {/* Right A */}
-      <path d="M16 22 L19.5 11 L23 22 M17.5 19 L21.5 19" stroke={P} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      {/* Top accent — small star/dot at shield peak */}
-      <circle cx="16" cy="8" r="1.2" fill={A} />
+      <path d="M15 24 L20 9 L25 24" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="17" y1="19" x2="23" y2="19" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   )
 }
 
 // ── Active export ───────────────────────────────────────────────────
-// Aliased to Concept 1 by default. Change after picking.
-export const AALogo = LogoStackedAA
-export const AALogoMark = LogoStackedAA
+// Aliased to Logo1 by default. Change after picking.
+export const AALogo = Logo1
+export const AALogoMark = Logo1
