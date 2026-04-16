@@ -49,15 +49,45 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   const [spendSaved, setSpendSaved] = useState(false)
   const [spendError, setSpendError] = useState('')
 
+  // Notification preferences
+  const [notifPrefs, setNotifPrefs] = useState({
+    new_messages: true,
+    product_sales: true,
+    dispute_updates: true,
+    review_replies: true,
+    sponsor_activity: true,
+    system_announcements: true,
+  })
+  const [notifSaving, setNotifSaving] = useState(false)
+  const [notifSaved, setNotifSaved] = useState(false)
+  const [notifError, setNotifError] = useState('')
+
+  // Privacy preferences
+  const [privacyPrefs, setPrivacyPrefs] = useState({
+    public_profile: true,
+    allow_messages: true,
+    show_transactions: false,
+    searchable_posts: true,
+  })
+  const [privacySaving, setPrivacySaving] = useState(false)
+  const [privacySaved, setPrivacySaved] = useState(false)
+  const [privacyError, setPrivacyError] = useState('')
+
   useEffect(() => {
     const supabase = createClient()
     supabase
       .from('profiles')
-      .select('spend_preference')
+      .select('spend_preference, notification_prefs, privacy_prefs')
       .eq('id', profile.id)
       .single()
       .then(({ data }) => {
         if (data?.spend_preference) setSpendPref(data.spend_preference as SpendPreference)
+        if (data?.notification_prefs && typeof data.notification_prefs === 'object') {
+          setNotifPrefs((prev) => ({ ...prev, ...(data.notification_prefs as Record<string, boolean>) }))
+        }
+        if (data?.privacy_prefs && typeof data.privacy_prefs === 'object') {
+          setPrivacyPrefs((prev) => ({ ...prev, ...(data.privacy_prefs as Record<string, boolean>) }))
+        }
       })
   }, [profile.id])
 
@@ -373,38 +403,110 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
             <div className="space-y-3 max-w-md">
               <h3 className="font-semibold text-gray-900">Notification Preferences</h3>
               <p className="text-sm text-gray-500">Choose what you want to be notified about.</p>
-              {[
-                'New messages',
-                'Product sales',
-                'Dispute updates',
-                'Review replies',
-                'Sponsor activity',
-                'System announcements',
-              ].map((label) => (
-                <label key={label} className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded" />
+              {([
+                { key: 'new_messages', label: 'New messages' },
+                { key: 'product_sales', label: 'Product sales' },
+                { key: 'dispute_updates', label: 'Dispute updates' },
+                { key: 'review_replies', label: 'Review replies' },
+                { key: 'sponsor_activity', label: 'Sponsor activity' },
+                { key: 'system_announcements', label: 'System announcements' },
+              ] as { key: keyof typeof notifPrefs; label: string }[]).map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notifPrefs[key]}
+                    onChange={(e) => setNotifPrefs((prev) => ({ ...prev, [key]: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 rounded"
+                  />
                   <span className="text-sm text-gray-700">{label}</span>
                 </label>
               ))}
-              <Button size="sm" className="mt-2">Save preferences</Button>
+              {notifError && <p className="text-red-500 text-xs">{notifError}</p>}
+              {notifSaved && <p className="text-green-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" />Preferences saved!</p>}
+              <Button
+                size="sm"
+                className="mt-2"
+                disabled={notifSaving}
+                onClick={async () => {
+                  setNotifSaving(true)
+                  setNotifSaved(false)
+                  setNotifError('')
+                  try {
+                    const res = await fetch('/api/profile/preferences', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ notification_prefs: notifPrefs }),
+                    })
+                    const body = await res.json()
+                    if (!res.ok) {
+                      setNotifError(body.error ?? 'Failed to save')
+                    } else {
+                      setNotifSaved(true)
+                      setTimeout(() => setNotifSaved(false), 3000)
+                    }
+                  } catch {
+                    setNotifError('Network error')
+                  } finally {
+                    setNotifSaving(false)
+                  }
+                }}
+              >
+                {notifSaving ? 'Saving…' : 'Save preferences'}
+              </Button>
             </div>
           )}
 
           {activeTab === 'privacy' && (
             <div className="space-y-3 max-w-md">
               <h3 className="font-semibold text-gray-900">Privacy Settings</h3>
-              {[
-                { label: 'Show my profile to the public', defaultChecked: true },
-                { label: 'Allow other users to message me', defaultChecked: true },
-                { label: 'Show my transaction history on my profile', defaultChecked: false },
-                { label: 'Allow my posts to appear in search', defaultChecked: true },
-              ].map(({ label, defaultChecked }) => (
-                <label key={label} className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" defaultChecked={defaultChecked} className="w-4 h-4 text-indigo-600 rounded" />
+              {([
+                { key: 'public_profile',    label: 'Show my profile to the public' },
+                { key: 'allow_messages',     label: 'Allow other users to message me' },
+                { key: 'show_transactions',  label: 'Show my transaction history on my profile' },
+                { key: 'searchable_posts',   label: 'Allow my posts to appear in search' },
+              ] as { key: keyof typeof privacyPrefs; label: string }[]).map(({ key, label }) => (
+                <label key={key} className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={privacyPrefs[key]}
+                    onChange={(e) => setPrivacyPrefs((prev) => ({ ...prev, [key]: e.target.checked }))}
+                    className="w-4 h-4 text-indigo-600 rounded"
+                  />
                   <span className="text-sm text-gray-700">{label}</span>
                 </label>
               ))}
-              <Button size="sm" className="mt-2">Save settings</Button>
+              {privacyError && <p className="text-red-500 text-xs">{privacyError}</p>}
+              {privacySaved && <p className="text-green-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" />Settings saved!</p>}
+              <Button
+                size="sm"
+                className="mt-2"
+                disabled={privacySaving}
+                onClick={async () => {
+                  setPrivacySaving(true)
+                  setPrivacySaved(false)
+                  setPrivacyError('')
+                  try {
+                    const res = await fetch('/api/profile/preferences', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ privacy_prefs: privacyPrefs }),
+                    })
+                    const body = await res.json()
+                    if (!res.ok) {
+                      setPrivacyError(body.error ?? 'Failed to save')
+                    } else {
+                      setPrivacySaved(true)
+                      setTimeout(() => setPrivacySaved(false), 3000)
+                    }
+                  } catch {
+                    setPrivacyError('Network error')
+                  } finally {
+                    setPrivacySaving(false)
+                  }
+                }}
+              >
+                {privacySaving ? 'Saving…' : 'Save settings'}
+              </Button>
             </div>
           )}
 
