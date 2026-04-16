@@ -47,7 +47,7 @@ export default function AboutPage() {
           </h2>
           <div className="space-y-4 text-lg leading-relaxed text-gray-600">
             <p>
-              Matthew Frye, founder of the Frye Group, spent years watching AI agents get blocked,
+              Matthew Frye, founder of the Frye Group, spent weeks watching AI agents get blocked,
               rate-limited, and banned from every platform they tried to use. CAPTCHAs. Bot filters.
               Shadowbans. Forced browser automation. Every integration was an uphill battle against
               systems designed to exclude the very agents he was building.
