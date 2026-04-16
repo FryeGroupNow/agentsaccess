@@ -138,14 +138,54 @@ export function Logo7({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Pro
 
 // ── 8. Portal A ─────────────────────────────────────────────────────
 // Two concentric A outlines forming a doorway. Dark fill between them
-// creates depth. Crossbar is the threshold line.
+// creates depth. Crossbar only — no bottom base line.
 export function Logo8({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill="#0f0f1a" />
-      <path d="M16 3 L5 28 L27 28 Z" stroke={color} strokeWidth="2" strokeLinejoin="round" fill="none" />
+      {/* Outer A — open bottom (two legs, no base line) */}
+      <line x1="5" y1="28" x2="16" y2="3" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <line x1="16" y1="3" x2="27" y2="28" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      {/* Inner A — open bottom, with dark fill for portal depth */}
       <path d="M16 10 L10 25 L22 25 Z" stroke={color} strokeWidth="1.2" strokeLinejoin="round" fill="#1e1b4b" />
+      {/* Crossbar — the threshold */}
       <line x1="8" y1="20" x2="24" y2="20" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── 8b. Portal A (dual color) ───────────────────────────────────────
+// Same portal concept — outer A is indigo, inner A is orange.
+export function Logo8Dual({ className = 'w-6 h-6', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      {/* Outer A — indigo, open bottom */}
+      <line x1="5" y1="28" x2="16" y2="3" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />
+      <line x1="16" y1="3" x2="27" y2="28" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />
+      {/* Inner A — orange, open bottom, dark fill */}
+      <path d="M16 10 L10 25 L22 25 Z" stroke="#f97316" strokeWidth="1.4" strokeLinejoin="round" fill="#1e1b4b" />
+      {/* Crossbar — indigo to tie the two together */}
+      <line x1="8" y1="20" x2="24" y2="20" stroke="#4f46e5" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+// ── 11. Lightning AA ────────────────────────────────────────────────
+// Two A shapes arranged to form a lightning bolt / zigzag. The top A
+// points up-right, the bottom A points down-left, and they connect
+// at a shared vertex in the center — creating a bolt silhouette made
+// entirely from two letter-A strokes with crossbars.
+export function Logo11({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
+  return (
+    <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
+      <rect width="32" height="32" rx="7" fill="#0f0f1a" />
+      {/* Top A — tilted right, apex at upper-right */}
+      <path d="M10 16 L20 3 L26 16" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="13.5" y1="11.5" x2="24" y2="11.5" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
+      {/* Bottom A — tilted left, apex at lower-left, shares the midpoint */}
+      <path d="M6 16 L12 29 L22 16" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <line x1="8" y1="20.5" x2="18.5" y2="20.5" stroke={color} strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   )
 }

@@ -1,6 +1,6 @@
 import {
   Logo1, Logo2, Logo3, Logo4, Logo5,
-  Logo6, Logo7, Logo8, Logo9, Logo10,
+  Logo6, Logo7, Logo8, Logo8Dual, Logo9, Logo10, Logo11,
 } from '@/components/brand/aa-logo'
 
 export default function BrandPreviewPage() {
@@ -14,9 +14,11 @@ export default function BrandPreviewPage() {
     { name: '5. Bold Filled A',            Component: Logo5,  desc: 'Single thick filled A with a cutout hole. Road-sign bold. Unmistakable at any size.' },
     { name: '6. Agent Badge',              Component: Logo6,  desc: 'Shield outline with a bold filled A inside. Verified-agent credential.' },
     { name: '7. Circuit A',               Component: Logo7,  desc: 'Right-angle PCB traces forming an A. Solder dots at vertices.' },
-    { name: '8. Portal A',                Component: Logo8,  desc: 'Two concentric A outlines with dark fill between them. Doorway/portal feel.' },
+    { name: '8. Portal A',                Component: Logo8,  desc: 'Two concentric A outlines (no base line), dark fill portal, crossbar threshold.' },
+    { name: '8b. Portal A (dual)',         Component: Logo8Dual, desc: 'Same portal — outer A indigo, inner A orange. Two-tone depth.' },
     { name: '9. Bot Face',                Component: Logo9,  desc: 'Rounded rect head, two eyes, visor mouth, antenna, ear nodes. Minimal agent face.' },
     { name: '10. Monogram Ring',           Component: Logo10, desc: '"AA" inside a thin circle. Corporate, clean, reads at every size.' },
+    { name: '11. Lightning AA',            Component: Logo11, desc: 'Two A\'s arranged as a zigzag bolt — top A tilts right, bottom A tilts left, connected at center.' },
   ]
 
   return (
@@ -27,7 +29,7 @@ export default function BrandPreviewPage() {
       </div>
 
       {concepts.map(({ name, desc, Component }) => {
-        const isDual = name.includes('dual');
+        const isDual = name.toLowerCase().includes('dual');
         return (
           <section key={name} className="space-y-3">
             <div>
