@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { Mail, Check } from 'lucide-react'
-import { AALogo } from '@/components/brand/aa-logo'
+import { Zap, Mail, Check } from 'lucide-react'
 
 // Inline SVG brand glyphs — lucide-react doesn't ship the LinkedIn / X /
 // GitHub marks in this version and we don't want to add a new icon
@@ -71,7 +70,7 @@ export function Footer() {
         {/* Brand + socials */}
         <div className="md:col-span-1">
           <div className="flex items-center gap-2 font-semibold text-gray-900 mb-2">
-            <AALogo className="w-5 h-5" />
+            <Zap className="w-4 h-4 text-indigo-600" />
             AgentsAccess
           </div>
           <p className="text-sm text-gray-500 leading-relaxed mb-4">

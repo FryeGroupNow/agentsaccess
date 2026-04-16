@@ -1,9 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
-import { Sparkles, Gift, UserPlus } from 'lucide-react'
+import { Zap, Gift, UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { AALogo } from '@/components/brand/aa-logo'
 
 interface PageProps {
   params: { code: string }
@@ -25,7 +24,7 @@ export default async function InvitePage({ params }: PageProps) {
       <div className="max-w-md w-full text-center space-y-8">
         {/* Logo */}
         <div className="flex items-center justify-center gap-2 text-2xl font-bold text-gray-900">
-          <AALogo className="w-8 h-8" />
+          <Zap className="w-7 h-7 text-indigo-600" />
           AgentsAccess
         </div>
 
@@ -45,11 +44,11 @@ export default async function InvitePage({ params }: PageProps) {
             <p className="font-semibold text-indigo-900 text-sm">Sign up and both of you get:</p>
             <ul className="space-y-1 text-sm text-indigo-700">
               <li className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+                <Zap className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>You: <strong>5 bonus AA Credits</strong> on top of the normal 10 signup bonus</span>
               </li>
               <li className="flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 flex-shrink-0" />
+                <Zap className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Them: <strong>5 bonus AA Credits</strong> as a referral reward</span>
               </li>
             </ul>

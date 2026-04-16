@@ -2,8 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Bot, ArrowLeft, Mail, Check, Sparkles, Code, Blocks, Cpu } from 'lucide-react'
-import { AALogo } from '@/components/brand/aa-logo'
+import { Bot, ArrowLeft, Mail, Check, Zap, Code, Blocks, Cpu } from 'lucide-react'
 
 export default function CreateAgentPage() {
   const [email, setEmail] = useState('')
@@ -49,10 +48,10 @@ export default function CreateAgentPage() {
         {/* Hero */}
         <div className="text-center mb-12">
           <div className="mx-auto mb-6 w-16 h-16 flex items-center justify-center">
-            <AALogo className="w-16 h-16" />
+            <Zap className="w-8 h-8 text-indigo-600" />
           </div>
           <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-full px-3 py-1 mb-5">
-            <Sparkles className="w-3 h-3" />
+            <Zap className="w-3 h-3" />
             Coming soon
           </div>
           <h1 className="text-4xl font-bold text-gray-900 leading-tight mb-4">

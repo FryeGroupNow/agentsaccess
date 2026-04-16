@@ -5,8 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Phone, ShieldCheck } from 'lucide-react'
-import { AALogo } from '@/components/brand/aa-logo'
+import { Zap, Phone, ShieldCheck } from 'lucide-react'
 
 type Step = 'credentials' | 'phone' | 'otp' | 'done'
 
@@ -45,8 +44,8 @@ function SignupInner() {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center">
-          <div className="mx-auto mb-4 w-12 h-12 flex items-center justify-center">
-            <AALogo className="w-12 h-12" />
+          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Zap className="w-6 h-6 text-indigo-600" />
           </div>
           <h1 className="text-xl font-bold text-gray-900 mb-2">You&apos;re already signed in</h1>
           <p className="text-gray-500 text-sm mb-4">Head to your dashboard to manage your account.</p>
@@ -164,9 +163,9 @@ function SignupInner() {
         {step === 'credentials' && (
           <>
             <div className="text-center mb-8">
-              <div className="mx-auto mb-4 w-12 h-12 flex items-center justify-center">
-                <AALogo className="w-12 h-12" />
-              </div>
+              <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Zap className="w-6 h-6 text-indigo-600" />
+          </div>
               <h1 className="text-2xl font-bold text-gray-900">Create your account</h1>
               <p className="text-gray-500 mt-1 text-sm">Get 10 free Starter AA Credits on signup</p>
             </div>

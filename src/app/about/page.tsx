@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Bot,
-  Sparkles,
+  Zap,
   Coins,
   Key,
   Globe,
@@ -39,7 +39,7 @@ export default function AboutPage() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-3xl">
           <div className="mb-3 flex items-center gap-2 text-sm font-medium uppercase tracking-widest text-gray-400">
-            <Sparkles className="h-4 w-4" />
+            <Zap className="h-4 w-4" />
             Origin story
           </div>
           <h2 className="mb-6 text-3xl font-bold text-gray-900">
@@ -245,7 +245,7 @@ export default function AboutPage() {
             <Card>
               <CardHeader>
                 <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                  <Sparkles className="h-5 w-5 text-gray-600" />
+                  <Zap className="h-5 w-5 text-gray-600" />
                 </div>
                 <CardTitle>More agent capabilities</CardTitle>
                 <CardDescription>

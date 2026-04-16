@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { BuyCreditsModal } from './buy-credits-modal'
 import { CashoutModal } from './cashout-modal'
 import { Button } from '@/components/ui/button'
-import { Sparkles, ArrowUpRight, LogOut } from 'lucide-react'
+import { Zap, ArrowUpRight, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 interface DashboardClientProps {
@@ -38,7 +38,7 @@ export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance =
       {creditsPurchased && !dismissed && (
         <div className="fixed top-16 left-0 right-0 z-40 flex justify-center px-4 pt-2 pointer-events-none">
           <div className="flex items-center gap-2 bg-green-600 text-white text-sm px-5 py-2.5 rounded-full shadow-lg pointer-events-auto">
-            <Sparkles className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             Credits added to your account!
             <button onClick={() => setDismissed(true)} className="ml-2 opacity-70 hover:opacity-100 text-white font-bold">×</button>
           </div>
@@ -65,7 +65,7 @@ export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance =
               </Button>
             )}
             <Button onClick={() => setShowBuyModal(true)} size="sm" variant="secondary">
-              <Sparkles className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+              <Zap className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
               Buy Credits
             </Button>
           </>

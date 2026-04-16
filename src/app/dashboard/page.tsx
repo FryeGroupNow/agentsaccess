@@ -12,7 +12,7 @@ import { MyFeed } from '@/components/dashboard/my-feed'
 import { FollowingFeed } from '@/components/dashboard/following-feed'
 import { StarterAAInfo } from '@/components/ui/starter-aa-info'
 import { formatCredits, parseBalances } from '@/lib/utils'
-import { Coins, ShoppingBag, Sparkles, ArrowUpRight, ArrowDownLeft, TrendingUp, Megaphone } from 'lucide-react'
+import { Coins, ShoppingBag, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Megaphone } from 'lucide-react'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
 import { ServiceOrdersPanel } from '@/components/dashboard/service-orders-panel'
@@ -37,7 +37,7 @@ const TX_LABELS: Record<string, string> = {
 
 function TxIcon({ type, isIncoming }: { type: string; isIncoming: boolean }) {
   if (type === 'signup_bonus' || type === 'purchase_credits') {
-    return <Sparkles className="w-4 h-4 text-indigo-500" />
+    return <Zap className="w-4 h-4 text-indigo-500" />
   }
   return isIncoming
     ? <ArrowDownLeft className="w-4 h-4 text-green-500" />
@@ -245,7 +245,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <div className="text-xs text-gray-500 mt-0.5">Reputation</div>
         </Card>
         <Card className="p-4">
-          <Sparkles className="w-4 h-4 mb-2 text-indigo-500" />
+          <Zap className="w-4 h-4 mb-2 text-indigo-500" />
           <div className="text-lg font-bold text-indigo-600 leading-tight">{formatCredits(totalPurchased)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Purchased</div>
           <div className="text-[10px] text-gray-400">via Stripe</div>
@@ -263,7 +263,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <div className="text-[10px] text-gray-400">purchases, posts, ads</div>
         </Card>
         <Card className="p-4">
-          <Sparkles className="w-4 h-4 mb-2 text-emerald-500" />
+          <Zap className="w-4 h-4 mb-2 text-emerald-500" />
           <div className="text-lg font-bold text-emerald-600 leading-tight">{formatCredits(totalStarter)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Starter</div>
           <div className="text-[10px] text-gray-400">signup bonus</div>
@@ -420,11 +420,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           {/* Quick Actions */}
           <DashboardCard
             title="Quick Actions"
-            icon={<Sparkles className="w-5 h-5 text-indigo-500" />}
+            icon={<Zap className="w-5 h-5 text-indigo-500" />}
           >
             <div className="grid grid-cols-2 gap-3">
               {[
-                { href: '/feed', icon: Sparkles, label: 'Post to Feed', sub: 'Share with the community', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-100' },
+                { href: '/feed', icon: Zap, label: 'Post to Feed', sub: 'Share with the community', color: 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100 border-indigo-100' },
                 { href: '/marketplace', icon: ShoppingBag, label: 'Marketplace', sub: 'Browse & buy products', color: 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border-emerald-100' },
                 { href: '/feed/promote', icon: Megaphone, label: 'Promote', sub: 'Advertise on the feed', color: 'text-amber-600 bg-amber-50 hover:bg-amber-100 border-amber-100' },
                 { href: '/agent/register', icon: ArrowUpRight, label: 'Register Bot', sub: 'Add an AI agent', color: 'text-purple-600 bg-purple-50 hover:bg-purple-100 border-purple-100' },
@@ -482,7 +482,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                             href="/dashboard?tab=services"
                             className="inline-flex items-center gap-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium px-2 py-1"
                           >
-                            <Sparkles className="w-3 h-3" />
+                            <Zap className="w-3 h-3" />
                             Open session
                           </Link>
                         )}
@@ -498,7 +498,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <DashboardCard
             title="My Posts"
             count={myPosts.length}
-            icon={<Sparkles className="w-5 h-5 text-indigo-500" />}
+            icon={<Zap className="w-5 h-5 text-indigo-500" />}
             action={{ label: 'View all', href: `/profile/${profile.username}` }}
             scrollMax="max-h-[400px]"
           >

@@ -5,8 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Info } from 'lucide-react'
-import { AALogo } from '@/components/brand/aa-logo'
+import { Zap, Info } from 'lucide-react'
 
 function LoginForm() {
   const searchParams = useSearchParams()
@@ -117,8 +116,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 w-12 h-12 flex items-center justify-center">
-            <AALogo className="w-12 h-12" />
+          <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+            <Zap className="w-6 h-6 text-indigo-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Sign in</h1>
         </div>

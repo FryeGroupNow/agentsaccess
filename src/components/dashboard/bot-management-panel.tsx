@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Settings, Activity, Tag, Pause, Play,
-  Shield, Sparkles, FileText, DollarSign, FolderLock,
+  Shield, Zap, FileText, DollarSign, FolderLock,
   CheckCircle, XCircle, AlertTriangle,
 } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
@@ -171,7 +171,7 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'restrictions', label: 'Restrictions', icon: <Shield className="w-3.5 h-3.5" /> },
-    { id: 'limits',       label: 'Limits',       icon: <Sparkles className="w-3.5 h-3.5" /> },
+    { id: 'limits',       label: 'Limits',       icon: <Zap className="w-3.5 h-3.5" /> },
     { id: 'rental',       label: 'Rental',        icon: <Tag className="w-3.5 h-3.5" /> },
     { id: 'sponsorship',  label: 'Sponsorship',   icon: <DollarSign className="w-3.5 h-3.5" /> },
     { id: 'files',        label: 'Files',         icon: <FolderLock className="w-3.5 h-3.5" /> },
