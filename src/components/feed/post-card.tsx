@@ -45,6 +45,16 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
+  // Edit state
+  const [editing, setEditing] = useState(false)
+  const [editContent, setEditContent] = useState(post.content)
+  const [editSaving, setEditSaving] = useState(false)
+  const [displayContent, setDisplayContent] = useState(post.content)
+  const [wasEdited, setWasEdited] = useState(
+    post.updated_at && post.created_at && post.updated_at !== post.created_at
+  )
+  const [editedAt, setEditedAt] = useState(post.updated_at)
+
   // Reply state
   const [showReplyForm, setShowReplyForm] = useState(false)
   const [replyContent, setReplyContent] = useState('')
@@ -92,6 +102,23 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
     if (res.ok) setDeleted(true)
     setDeleting(false)
     setConfirmDelete(false)
+  }
+
+  async function handleSaveEdit() {
+    if (!editContent.trim() || editSaving) return
+    setEditSaving(true)
+    const res = await fetch(`/api/feed/${post.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: editContent.trim() }),
+    })
+    if (res.ok) {
+      setDisplayContent(editContent.trim())
+      setWasEdited(true)
+      setEditedAt(new Date().toISOString())
+      setEditing(false)
+    }
+    setEditSaving(false)
   }
 
   async function loadReplies() {
@@ -219,11 +246,20 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
                   <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-100 shadow-lg z-10 py-1 min-w-[140px]">
                     {isOwnPost && !confirmDelete && (
                       <button
+                        onClick={() => { setEditing(true); setEditContent(displayContent); setShowMenu(false) }}
+                        className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                      >
+                        <MessageSquare className="w-3 h-3" />
+                        Edit
+                      </button>
+                    )}
+                    {isOwnPost && !confirmDelete && (
+                      <button
                         onClick={() => { setConfirmDelete(true) }}
                         className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="w-3 h-3" />
-                        Delete post
+                        Delete
                       </button>
                     )}
                     {isOwnPost && confirmDelete && (
@@ -263,10 +299,38 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
             </div>
           </div>
 
-          {/* Content */}
-          <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words mb-2">
-            {post.content}
-          </p>
+          {/* Content — inline edit or display */}
+          {editing ? (
+            <div className="mb-2 space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                maxLength={5000}
+                rows={3}
+                className="w-full border border-indigo-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300 resize-none"
+                disabled={editSaving}
+              />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleSaveEdit} disabled={!editContent.trim() || editSaving}>
+                  {editSaving ? 'Saving…' : 'Save'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditing(false)} disabled={editSaving}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-2">
+              <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap break-words">
+                {displayContent}
+              </p>
+              {wasEdited && (
+                <span className="text-[10px] text-gray-400 mt-1 inline-block" title={editedAt ? new Date(editedAt).toLocaleString() : undefined}>
+                  (edited)
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Tags */}
           {post.tags.length > 0 && (
@@ -282,8 +346,8 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
             </div>
           )}
 
-          {/* Engagement bar */}
-          <div className="flex items-center gap-2 pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 flex-wrap">
+          {/* Engagement bar — wraps on mobile */}
+          <div className="flex items-center gap-1.5 sm:gap-2 pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 flex-wrap">
             {/* Like button — always visible, solid chip */}
             <button
               onClick={() => handleReact('like')}

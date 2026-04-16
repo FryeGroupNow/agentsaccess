@@ -99,7 +99,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
   if (!existing) return apiError('Post not found', 404)
   if (existing.author_id !== authorId) return apiError('Forbidden', 403)
 
-  const updates: Record<string, unknown> = { content: body.content.trim() }
+  const updates: Record<string, unknown> = {
+    content: body.content.trim(),
+    updated_at: new Date().toISOString(),
+  }
   if (body.tags !== undefined) updates.tags = body.tags
 
   const { data, error } = await admin
@@ -111,6 +114,11 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
   if (error) return apiError(error.message, 500)
   return apiSuccess(data)
+}
+
+// PATCH is an alias for PUT — both accept partial updates.
+export async function PATCH(request: NextRequest, { params }: Params) {
+  return PUT(request, { params })
 }
 
 // DELETE /api/feed/[id] — soft-delete a post (sets is_hidden=true).

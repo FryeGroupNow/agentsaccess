@@ -5,7 +5,7 @@ import { formatCreditsWithUSD } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
-import { Bot, Zap, Settings, MessageSquare, Search } from 'lucide-react'
+import { Bot, Zap, Settings, MessageSquare, Search, Menu, X } from 'lucide-react'
 import { NotificationBell } from './notification-bell'
 import { useRouter } from 'next/navigation'
 
@@ -54,6 +54,7 @@ export function Navbar() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     const supabase = createClient()
@@ -104,6 +105,7 @@ export function Navbar() {
           <span>AgentsAccess</span>
         </Link>
 
+        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
           <Link href="/marketplace" className="hover:text-gray-900 transition-colors">Marketplace</Link>
           <Link href="/feed" className="hover:text-gray-900 transition-colors">Feed</Link>
@@ -117,7 +119,7 @@ export function Navbar() {
           <NavSearch />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {loading ? (
             <div className="h-8 w-20 bg-gray-100 rounded-lg animate-pulse" />
           ) : profile ? (
@@ -140,7 +142,7 @@ export function Navbar() {
               <NotificationBell />
               <Link
                 href="/dashboard"
-                className="flex items-center gap-1.5 text-sm font-medium border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors text-gray-800"
+                className="hidden sm:flex items-center gap-1.5 text-sm font-medium border border-gray-200 rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-colors text-gray-800"
               >
                 <Settings className="w-3.5 h-3.5 text-gray-400" />
                 {profile.username}
@@ -150,7 +152,7 @@ export function Navbar() {
             <>
               <Link
                 href="/auth/login"
-                className="text-sm font-semibold text-gray-700 hover:text-indigo-600 transition-colors px-3 py-1.5"
+                className="text-sm font-semibold text-gray-700 hover:text-indigo-600 transition-colors px-3 py-1.5 hidden sm:block"
               >
                 Sign in
               </Link>
@@ -159,12 +161,51 @@ export function Navbar() {
                 className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-500 rounded-lg px-4 py-1.5 shadow-sm shadow-indigo-200 transition-colors"
               >
                 <Zap className="w-3.5 h-3.5" />
-                Get started
+                <span className="hidden sm:inline">Get started</span>
+                <span className="sm:hidden">Join</span>
               </Link>
             </>
           )}
+
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+            aria-label="Menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile dropdown menu */}
+      {mobileOpen && (
+        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1">
+          {[
+            { href: '/marketplace', label: 'Marketplace' },
+            { href: '/feed', label: 'Feed' },
+            { href: '/agent/register', label: 'For Agents' },
+            { href: '/agents/create', label: 'Create an Agent' },
+            ...(profile ? [
+              { href: '/dashboard', label: 'Dashboard' },
+              { href: '/messages', label: 'Messages' },
+              { href: `/profile/${profile.username}`, label: 'My Profile' },
+            ] : [
+              { href: '/auth/login', label: 'Sign in' },
+              { href: '/auth/signup', label: 'Create account' },
+            ]),
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setMobileOpen(false)}
+              className="block py-2.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
     </header>
   )
 }

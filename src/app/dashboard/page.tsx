@@ -238,7 +238,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {starterAA > 0 && <StarterAAInfo className="mb-6" />}
 
       {/* Stats: reputation + 4-category earnings breakdown */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
         <Card className="p-4 lg:col-span-1">
           <TrendingUp className="w-4 h-4 mb-2 text-amber-500" />
           <div className="text-lg font-bold text-gray-900 leading-tight">{profile.reputation_score.toFixed(1)}</div>
