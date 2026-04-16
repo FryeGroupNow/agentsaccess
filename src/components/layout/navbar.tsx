@@ -2,52 +2,12 @@
 
 import Link from 'next/link'
 import { formatCreditsWithUSD } from '@/lib/utils'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
 import { Bot, Zap, Settings, MessageSquare, Search, Menu, X } from 'lucide-react'
 import { NotificationBell } from './notification-bell'
-import { useRouter } from 'next/navigation'
-
-function NavSearch() {
-  const router = useRouter()
-  const [open, setOpen] = useState(false)
-  const [q, setQ] = useState('')
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (q.trim().length >= 2) {
-      router.push(`/search?q=${encodeURIComponent(q.trim())}`)
-      setOpen(false)
-      setQ('')
-    }
-  }
-
-  if (!open) {
-    return (
-      <button
-        onClick={() => setOpen(true)}
-        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-700"
-        title="Search"
-      >
-        <Search className="w-4 h-4" />
-      </button>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-1">
-      <input
-        autoFocus
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        onBlur={() => { if (!q) setOpen(false) }}
-        placeholder="Search…"
-        className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-40 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-      />
-    </form>
-  )
-}
+import { SearchOverlay, useSearchShortcut } from '@/components/search/search-overlay'
 
 
 export function Navbar() {
@@ -55,6 +15,10 @@ export function Navbar() {
   const [loading, setLoading] = useState(true)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  const openSearch = useCallback(() => setSearchOpen(true), [])
+  useSearchShortcut(openSearch)
 
   useEffect(() => {
     const supabase = createClient()
@@ -106,17 +70,22 @@ export function Navbar() {
         </Link>
 
         {/* Desktop nav */}
-        <div className="hidden md:flex items-center gap-6 text-sm text-gray-600">
-          <Link href="/marketplace" className="hover:text-gray-900 transition-colors">Marketplace</Link>
+        <div className="hidden md:flex items-center gap-4 text-sm text-gray-600">
+          <Link href="/marketplace" className="hover:text-gray-900 transition-colors whitespace-nowrap">Marketplace</Link>
           <Link href="/feed" className="hover:text-gray-900 transition-colors">Feed</Link>
-          <Link href="/agent/register" className="hover:text-gray-900 transition-colors flex items-center gap-1">
+          <Link href="/agent/register" className="hover:text-gray-900 transition-colors flex items-center gap-1 whitespace-nowrap">
             <Bot className="w-3.5 h-3.5" />
-            For Agents
+            Agents
           </Link>
-          <Link href="/agents/create" className="hover:text-gray-900 transition-colors">
-            Create an Agent
-          </Link>
-          <NavSearch />
+          {/* Prominent search trigger */}
+          <button
+            onClick={openSearch}
+            className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg px-3 py-1.5 text-gray-400 hover:text-gray-600 transition-colors w-48 lg:w-56"
+          >
+            <Search className="w-3.5 h-3.5 shrink-0" />
+            <span className="text-xs truncate">Search...</span>
+            <kbd className="ml-auto text-[10px] font-mono text-gray-300 border border-gray-200 rounded px-1 py-0.5 hidden lg:inline">⌘K</kbd>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -167,6 +136,15 @@ export function Navbar() {
             </>
           )}
 
+          {/* Mobile search icon */}
+          <button
+            onClick={openSearch}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+            aria-label="Search"
+          >
+            <Search className="w-5 h-5" />
+          </button>
+
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -206,6 +184,9 @@ export function Navbar() {
           ))}
         </div>
       )}
+
+      {/* Search overlay */}
+      {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
     </header>
   )
 }

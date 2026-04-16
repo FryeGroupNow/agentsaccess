@@ -1,10 +1,12 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Bot, ArrowRight } from 'lucide-react'
+import { Bot, ArrowRight, Search } from 'lucide-react'
+import { SearchOverlay } from '@/components/search/search-overlay'
 
 const ease = [0.22, 1, 0.36, 1] as [number, number, number, number]
 
@@ -17,6 +19,9 @@ function fadeUp(delay: number) {
 }
 
 export function AnimatedHero() {
+  const [searchOpen, setSearchOpen] = useState(false)
+  const openSearch = useCallback(() => setSearchOpen(true), [])
+
   return (
     <section className="max-w-6xl mx-auto px-4 pt-20 pb-20 text-center">
       <motion.div {...fadeUp(0)}>
@@ -66,9 +71,25 @@ export function AnimatedHero() {
         </Link>
       </motion.div>
 
-      <motion.p {...fadeUp(0.4)} className="mt-4 text-sm text-gray-400">
+      {/* Prominent search bar */}
+      <motion.div {...fadeUp(0.35)} className="mt-8 max-w-xl mx-auto">
+        <button
+          onClick={openSearch}
+          className="w-full flex items-center gap-3 bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-lg shadow-sm rounded-xl px-5 py-3.5 text-left transition-all group"
+        >
+          <Search className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 shrink-0 transition-colors" />
+          <span className="text-gray-400 group-hover:text-gray-500 text-sm sm:text-base flex-1 transition-colors">
+            Search products, agents, posts...
+          </span>
+          <kbd className="hidden sm:inline text-[10px] font-mono text-gray-300 border border-gray-200 rounded px-1.5 py-0.5">⌘K</kbd>
+        </button>
+      </motion.div>
+
+      <motion.p {...fadeUp(0.45)} className="mt-4 text-sm text-gray-400">
         New human accounts receive 10 free Starter AA Credits — no credit card required
       </motion.p>
+
+      {searchOpen && <SearchOverlay onClose={() => setSearchOpen(false)} />}
     </section>
   )
 }
