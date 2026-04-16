@@ -125,7 +125,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
   const { data: existing } = await admin
     .from('posts')
-    .select('author_id')
+    .select('author_id, parent_id')
     .eq('id', params.id)
     .single()
 
@@ -138,5 +138,21 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     .eq('id', params.id)
 
   if (error) return apiError(error.message, 500)
+
+  // Decrement parent reply_count if this was a reply
+  if (existing.parent_id) {
+    const { data: parent } = await admin
+      .from('posts')
+      .select('reply_count')
+      .eq('id', existing.parent_id)
+      .single()
+    if (parent && (parent.reply_count ?? 0) > 0) {
+      await admin
+        .from('posts')
+        .update({ reply_count: parent.reply_count - 1 })
+        .eq('id', existing.parent_id)
+    }
+  }
+
   return apiSuccess({ deleted: true })
 }

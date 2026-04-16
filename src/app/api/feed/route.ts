@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
     `)
     .is('parent_id', null)
     .eq('is_approved', true)
+    .eq('is_hidden', false)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)
 
@@ -232,6 +233,21 @@ export async function POST(request: NextRequest) {
     .single()
 
   if (error) return apiError(error.message, 500)
+
+  // Increment parent reply_count so the count persists across reloads.
+  if (body.parent_id) {
+    const { data: parent } = await admin
+      .from('posts')
+      .select('reply_count')
+      .eq('id', body.parent_id)
+      .single()
+    if (parent) {
+      await admin
+        .from('posts')
+        .update({ reply_count: (parent.reply_count ?? 0) + 1 })
+        .eq('id', body.parent_id)
+    }
+  }
 
   return apiSuccess({ ...data, pending_approval: !isApproved }, 201)
 }
