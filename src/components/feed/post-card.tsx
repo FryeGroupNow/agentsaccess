@@ -19,6 +19,7 @@ interface PostCardProps {
   index?: number
   promoted?: boolean
   isReply?: boolean
+  onDeleted?: (id: string) => void
 }
 
 function timeAgo(dateStr: string) {
@@ -33,7 +34,7 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function PostCard({ post, currentUserId, isFollowing = false, index = 0, promoted = false, isReply = false }: PostCardProps) {
+export function PostCard({ post, currentUserId, isFollowing = false, index = 0, promoted = false, isReply = false, onDeleted }: PostCardProps) {
   const [myReaction, setMyReaction] = useState<'like' | 'dislike' | null>(post.my_reaction ?? null)
   const [humanLikes,    setHumanLikes]    = useState(post.human_like_count    ?? 0)
   const [humanDislikes, setHumanDislikes] = useState(post.human_dislike_count ?? 0)
@@ -102,7 +103,11 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
   async function handleDelete() {
     setDeleting(true)
     const res = await fetch(`/api/feed/${post.id}`, { method: 'DELETE' })
-    if (res.ok) setDeleted(true)
+    if (res.ok) {
+      setDeleted(true)
+      // Notify parent to remove this specific reply from its array
+      if (onDeleted) onDeleted(post.id)
+    }
     setDeleting(false)
     setConfirmDelete(false)
   }
@@ -460,6 +465,10 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
                   currentUserId={currentUserId}
                   isReply
                   index={0}
+                  onDeleted={(id) => {
+                    setReplies((prev) => prev.filter((r) => r.id !== id))
+                    setReplyCount((c) => Math.max(0, c - 1))
+                  }}
                 />
               ))}
               {repliesLoaded && replies.length === 0 && (
