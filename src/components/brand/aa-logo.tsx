@@ -1,14 +1,14 @@
 import * as React from 'react'
 
 // ─────────────────────────────────────────────────────────────────────
-// AgentsAccess brand mark — round 6.
+// AgentsAccess brand mark — round 6b.
 //
-// All three concepts use a Potra-style A: wide, bold, triangular,
-// geometric, sharp cuts, no serifs. The A has thick uniform strokes,
-// a flat horizontal crossbar, and an open bottom (no base).
+// Base letterform: Porta-style A by Alejo Bergmann — bold geometric
+// display font, thick uniform strokes, flat/truncated apex, clean
+// sharp cuts, architectural feel. No serifs, no curves.
 //
-// The "AA" is communicated through design tricks on a SINGLE letter,
-// not two separate A's.
+// The flat top and wide blocky legs are what make Porta distinctive
+// vs a generic triangle-A.
 // ─────────────────────────────────────────────────────────────────────
 
 interface Props extends React.SVGProps<SVGSVGElement> {
@@ -19,80 +19,70 @@ interface Props extends React.SVGProps<SVGSVGElement> {
 const BG = '#0f0f1a'
 const M = 'miter' as const
 
-// Base Potra-style A path constants (wide, bold, geometric).
-// Outer shape + inner triangular cutout + crossbar gap.
-const OUTER = 'M16 2 L2 29 L9.5 29 L12.5 22 L19.5 22 L22.5 29 L30 29 Z'
-const INNER = 'M16 9 L13 20 L19 20 Z'
+// Porta-style A paths — flat truncated apex, thick blocky legs,
+// geometric triangular counter, clean horizontal crossbar gap.
+const OUTER = 'M12 3 L20 3 L30 29 L23 29 L20 20 L12 20 L9 29 L2 29 Z'
+const COUNTER = 'M16 9 L13.5 18 L18.5 18 Z'
 
 // ── 1. Shadow A ─────────────────────────────────────────────────────
-// One solid Potra A with a slightly offset ghost A behind it in a
-// lighter shade. Single letter, but the shadow creates a doubling.
+// Solid Porta A with a ghosted duplicate offset behind it. The shadow
+// peeks out right and down, hinting at a second A underneath.
 export function Logo1({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill={BG} />
-      {/* Shadow A — offset +2,+1, lighter shade */}
-      <g opacity="0.35" transform="translate(2, 1)">
+      {/* Ghost A — offset right+down */}
+      <g transform="translate(2.5, 1)" opacity="0.3">
         <path d={OUTER} fill={color} />
-        <path d={INNER} fill={BG} />
+        <path d={COUNTER} fill={BG} />
       </g>
-      {/* Main A — solid */}
+      {/* Solid A */}
       <path d={OUTER} fill={color} />
-      <path d={INNER} fill={BG} />
+      <path d={COUNTER} fill={BG} />
     </svg>
   )
 }
 
 // ── 2. Split A ──────────────────────────────────────────────────────
-// One Potra A where the left half is a darker indigo and the right
-// half is a lighter shade. The tonal split down the center axis
-// suggests two A's fused into one.
+// One Porta A bisected down the center — left half dark indigo, right
+// half lighter indigo. The tonal shift implies two A's merged.
 export function Logo2({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
-  // Derive a lighter shade: if custom color, just use opacity trick.
-  // For the default indigo, #818cf8 is the natural lighter partner.
-  const light = color === '#4f46e5' ? '#818cf8' : color
   const dark = color === '#4f46e5' ? '#4f46e5' : color
+  const light = color === '#4f46e5' ? '#818cf8' : color
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill={BG} />
       <defs>
-        <clipPath id="split-left">
-          <rect x="0" y="0" width="16" height="32" />
-        </clipPath>
-        <clipPath id="split-right">
-          <rect x="16" y="0" width="16" height="32" />
-        </clipPath>
+        <clipPath id="sl"><rect x="0" y="0" width="16" height="32" /></clipPath>
+        <clipPath id="sr"><rect x="16" y="0" width="16" height="32" /></clipPath>
       </defs>
-      {/* Left half — darker */}
-      <g clipPath="url(#split-left)">
+      <g clipPath="url(#sl)">
         <path d={OUTER} fill={dark} />
-        <path d={INNER} fill={BG} />
+        <path d={COUNTER} fill={BG} />
       </g>
-      {/* Right half — lighter */}
-      <g clipPath="url(#split-right)">
+      <g clipPath="url(#sr)">
         <path d={OUTER} fill={light} />
-        <path d={INNER} fill={BG} />
+        <path d={COUNTER} fill={BG} />
       </g>
     </svg>
   )
 }
 
 // ── 3. Layered A ────────────────────────────────────────────────────
-// One bold filled Potra A with a thin outline A offset slightly
-// behind/around it. Double-exposure effect — the outline peeks out
-// from behind the solid, implying a second A layered underneath.
+// Bold filled Porta A in front, thin outline Porta A peeking out
+// from behind it (offset top-left). Double-exposure layering.
 export function Logo3({ className = 'w-6 h-6', color = '#4f46e5', ...rest }: Props) {
   return (
     <svg viewBox="0 0 32 32" fill="none" className={className} aria-label="AgentsAccess" role="img" {...rest}>
       <rect width="32" height="32" rx="7" fill={BG} />
-      {/* Outline A — offset -1.5, -1 so it peeks out top-left */}
-      <g transform="translate(-1.5, -1)">
-        <path d={OUTER} stroke={color} strokeWidth="1" strokeLinejoin={M} fill="none" opacity="0.45" />
-        <path d={INNER} stroke={color} strokeWidth="0.6" strokeLinejoin={M} fill="none" opacity="0.45" />
+      {/* Outline A — offset top-left */}
+      <g transform="translate(-2, -1)">
+        <path d={OUTER} stroke={color} strokeWidth="1" strokeLinejoin={M} fill="none" opacity="0.4" />
+        <path d={COUNTER} stroke={color} strokeWidth="0.7" strokeLinejoin={M} fill="none" opacity="0.4" />
       </g>
-      {/* Solid A — main mark on top */}
+      {/* Solid A */}
       <path d={OUTER} fill={color} />
-      <path d={INNER} fill={BG} />
+      <path d={COUNTER} fill={BG} />
     </svg>
   )
 }
