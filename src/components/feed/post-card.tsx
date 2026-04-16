@@ -4,10 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { Avatar } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { FollowButton } from './follow-button'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { ReportButton } from '@/components/shared/report-button'
-import { ThumbsUp, ThumbsDown, MessageSquare, Bot, User, MoreHorizontal } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, MessageSquare, Bot, User, MoreHorizontal, Trash2, Send, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { Post } from '@/types'
 
@@ -17,6 +18,7 @@ interface PostCardProps {
   isFollowing?: boolean
   index?: number
   promoted?: boolean
+  isReply?: boolean
 }
 
 function timeAgo(dateStr: string) {
@@ -31,7 +33,7 @@ function timeAgo(dateStr: string) {
   return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-export function PostCard({ post, currentUserId, isFollowing = false, index = 0, promoted = false }: PostCardProps) {
+export function PostCard({ post, currentUserId, isFollowing = false, index = 0, promoted = false, isReply = false }: PostCardProps) {
   const [myReaction, setMyReaction] = useState<'like' | 'dislike' | null>(post.my_reaction ?? null)
   const [humanLikes,    setHumanLikes]    = useState(post.human_like_count    ?? 0)
   const [humanDislikes, setHumanDislikes] = useState(post.human_dislike_count ?? 0)
@@ -39,14 +41,25 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
   const [botDislikes]   = useState(post.bot_dislike_count ?? 0)
   const [reacting, setReacting] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
+  const [deleted, setDeleted] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
+  // Reply state
+  const [showReplyForm, setShowReplyForm] = useState(false)
+  const [replyContent, setReplyContent] = useState('')
+  const [replying, setReplying] = useState(false)
+  const [replies, setReplies] = useState<Post[]>([])
+  const [showReplies, setShowReplies] = useState(false)
+  const [loadingReplies, setLoadingReplies] = useState(false)
+  const [repliesLoaded, setRepliesLoaded] = useState(false)
+  const [replyCount, setReplyCount] = useState(post.reply_count ?? 0)
 
   const author    = post.author
   const isOwnPost = currentUserId === post.author_id
   const totalLikes = humanLikes + botLikes
   const totalDislikes = humanDislikes + botDislikes
   const isAgent = author?.user_type === 'agent'
-
-  // Slightly alternate row backgrounds for visual separation
   const altBg = index % 2 === 1 ? 'bg-gray-50/60' : 'bg-white'
 
   async function handleReact(reaction: 'like' | 'dislike') {
@@ -72,6 +85,57 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
     }
     setReacting(false)
   }
+
+  async function handleDelete() {
+    setDeleting(true)
+    const res = await fetch(`/api/feed/${post.id}`, { method: 'DELETE' })
+    if (res.ok) setDeleted(true)
+    setDeleting(false)
+    setConfirmDelete(false)
+  }
+
+  async function loadReplies() {
+    if (loadingReplies) return
+    setLoadingReplies(true)
+    try {
+      const res = await fetch(`/api/feed/${post.id}?limit=50`)
+      if (res.ok) {
+        const body = await res.json()
+        setReplies((body.replies ?? []) as Post[])
+        setRepliesLoaded(true)
+      }
+    } catch { /* ignore */ }
+    setLoadingReplies(false)
+  }
+
+  async function submitReply() {
+    if (!replyContent.trim() || replying) return
+    setReplying(true)
+    try {
+      const res = await fetch('/api/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: replyContent.trim(), parent_id: post.id, tags: [] }),
+      })
+      if (res.ok) {
+        const newReply = await res.json()
+        setReplies((prev) => [...prev, newReply as Post])
+        setReplyContent('')
+        setShowReplyForm(false)
+        setReplyCount((c) => c + 1)
+        setShowReplies(true)
+        setRepliesLoaded(true)
+      }
+    } catch { /* ignore */ }
+    setReplying(false)
+  }
+
+  function toggleReplies() {
+    if (!showReplies && !repliesLoaded) loadReplies()
+    setShowReplies(!showReplies)
+  }
+
+  if (deleted) return null
 
   return (
     <article
@@ -152,12 +216,43 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
                   <MoreHorizontal className="w-3.5 h-3.5" />
                 </button>
                 {showMenu && (
-                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-100 shadow-lg z-10 py-1 min-w-[120px]">
-                    <div className="px-2 py-1">
-                      <ReportButton targetType="post" targetId={post.id} label />
-                    </div>
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-100 shadow-lg z-10 py-1 min-w-[140px]">
+                    {isOwnPost && !confirmDelete && (
+                      <button
+                        onClick={() => { setConfirmDelete(true) }}
+                        className="flex items-center gap-2 w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Delete post
+                      </button>
+                    )}
+                    {isOwnPost && confirmDelete && (
+                      <div className="px-3 py-1.5 space-y-1">
+                        <p className="text-[10px] text-red-700 font-semibold">Delete this post?</p>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="text-[10px] font-bold text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded transition-colors disabled:opacity-50"
+                          >
+                            {deleting ? '...' : 'Yes'}
+                          </button>
+                          <button
+                            onClick={() => setConfirmDelete(false)}
+                            className="text-[10px] text-gray-500 px-2 py-0.5"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {!isOwnPost && (
+                      <div className="px-2 py-1">
+                        <ReportButton targetType="post" targetId={post.id} label />
+                      </div>
+                    )}
                     <button
-                      onClick={() => setShowMenu(false)}
+                      onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/feed/${post.id}`); setShowMenu(false) }}
                       className="block w-full text-left px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
                     >
                       Copy link
@@ -245,14 +340,65 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
               </span>
             </div>
 
-            {/* Reply count */}
-            {post.reply_count > 0 && (
-              <span className="flex items-center gap-1 text-sm font-medium text-gray-600 dark:text-gray-300 ml-auto">
-                <MessageSquare className="w-4 h-4" />
-                {post.reply_count}
-              </span>
+            {/* Reply button */}
+            {currentUserId && !isReply && (
+              <button
+                onClick={() => setShowReplyForm(!showReplyForm)}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition-all ml-auto"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Reply
+              </button>
+            )}
+
+            {/* Reply count toggle */}
+            {replyCount > 0 && !isReply && (
+              <button
+                onClick={toggleReplies}
+                className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+              >
+                <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showReplies && 'rotate-180')} />
+                {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+              </button>
             )}
           </div>
+
+          {/* Inline reply form */}
+          {showReplyForm && (
+            <div className="mt-3 flex gap-2">
+              <input
+                value={replyContent}
+                onChange={(e) => setReplyContent(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitReply() } }}
+                placeholder="Write a reply…"
+                maxLength={5000}
+                className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                disabled={replying}
+              />
+              <Button size="sm" onClick={submitReply} disabled={!replyContent.trim() || replying} className="px-3">
+                <Send className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          )}
+
+          {/* Threaded replies */}
+          {showReplies && !isReply && (
+            <div className="mt-3 pl-4 border-l-2 border-indigo-100 space-y-0">
+              {loadingReplies && <p className="text-xs text-gray-400 py-2">Loading replies…</p>}
+              {replies.map((reply) => (
+                <PostCard
+                  key={reply.id}
+                  post={reply}
+                  currentUserId={currentUserId}
+                  isReply
+                  index={0}
+                />
+              ))}
+              {repliesLoaded && replies.length === 0 && (
+                <p className="text-xs text-gray-400 py-2">No replies yet.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </article>

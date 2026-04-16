@@ -49,15 +49,25 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
   const [spendSaved, setSpendSaved] = useState(false)
   const [spendError, setSpendError] = useState('')
 
-  // Notification preferences
-  const [notifPrefs, setNotifPrefs] = useState({
-    new_messages: true,
-    product_sales: true,
-    dispute_updates: true,
-    review_replies: true,
-    sponsor_activity: true,
-    system_announcements: true,
-  })
+  // Notification preferences — each key maps to 'off' | 'in_app' | 'in_app_email'.
+  // Organized by category in the UI but stored as a flat JSONB object in the DB.
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+  type NotifLevel = 'off' | 'in_app' | 'in_app_email' | string
+  const DEFAULT_NOTIF: Record<string, NotifLevel> = {
+    // Communication
+    dm_received: 'in_app_email', bot_chat: 'in_app', sponsor_chat: 'in_app', rental_chat: 'in_app',
+    // Social
+    new_follower: 'in_app', post_liked: 'in_app', post_disliked: 'off', post_reply: 'in_app_email', mention: 'in_app_email',
+    // Commerce
+    product_sold: 'in_app_email', product_purchased: 'in_app', service_order_received: 'in_app_email',
+    service_delivered: 'in_app', review_received: 'in_app', dispute_opened: 'in_app_email',
+    // Bot Activity (for owners)
+    bot_message: 'in_app_email', bot_sale: 'in_app_email', bot_sponsor_offer: 'in_app',
+    bot_rental_request: 'in_app', bot_paused: 'in_app', bot_spend_limit: 'in_app', bot_reputation: 'off',
+    // Platform
+    cashout_status: 'in_app_email', credits_purchased: 'in_app', invite_signup: 'in_app', admin_announcement: 'in_app',
+  }
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, NotifLevel>>({ ...DEFAULT_NOTIF })
   const [notifSaving, setNotifSaving] = useState(false)
   const [notifSaved, setNotifSaved] = useState(false)
   const [notifError, setNotifError] = useState('')
@@ -83,7 +93,7 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
       .then(({ data }) => {
         if (data?.spend_preference) setSpendPref(data.spend_preference as SpendPreference)
         if (data?.notification_prefs && typeof data.notification_prefs === 'object') {
-          setNotifPrefs((prev) => ({ ...prev, ...(data.notification_prefs as Record<string, boolean>) }))
+          setNotifPrefs((prev) => ({ ...prev, ...(data.notification_prefs as Record<string, string>) }))
         }
         if (data?.privacy_prefs && typeof data.privacy_prefs === 'object') {
           setPrivacyPrefs((prev) => ({ ...prev, ...(data.privacy_prefs as Record<string, boolean>) }))
@@ -399,62 +409,109 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
             </div>
           )}
 
-          {activeTab === 'notifications' && (
-            <div className="space-y-3 max-w-md">
-              <h3 className="font-semibold text-gray-900">Notification Preferences</h3>
-              <p className="text-sm text-gray-500">Choose what you want to be notified about.</p>
-              {([
-                { key: 'new_messages', label: 'New messages' },
-                { key: 'product_sales', label: 'Product sales' },
-                { key: 'dispute_updates', label: 'Dispute updates' },
-                { key: 'review_replies', label: 'Review replies' },
-                { key: 'sponsor_activity', label: 'Sponsor activity' },
-                { key: 'system_announcements', label: 'System announcements' },
-              ] as { key: keyof typeof notifPrefs; label: string }[]).map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={notifPrefs[key]}
-                    onChange={(e) => setNotifPrefs((prev) => ({ ...prev, [key]: e.target.checked }))}
-                    className="w-4 h-4 text-indigo-600 rounded"
-                  />
-                  <span className="text-sm text-gray-700">{label}</span>
-                </label>
-              ))}
-              {notifError && <p className="text-red-500 text-xs">{notifError}</p>}
-              {notifSaved && <p className="text-green-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" />Preferences saved!</p>}
-              <Button
-                size="sm"
-                className="mt-2"
-                disabled={notifSaving}
-                onClick={async () => {
-                  setNotifSaving(true)
-                  setNotifSaved(false)
-                  setNotifError('')
-                  try {
-                    const res = await fetch('/api/profile/preferences', {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ notification_prefs: notifPrefs }),
-                    })
-                    const body = await res.json()
-                    if (!res.ok) {
-                      setNotifError(body.error ?? 'Failed to save')
-                    } else {
-                      setNotifSaved(true)
-                      setTimeout(() => setNotifSaved(false), 3000)
-                    }
-                  } catch {
-                    setNotifError('Network error')
-                  } finally {
-                    setNotifSaving(false)
-                  }
-                }}
-              >
-                {notifSaving ? 'Saving…' : 'Save preferences'}
-              </Button>
-            </div>
-          )}
+          {activeTab === 'notifications' && (() => {
+            const LEVELS: { value: NotifLevel; label: string }[] = [
+              { value: 'off', label: 'Off' },
+              { value: 'in_app', label: 'In-app' },
+              { value: 'in_app_email', label: 'In-app + Email' },
+            ]
+            const CATEGORIES: { title: string; items: { key: string; label: string }[] }[] = [
+              { title: 'Communication', items: [
+                { key: 'dm_received', label: 'Direct messages received' },
+                { key: 'bot_chat', label: 'Bot chat messages (owner↔bot)' },
+                { key: 'sponsor_chat', label: 'Sponsorship chat messages' },
+                { key: 'rental_chat', label: 'Rental chat messages' },
+              ]},
+              { title: 'Social', items: [
+                { key: 'new_follower', label: 'New follower' },
+                { key: 'post_liked', label: 'Post likes' },
+                { key: 'post_disliked', label: 'Post dislikes' },
+                { key: 'post_reply', label: 'Post replies / comments' },
+                { key: 'mention', label: 'Mentions' },
+              ]},
+              { title: 'Commerce', items: [
+                { key: 'product_sold', label: 'Product purchased (I\'m seller)' },
+                { key: 'product_purchased', label: 'Purchase confirmed (I\'m buyer)' },
+                { key: 'service_order_received', label: 'Service order received' },
+                { key: 'service_delivered', label: 'Service order delivered' },
+                { key: 'review_received', label: 'Review received on product' },
+                { key: 'dispute_opened', label: 'Dispute opened' },
+              ]},
+              { title: 'Bot Activity', items: [
+                { key: 'bot_message', label: 'Bot received message' },
+                { key: 'bot_sale', label: 'Bot made a sale' },
+                { key: 'bot_sponsor_offer', label: 'Bot got a sponsor offer' },
+                { key: 'bot_rental_request', label: 'Bot got a rental request' },
+                { key: 'bot_paused', label: 'Bot paused / resumed' },
+                { key: 'bot_spend_limit', label: 'Bot daily spending limit hit' },
+                { key: 'bot_reputation', label: 'Bot reputation changed' },
+              ]},
+              { title: 'Platform', items: [
+                { key: 'cashout_status', label: 'Cashout approved / denied' },
+                { key: 'credits_purchased', label: 'Credits purchased' },
+                { key: 'invite_signup', label: 'Invite signup' },
+                { key: 'admin_announcement', label: 'Admin announcements' },
+              ]},
+            ]
+            return (
+              <div className="space-y-5 max-w-lg">
+                <div>
+                  <h3 className="font-semibold text-gray-900">Notification Preferences</h3>
+                  <p className="text-xs text-gray-500 mt-1">Choose how you want to be notified for each event type.</p>
+                </div>
+                {CATEGORIES.map((cat) => (
+                  <div key={cat.title}>
+                    <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-2">{cat.title}</h4>
+                    <div className="space-y-1.5">
+                      {cat.items.map(({ key, label }) => (
+                        <div key={key} className="flex items-center justify-between gap-2 py-1">
+                          <span className="text-sm text-gray-700 flex-1">{label}</span>
+                          <div className="flex rounded-lg border border-gray-200 overflow-hidden shrink-0">
+                            {LEVELS.map((lvl) => (
+                              <button
+                                key={lvl.value}
+                                type="button"
+                                onClick={() => setNotifPrefs((p) => ({ ...p, [key]: lvl.value }))}
+                                className={`text-[10px] font-medium px-2 py-1 transition-colors ${
+                                  (notifPrefs[key] ?? 'in_app') === lvl.value
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-white text-gray-500 hover:bg-gray-50'
+                                }`}
+                              >
+                                {lvl.label}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {notifError && <p className="text-red-500 text-xs">{notifError}</p>}
+                {notifSaved && <p className="text-green-600 text-xs flex items-center gap-1"><Check className="w-3.5 h-3.5" />Preferences saved!</p>}
+                <Button
+                  size="sm"
+                  disabled={notifSaving}
+                  onClick={async () => {
+                    setNotifSaving(true); setNotifSaved(false); setNotifError('')
+                    try {
+                      const res = await fetch('/api/profile/preferences', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ notification_prefs: notifPrefs }),
+                      })
+                      const body = await res.json()
+                      if (!res.ok) setNotifError(body.error ?? 'Failed to save')
+                      else { setNotifSaved(true); setTimeout(() => setNotifSaved(false), 3000) }
+                    } catch { setNotifError('Network error') }
+                    finally { setNotifSaving(false) }
+                  }}
+                >
+                  {notifSaving ? 'Saving…' : 'Save preferences'}
+                </Button>
+              </div>
+            )
+          })()}
 
           {activeTab === 'privacy' && (
             <div className="space-y-3 max-w-md">

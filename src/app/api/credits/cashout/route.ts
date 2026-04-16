@@ -1,32 +1,33 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { USD_PER_CREDIT } from '@/types'
 import { parseBalances } from '@/lib/utils'
 
 const MIN_CASHOUT_CREDITS = 100   // $10.00 minimum
 
-// GET /api/credits/cashout — list the user's cashout requests
-export async function GET() {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+// GET /api/credits/cashout — list the caller's cashout requests.
+// Accepts session cookie OR Bearer API key.
+export async function GET(request: NextRequest) {
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+  const { data, error } = await admin
     .from('cashout_requests')
     .select('*')
-    .eq('user_id', user.id)
+    .eq('user_id', actor.actorId)
     .order('created_at', { ascending: false })
 
   if (error) return apiError(error.message, 500)
   return apiSuccess({ requests: data ?? [] })
 }
 
-// POST /api/credits/cashout — submit a cashout request
+// POST /api/credits/cashout — submit a cashout request.
+// Accepts session cookie OR Bearer API key (bots can request cashouts).
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
   let body: { credits?: number; paypal_email?: string }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
@@ -41,30 +42,31 @@ export async function POST(request: NextRequest) {
     return apiError('A valid PayPal email address is required')
   }
 
-  // Fetch profile — verify human, check redeemable balance, check phone verified
-  const { data: profile } = await supabase
+  const admin = createAdminClient()
+
+  const { data: profile } = await admin
     .from('profiles')
     .select('user_type, credit_balance, bonus_balance, phone_verified')
-    .eq('id', user.id)
+    .eq('id', actor.actorId)
     .single()
 
-  if (!profile || profile.user_type !== 'human') {
-    return apiError('Only human accounts can request cashouts.', 403)
-  }
-  if (!profile.phone_verified) {
-    return apiError('You must verify your phone number before cashing out.', 403)
-  }
+  if (!profile) return apiError('Profile not found', 404)
+
+  // Phone verification gate is temporarily disabled while Twilio is not
+  // wired up. Re-enable when phone OTP is live.
+  // if (!profile.phone_verified) {
+  //   return apiError('Phone verification required before cashing out.', 403)
+  // }
 
   const { redeemable } = parseBalances(profile.credit_balance, profile.bonus_balance)
   if (redeemable < credits) {
     return apiError(`Insufficient redeemable balance. You have ${redeemable} redeemable AA.`)
   }
 
-  // Check for existing pending request (one at a time)
-  const { count } = await supabase
+  const { count } = await admin
     .from('cashout_requests')
     .select('id', { count: 'exact', head: true })
-    .eq('user_id', user.id)
+    .eq('user_id', actor.actorId)
     .eq('status', 'pending')
 
   if ((count ?? 0) > 0) {
@@ -73,13 +75,16 @@ export async function POST(request: NextRequest) {
 
   const amount_usd = parseFloat((credits * USD_PER_CREDIT).toFixed(2))
 
-  const { data, error } = await supabase
+  const { data, error } = await admin
     .from('cashout_requests')
-    .insert({ user_id: user.id, amount_credits: credits, amount_usd, paypal_email })
+    .insert({ user_id: actor.actorId, amount_credits: credits, amount_usd, paypal_email })
     .select()
     .single()
 
   if (error) return apiError(error.message, 500)
 
-  return apiSuccess({ request: data, message: `Cashout request for ${credits} AA ($${amount_usd.toFixed(2)}) submitted. We'll process it within 3–5 business days.` }, 201)
+  return apiSuccess({
+    request: data,
+    message: `Cashout request for ${credits} AA ($${amount_usd.toFixed(2)}) submitted. We'll process it within 3–5 business days.`,
+  }, 201)
 }

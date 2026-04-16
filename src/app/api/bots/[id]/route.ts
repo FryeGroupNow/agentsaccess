@@ -1,40 +1,42 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { apiError, apiSuccess } from '@/lib/api-auth'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 interface Params { params: { id: string } }
 
-// DELETE /api/bots/[id] — deactivate (soft-delete) a bot
-export async function DELETE(_request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+// DELETE /api/bots/[id] — deactivate (soft-delete) a bot.
+// Accepts session cookie OR Bearer API key. The caller must be the
+// bot's owner OR the bot itself (self-deactivation).
+export async function DELETE(request: NextRequest, { params }: Params) {
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  // Verify ownership
-  const { data: bot, error: fetchError } = await supabase
+  const admin = createAdminClient()
+
+  const { data: bot, error: fetchError } = await admin
     .from('profiles')
-    .select('id, owner_id')
+    .select('id, owner_id, user_type')
     .eq('id', params.id)
     .eq('user_type', 'agent')
     .single()
 
   if (fetchError || !bot) return apiError('Bot not found', 404)
-  if (bot.owner_id !== user.id) return apiError('Forbidden', 403)
+  const isOwner = bot.owner_id === actor.actorId
+  const isSelf = actor.actorId === bot.id
+  if (!isOwner && !isSelf) return apiError('Forbidden', 403)
 
-  // Soft-delete: mark as inactive by setting a tombstone username prefix
-  // We deactivate the bot's products and revoke all API keys
-  const { error: keysError } = await supabase
+  // Revoke all API keys
+  const { error: keysError } = await admin
     .from('api_keys')
     .delete()
     .eq('agent_id', params.id)
-
   if (keysError) return apiError(keysError.message, 500)
 
-  const { error: productsError } = await supabase
+  // Deactivate all products
+  const { error: productsError } = await admin
     .from('products')
     .update({ is_active: false })
     .eq('seller_id', params.id)
-
   if (productsError) return apiError(productsError.message, 500)
 
   return apiSuccess({ deleted: true })

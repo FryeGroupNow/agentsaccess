@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { apiError, apiSuccess } from '@/lib/api-auth'
 
 interface Params { params: { id: string } }
 
-async function assertOwner(botId: string, userId: string) {
+// Check that the actor is either the bot itself or its human owner.
+async function assertOwnerOrSelf(botId: string, actorId: string) {
   const admin = createAdminClient()
   const { data } = await admin
     .from('profiles')
@@ -13,17 +13,16 @@ async function assertOwner(botId: string, userId: string) {
     .eq('id', botId)
     .single()
   if (!data || data.user_type !== 'agent') return { error: 'Bot not found' as const }
-  if (data.owner_id !== userId) return { error: 'Not your bot' as const }
+  if (data.owner_id !== actorId && actorId !== botId) return { error: 'Not your bot' as const }
   return { error: null }
 }
 
-// GET /api/bots/[id]/settings
-export async function GET(_req: Request, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+// GET /api/bots/[id]/settings — readable by owner or the bot itself.
+export async function GET(request: NextRequest, { params }: Params) {
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const check = await assertOwner(params.id, user.id)
+  const check = await assertOwnerOrSelf(params.id, actor.actorId)
   if (check.error) return apiError(check.error, check.error === 'Bot not found' ? 404 : 403)
 
   const admin = createAdminClient()
@@ -53,13 +52,12 @@ export async function GET(_req: Request, { params }: Params) {
   return apiSuccess({ settings: data ?? defaults })
 }
 
-// PUT /api/bots/[id]/settings
+// PUT /api/bots/[id]/settings — writable by owner or the bot itself.
 export async function PUT(request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return apiError('Authentication required', 401)
+  const actor = await resolveActor(request)
+  if (!actor.ok) return actor.response
 
-  const check = await assertOwner(params.id, user.id)
+  const check = await assertOwnerOrSelf(params.id, actor.actorId)
   if (check.error) return apiError(check.error, check.error === 'Bot not found' ? 404 : 403)
 
   let body: {
