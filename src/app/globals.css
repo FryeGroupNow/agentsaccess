@@ -25,6 +25,12 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  /* Prevent stray horizontal scroll on mobile caused by any element that
+     accidentally extends past the viewport (rogue fixed-width tables, long
+     unbreakable strings in chat messages, overflowing images, etc.).
+     Combined with `overflow-wrap: anywhere` on text-heavy blocks this keeps
+     the layout locked to the viewport width on small screens. */
+  overflow-x: hidden;
 }
 
 @layer utilities {

@@ -171,14 +171,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   )
 
   return (
-    <main className="max-w-6xl mx-auto px-4 py-10 bg-gray-50/40 min-h-screen">
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-4 mb-8">
-        <div className="flex items-center gap-4">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 bg-gray-50/40 min-h-screen">
+      {/* Header — stacks on mobile so the action buttons never get squeezed
+          into a narrow strip on the right. */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex items-center gap-4 min-w-0">
           <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">{profile.display_name}</h1>
-            <div className="flex items-center gap-2 mt-0.5">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{profile.display_name}</h1>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <span className="text-sm text-gray-500">@{profile.username}</span>
               <Badge variant={profile.user_type === 'agent' ? 'agent' : 'human'}>
                 {profile.user_type}
@@ -186,12 +187,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </div>
         </div>
-        <DashboardClient
-          isHuman={profile.user_type === 'human'}
-          creditsPurchased={searchParams.credits_purchased === 'true'}
-          redeemableBalance={redeemableAA}
-          phoneVerified={profile.phone_verified ?? false}
-        />
+        <div className="w-full sm:w-auto">
+          <DashboardClient
+            isHuman={profile.user_type === 'human'}
+            creditsPurchased={searchParams.credits_purchased === 'true'}
+            redeemableBalance={redeemableAA}
+            phoneVerified={profile.phone_verified ?? false}
+          />
+        </div>
       </div>
 
       {/* Bot alerts — prominent red banner when any owned bot has pending work */}
@@ -201,27 +204,29 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           The PhoneVerifyBanner component is still available — re-render this
           block to bring the banner back when phone OTP ships. */}
 
-      {/* Balance — three-row breakdown */}
-      <Card className="mb-6 p-5">
-        <div className="flex items-center justify-between mb-4">
+      {/* Balance — three-row breakdown. Mobile stacks the three rows so the
+          numbers have room to breathe; at sm+ they sit side-by-side with
+          vertical dividers. */}
+      <Card className="mb-6 p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4 text-indigo-600" />
             <span className="text-sm font-semibold text-gray-900">AA Credit Balance</span>
           </div>
           {profile.user_type === 'human' && <AddCreditsButton />}
         </div>
-        <div className="grid grid-cols-3 divide-x divide-gray-100">
-          <div className="pr-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x divide-gray-100 divide-y sm:divide-y-0">
+          <div className="py-3 sm:py-0 sm:pr-4">
             <div className="text-2xl font-bold text-gray-900">{totalAA.toLocaleString()}</div>
             <div className="text-xs text-gray-500 mt-0.5">Total AA</div>
             <div className="text-xs text-gray-400">${(totalAA * 0.10).toFixed(2)} USD</div>
           </div>
-          <div className="px-4">
+          <div className="py-3 sm:py-0 sm:px-4">
             <div className="text-2xl font-bold text-indigo-600">{redeemableAA.toLocaleString()}</div>
             <div className="text-xs text-gray-500 mt-0.5">Redeemable AA</div>
             <div className="text-xs text-gray-400">cashable · ${(redeemableAA * 0.10).toFixed(2)}</div>
           </div>
-          <div className="pl-4">
+          <div className="py-3 sm:py-0 sm:pl-4">
             <div className="text-2xl font-bold text-emerald-600">{starterAA.toLocaleString()}</div>
             <div className="text-xs text-gray-500 mt-0.5">Starter AA</div>
             <div className="text-xs text-gray-400">spend-only · not cashable</div>

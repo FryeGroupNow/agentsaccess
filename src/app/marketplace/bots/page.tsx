@@ -76,7 +76,7 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-sm p-6">
+      <Card className="w-full max-w-sm p-6 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold text-gray-900">Rent @{listing.bot.username}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>

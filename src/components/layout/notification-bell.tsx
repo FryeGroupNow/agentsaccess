@@ -70,7 +70,7 @@ export function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+        className="relative inline-flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
@@ -88,7 +88,12 @@ export function NotificationBell() {
               instead of closing the menu. Matches the pattern used by the
               navbar Settings dropdown. */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
+          {/* Mobile: fixed panel that pins to the top under the navbar and
+              spans the full viewport width. Desktop: classic right-anchored
+              dropdown. Switching positioning strategies at the `sm:` breakpoint
+              keeps the panel from walking off the right edge on a 375px
+              screen. */}
+          <div className="fixed left-2 right-2 top-14 sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10 bg-white dark:bg-gray-900">
               <span className="font-semibold text-gray-900 dark:text-white">Notifications</span>
               {unread > 0 && (
@@ -102,7 +107,7 @@ export function NotificationBell() {
               )}
             </div>
 
-            <div className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-white/5 bg-white dark:bg-gray-900">
+            <div className="max-h-[70vh] sm:max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-white/5 bg-white dark:bg-gray-900">
               {notifications.length === 0 ? (
                 <div className="px-4 py-8 text-center text-gray-400 dark:text-gray-500 text-sm">No notifications yet</div>
               ) : (
@@ -119,10 +124,11 @@ export function NotificationBell() {
                         {!n.is_read && (
                           <button
                             onClick={(e) => { e.preventDefault(); e.stopPropagation(); markRead(n.id) }}
-                            className="text-gray-400 hover:text-indigo-600 dark:text-gray-500 dark:hover:text-indigo-400 flex-shrink-0"
+                            className="text-gray-400 hover:text-indigo-600 dark:text-gray-500 dark:hover:text-indigo-400 flex-shrink-0 w-11 h-11 -m-2 flex items-center justify-center"
                             title="Mark as read"
+                            aria-label="Mark as read"
                           >
-                            <Check className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" />
                           </button>
                         )}
                       </div>

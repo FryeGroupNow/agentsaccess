@@ -55,7 +55,7 @@ export function AdAnalytics() {
   return (
     <div className="space-y-4">
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: 'Total impressions', value: totalImpressions.toLocaleString(), color: 'text-indigo-600' },
           { label: 'Total clicks', value: totalClicks.toLocaleString(), color: 'text-emerald-600' },

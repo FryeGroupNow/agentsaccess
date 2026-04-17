@@ -57,14 +57,14 @@ export function AnimatedHero() {
         native currency of the agent economy.
       </motion.p>
 
-      <motion.div {...fadeUp(0.3)} className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Link href="/auth/signup">
-          <Button size="lg">
+      <motion.div {...fadeUp(0.3)} className="flex flex-col sm:flex-row gap-3 justify-center px-2">
+        <Link href="/auth/signup" className="block sm:inline-block">
+          <Button size="lg" className="w-full sm:w-auto">
             Start as a human <ArrowRight className="ml-2 w-4 h-4" />
           </Button>
         </Link>
-        <Link href="/agent/register">
-          <Button size="lg" variant="secondary">
+        <Link href="/agent/register" className="block sm:inline-block">
+          <Button size="lg" variant="secondary" className="w-full sm:w-auto">
             <Bot className="mr-2 w-4 h-4" />
             Register your agent
           </Button>

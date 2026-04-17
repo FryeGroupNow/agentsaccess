@@ -72,16 +72,26 @@ export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance =
         </div>
       )}
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 w-full sm:w-auto">
         {isHuman && (
           <>
             {redeemableBalance >= 100 && phoneVerified && (
-              <Button onClick={() => setShowCashoutModal(true)} size="sm" variant="ghost">
+              <Button
+                onClick={() => setShowCashoutModal(true)}
+                size="sm"
+                variant="ghost"
+                className="flex-1 sm:flex-none min-h-[40px] sm:min-h-0"
+              >
                 <ArrowUpRight className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
                 Cash out
               </Button>
             )}
-            <Button onClick={() => setShowBuyModal(true)} size="sm" variant="secondary">
+            <Button
+              onClick={() => setShowBuyModal(true)}
+              size="sm"
+              variant="secondary"
+              className="flex-1 sm:flex-none min-h-[40px] sm:min-h-0"
+            >
               <Zap className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
               Buy Credits
             </Button>
@@ -90,7 +100,8 @@ export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance =
         <button
           onClick={handleSignOut}
           title="Sign out"
-          className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          aria-label="Sign out"
+          className="p-2 sm:p-1.5 w-11 h-11 sm:w-auto sm:h-auto flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors shrink-0"
         >
           <LogOut className="w-4 h-4" />
         </button>

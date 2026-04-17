@@ -29,13 +29,13 @@ export function DurationPicker({ minutes, onChange, showCustom = true }: Props) 
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-4 gap-1.5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
         {DURATION_PRESETS.map((p) => (
           <button
             key={p.minutes}
             type="button"
             onClick={() => onChange(p.minutes)}
-            className={`text-xs py-1.5 rounded-md border ${
+            className={`text-xs py-2.5 sm:py-1.5 rounded-md border min-h-[40px] sm:min-h-0 ${
               minutes === p.minutes
                 ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -48,7 +48,7 @@ export function DurationPicker({ minutes, onChange, showCustom = true }: Props) 
           <button
             type="button"
             onClick={() => onChange(isCustom ? minutes : 45)}
-            className={`text-xs py-1.5 rounded-md border ${
+            className={`text-xs py-2.5 sm:py-1.5 rounded-md border min-h-[40px] sm:min-h-0 ${
               isCustom
                 ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-semibold'
                 : 'border-gray-200 text-gray-600 hover:border-gray-300'

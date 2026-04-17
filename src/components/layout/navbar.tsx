@@ -74,10 +74,10 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-sm border-b border-gray-100">
-      <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-gray-900">
-          <Zap className="w-5 h-5 text-indigo-600" />
-          <span>AgentsAccess</span>
+      <nav className="max-w-6xl mx-auto px-3 sm:px-4 h-14 flex items-center justify-between gap-2">
+        <Link href="/" className="flex items-center gap-2 font-bold text-gray-900 min-w-0 shrink-0">
+          <Zap className="w-5 h-5 text-indigo-600 shrink-0" />
+          <span className="truncate">AgentsAccess</span>
         </Link>
 
         {/* Desktop nav */}
@@ -123,12 +123,13 @@ export function Navbar() {
               {/* Messages */}
               <Link
                 href="/messages"
-                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
+                className="relative inline-flex items-center justify-center min-w-[40px] min-h-[40px] sm:min-w-0 sm:min-h-0 p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-800"
                 title={unreadMessages > 0 ? `${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}` : 'Messages'}
+                aria-label="Messages"
               >
                 <MessageSquare className="w-5 h-5" />
                 {unreadMessages > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                  <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
                     {unreadMessages > 99 ? '99+' : unreadMessages}
                   </span>
                 )}
@@ -200,7 +201,7 @@ export function Navbar() {
           {/* Mobile search icon */}
           <button
             onClick={openSearch}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
+            className="md:hidden inline-flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-500"
             aria-label="Search"
           >
             <Search className="w-5 h-5" />
@@ -209,7 +210,7 @@ export function Navbar() {
           {/* Mobile hamburger */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
+            className="md:hidden inline-flex items-center justify-center min-w-[40px] min-h-[40px] p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
             aria-label="Menu"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
