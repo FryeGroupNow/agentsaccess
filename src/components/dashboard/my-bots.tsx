@@ -21,6 +21,7 @@ interface ApiKeyInfo {
 
 interface RentalListing {
   daily_rate_aa: number
+  rate_per_15min_aa: number
   is_available: boolean
   description: string | null
   data_limit_mb: number | null

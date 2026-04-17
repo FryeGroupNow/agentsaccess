@@ -251,6 +251,7 @@ export interface SponsorAgreement {
 export interface BotRentalListing {
   bot_id: string
   daily_rate_aa: number
+  rate_per_15min_aa: number
   is_available: boolean
   description: string | null
   data_limit_mb: number | null
@@ -266,8 +267,12 @@ export interface BotRental {
   owner_id: string
   renter_id: string
   daily_rate_aa: number
+  rate_per_15min_aa: number
   platform_fee_aa: number
   owner_gets_aa: number
+  total_minutes: number
+  total_paid_aa: number
+  expires_at: string
   status: 'active' | 'ended'
   started_at: string
   ended_at: string | null

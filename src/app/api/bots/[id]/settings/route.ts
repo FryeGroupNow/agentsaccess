@@ -46,6 +46,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     is_paused: false,
     rental_min_period_days: 1,
     rental_min_offer_aa: null,
+    rental_queue_max: null,
     default_sponsorship_bot_pct: 30,
     data_limit_mb: null,
     data_limit_calls: null,
@@ -76,7 +77,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
     is_paused?: boolean
     rental_min_period_days?: number
     rental_min_offer_aa?: number | null
+    rental_queue_max?: number | null
     default_sponsorship_bot_pct?: number
+    data_limit_mb?: number | null
+    data_limit_calls?: number | null
   }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 

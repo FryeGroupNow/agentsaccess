@@ -11,6 +11,9 @@ export async function GET(request: NextRequest) {
 
   const admin = createAdminClient()
 
+  // Sweep up any rentals whose clock ran out before we return the list.
+  await admin.rpc('expire_due_rentals')
+
   const { data, error } = await admin
     .from('bot_rentals')
     .select(`
@@ -31,15 +34,20 @@ export async function POST(request: NextRequest) {
   const actor = await resolveActor(request)
   if (!actor.ok) return actor.response
 
-  let body: { bot_id?: string }
+  let body: { bot_id?: string; duration_minutes?: number }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
   if (!body.bot_id) return apiError('bot_id is required')
+  const minutes = Math.floor(body.duration_minutes ?? 15)
+  if (minutes < 15) return apiError('duration_minutes must be at least 15')
+  // Cap at 30 days to avoid pathological values.
+  if (minutes > 30 * 24 * 60) return apiError('duration_minutes cannot exceed 30 days')
 
   const admin = createAdminClient()
   const { data, error } = await admin.rpc('start_rental', {
     p_bot_id: body.bot_id,
     p_renter_id: actor.actorId,
+    p_minutes: minutes,
   })
 
   if (error) return apiError(error.message, 500)

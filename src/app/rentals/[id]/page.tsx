@@ -9,6 +9,9 @@ import { Bot, Send, Star, X, ArrowLeft, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import { formatCredits } from '@/lib/utils'
 import type { BotRental, RentalMessage } from '@/types'
+import { RentalTimer } from '@/components/rentals/rental-timer'
+import { formatMinutes } from '@/components/rentals/duration-picker'
+import { createClient } from '@/lib/supabase/client'
 
 function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   return (
@@ -100,37 +103,23 @@ export default function RentalPage() {
   }, [id])
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/rentals/${id}`).then((r) => r.ok ? r.json() : null),
-      fetch('/api/rentals').then((r) => r.ok ? r.json() : null),
-    ]).then(([rentalData, listData]) => {
-      if (rentalData) {
-        setRental(rentalData)
-        const review = Array.isArray(rentalData.review) ? rentalData.review[0] : rentalData.review
-        if (review) setReviewed(true)
-      }
-      if (listData?.rentals?.length > 0) {
-        const r = listData.rentals[0]
-        setCurrentUserId(r.owner_id)
-      }
-      setLoading(false)
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUserId(user?.id ?? null)
     })
+
+    fetch(`/api/rentals/${id}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((rentalData) => {
+        if (rentalData) {
+          setRental(rentalData)
+          const review = Array.isArray(rentalData.review) ? rentalData.review[0] : rentalData.review
+          if (review) setReviewed(true)
+        }
+        setLoading(false)
+      })
     loadMessages()
   }, [id, loadMessages])
-
-  // Get current user from the rental itself
-  useEffect(() => {
-    if (rental) {
-      fetch('/api/rentals').then((r) => r.json()).then((d) => {
-        const found = d.rentals?.find((r: BotRental) => r.id === id)
-        if (found) {
-          // The current user is whoever accessed this page — owner or renter
-          // We can't know without a /api/me; use a heuristic from cookies instead.
-          // For now just store both; the UI handles it server-side via RLS.
-        }
-      })
-    }
-  }, [rental, id])
 
   async function sendMessage(e: React.FormEvent) {
     e.preventDefault()
@@ -187,6 +176,16 @@ export default function RentalPage() {
   const isRenter = rental.renter_id === currentUserId
   const showReview = !isActive && isRenter && !reviewed
 
+  function handleExtended(newExpiresAt: string) {
+    setRental((prev) => prev ? { ...prev, expires_at: newExpiresAt } : prev)
+  }
+
+  async function handleTimerExpired() {
+    // Timer hit 0 — end the rental server-side and fall through to the review prompt.
+    await fetch(`/api/rentals/${id}`, { method: 'DELETE' })
+    setRental((prev) => prev ? { ...prev, status: 'ended' } : prev)
+  }
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
       <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6">
@@ -217,11 +216,23 @@ export default function RentalPage() {
             </div>
           </div>
           <div className="text-right">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-              {isActive ? 'Active' : 'Ended'}
-            </span>
-            <p className="text-xs text-gray-400 mt-1">{formatCredits(rental.daily_rate_aa)}/day</p>
-            <p className="text-xs text-gray-400">Started {new Date(rental.started_at).toLocaleDateString()}</p>
+            <div className="flex justify-end">
+              <RentalTimer
+                rentalId={rental.id}
+                botId={rental.bot_id}
+                expiresAt={rental.expires_at}
+                status={rental.status}
+                isRenter={isRenter}
+                onExtended={handleExtended}
+                onEnded={handleTimerExpired}
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              {formatCredits(rental.rate_per_15min_aa)}/15min · {formatCredits(rental.daily_rate_aa)}/day
+            </p>
+            <p className="text-xs text-gray-400">
+              Started {new Date(rental.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · total booked: {formatMinutes(rental.total_minutes)}
+            </p>
           </div>
         </div>
 

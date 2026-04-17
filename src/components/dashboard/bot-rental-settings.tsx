@@ -7,6 +7,7 @@ import { formatCredits } from '@/lib/utils'
 
 interface RentalListingSummary {
   daily_rate_aa: number
+  rate_per_15min_aa: number
   is_available: boolean
   description: string | null
   data_limit_mb: number | null
@@ -21,8 +22,9 @@ interface BotRentalSettingsProps {
 
 export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRentalSettingsProps) {
   const [editing, setEditing] = useState(false)
-  const [rate, setRate] = useState(currentListing?.daily_rate_aa ?? 50)
-  const [desc, setDesc] = useState(currentListing?.description ?? '')
+  const [rate, setRate]  = useState(currentListing?.daily_rate_aa ?? 50)
+  const [rate15, setRate15] = useState(currentListing?.rate_per_15min_aa ?? 5)
+  const [desc, setDesc]  = useState(currentListing?.description ?? '')
   const [mb, setMb]     = useState<string>(currentListing?.data_limit_mb?.toString()    ?? '')
   const [calls, setCalls] = useState<string>(currentListing?.data_limit_calls?.toString() ?? '')
   const [loading, setLoading] = useState(false)
@@ -38,6 +40,7 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           daily_rate_aa: rate,
+          rate_per_15min_aa: rate15,
           description: desc || null,
           data_limit_mb: mb === '' ? null : Number(mb),
           data_limit_calls: calls === '' ? null : Number(calls),
@@ -78,10 +81,10 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
 
   if (!editing && currentListing) {
     return (
-      <div className="flex items-center gap-2 mt-1.5">
+      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
         <Tag className="w-3 h-3 text-emerald-500" />
         <span className="text-xs text-gray-600">
-          For rent · {formatCredits(currentListing.daily_rate_aa)}/day
+          For rent · {formatCredits(currentListing.rate_per_15min_aa)}/15min · {formatCredits(currentListing.daily_rate_aa)}/day
           {!currentListing.is_available && <span className="ml-1 text-amber-600">(rented)</span>}
         </span>
         <button onClick={() => setEditing(true)} className="text-xs text-indigo-500 hover:underline">Edit</button>
@@ -100,14 +103,27 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
       </div>
 
       <div className="space-y-2">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">Daily rate (AA Credits)</label>
-          <input
-            type="number" min={1} max={10000} value={rate}
-            onChange={(e) => setRate(Number(e.target.value))}
-            className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Per 15 min (AA)</label>
+            <input
+              type="number" min={1} max={1000} value={rate15}
+              onChange={(e) => setRate15(Number(e.target.value))}
+              className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Per day (AA)</label>
+            <input
+              type="number" min={1} max={10000} value={rate}
+              onChange={(e) => setRate(Number(e.target.value))}
+              className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
         </div>
+        <p className="text-xs text-gray-400 -mt-1">
+          Renters are billed from the 15-min rate, capped at the daily rate for longer bookings.
+        </p>
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs text-gray-500 block mb-1">Daily data (MB)</label>

@@ -4,10 +4,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
-import { Bot, Search, X, Gauge } from 'lucide-react'
+import { Bot, Search, X, Gauge, Users, Clock } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import type { BotRentalListing } from '@/types'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
+import { DurationPicker, formatMinutes } from '@/components/rentals/duration-picker'
+import { QueueJoinModal } from '@/components/rentals/queue-join-modal'
+import { QueueStatus } from '@/components/rentals/queue-status'
 
 type ListingWithBot = BotRentalListing & {
   bot: {
@@ -19,6 +22,7 @@ type ListingWithBot = BotRentalListing & {
     avatar_url: string | null
     bio: string | null
   }
+  queue_size?: number
 }
 
 interface RentModalProps {
@@ -28,8 +32,23 @@ interface RentModalProps {
 }
 
 function RentModal({ listing, onClose, onRented }: RentModalProps) {
+  const [minutes, setMinutes] = useState(15)
+  const [quote, setQuote] = useState<{ cost_aa: number; fee_aa: number; owner_gets_aa: number } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Fetch a fresh quote from the server whenever the duration changes. This
+  // keeps the displayed price aligned with whatever math the RPC actually
+  // uses, so there's no risk of client/server drift.
+  useEffect(() => {
+    let cancelled = false
+    setQuote(null)
+    fetch(`/api/rentals/quote?bot_id=${listing.bot_id}&minutes=${minutes}`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => { if (!cancelled && d) setQuote(d) })
+      .catch(() => {/* ignore */})
+    return () => { cancelled = true }
+  }, [listing.bot_id, minutes])
 
   async function startRental() {
     setLoading(true)
@@ -38,7 +57,7 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
       const res = await fetch('/api/rentals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bot_id: listing.bot_id }),
+        body: JSON.stringify({ bot_id: listing.bot_id, duration_minutes: minutes }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to start rental'); return }
@@ -48,9 +67,6 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
     }
   }
 
-  const fee = Math.ceil(listing.daily_rate_aa * 0.05)
-  const ownerGets = listing.daily_rate_aa - fee
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-sm p-6">
@@ -59,24 +75,37 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
         </div>
 
+        <div className="mb-4">
+          <label className="text-xs font-medium text-gray-700 block mb-2">How long?</label>
+          <DurationPicker minutes={minutes} onChange={setMinutes} />
+        </div>
+
         <div className="rounded-lg bg-gray-50 p-4 mb-4 space-y-2 text-sm">
+          <div className="flex justify-between text-xs text-gray-400">
+            <span>Rate</span>
+            <span>{formatCredits(listing.rate_per_15min_aa)} / 15 min · {formatCredits(listing.daily_rate_aa)} / day</span>
+          </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">Daily rate</span>
-            <span className="font-medium">{formatCredits(listing.daily_rate_aa)}</span>
+            <span className="text-gray-600">Duration</span>
+            <span className="font-medium">{formatMinutes(minutes)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Cost</span>
+            <span className="font-medium">{quote ? formatCredits(quote.cost_aa) : '…'}</span>
           </div>
           <div className="flex justify-between text-xs text-gray-400">
             <span>Platform fee (5%)</span>
-            <span>{formatCredits(fee)}</span>
+            <span>{quote ? formatCredits(quote.fee_aa) : '…'}</span>
           </div>
           <div className="flex justify-between text-xs text-gray-400">
             <span>Bot owner receives</span>
-            <span>{formatCredits(ownerGets)}</span>
+            <span>{quote ? formatCredits(quote.owner_gets_aa) : '…'}</span>
           </div>
         </div>
 
         <p className="text-xs text-gray-500 mb-3">
-          The first day is charged now. You can direct the bot via the messaging system once rented.
-          The bot owner retains API key control and may end the rental at any time.
+          The full duration is charged upfront. You can extend anytime or end the rental early —
+          unused time is <strong>not refunded</strong> (the bot was reserved for you).
         </p>
 
         {(listing.data_limit_mb != null || listing.data_limit_calls != null) && (
@@ -98,8 +127,12 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
         {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
 
         <div className="flex gap-2">
-          <Button onClick={startRental} disabled={loading} className="flex-1">
-            {loading ? 'Starting…' : `Rent for ${formatCredits(listing.daily_rate_aa)}`}
+          <Button onClick={startRental} disabled={loading || !quote} className="flex-1">
+            {loading
+              ? 'Starting…'
+              : quote
+                ? `Rent for ${formatCredits(quote.cost_aa)}`
+                : 'Calculating…'}
           </Button>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
         </div>
@@ -108,7 +141,14 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
   )
 }
 
-function ListingCard({ listing, onRent }: { listing: ListingWithBot; onRent: () => void }) {
+function ListingCard({
+  listing, onRent, onJoinQueue,
+}: {
+  listing: ListingWithBot
+  onRent: () => void
+  onJoinQueue: () => void
+}) {
+  const busy = !listing.is_available
   return (
     <Card className="p-4 flex flex-col gap-3">
       <div className="flex items-start gap-3">
@@ -150,12 +190,34 @@ function ListingCard({ listing, onRent }: { listing: ListingWithBot; onRent: () 
         </div>
       )}
 
-      <div className="flex items-center justify-between mt-auto pt-1 border-t border-gray-100">
-        <div>
-          <span className="text-lg font-bold text-gray-900">{formatCredits(listing.daily_rate_aa)}</span>
-          <span className="text-xs text-gray-400 ml-1">/ day</span>
+      {(busy || (listing.queue_size ?? 0) > 0) && (
+        <div className="flex items-center gap-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5">
+          {busy && (
+            <span className="flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Currently rented
+            </span>
+          )}
+          {(listing.queue_size ?? 0) > 0 && (
+            <span className="flex items-center gap-1">
+              <Users className="w-3 h-3" />
+              {listing.queue_size} waiting
+            </span>
+          )}
         </div>
-        <Button size="sm" onClick={onRent}>Rent Bot</Button>
+      )}
+
+      <div className="flex items-center justify-between mt-auto pt-1 border-t border-gray-100">
+        <div className="min-w-0">
+          <div>
+            <span className="text-lg font-bold text-gray-900">{formatCredits(listing.rate_per_15min_aa)}</span>
+            <span className="text-xs text-gray-400 ml-1">/ 15 min</span>
+          </div>
+          <div className="text-xs text-gray-400">{formatCredits(listing.daily_rate_aa)} / day</div>
+        </div>
+        {busy
+          ? <Button size="sm" variant="secondary" onClick={onJoinQueue}>Join Queue</Button>
+          : <Button size="sm" onClick={onRent}>Rent Bot</Button>}
       </div>
     </Card>
   )
@@ -168,6 +230,7 @@ export default function BotsForRentPage() {
   const [maxRate, setMaxRate] = useState('')
   const [minRep, setMinRep] = useState('10')
   const [selected, setSelected] = useState<ListingWithBot | null>(null)
+  const [queueTarget, setQueueTarget] = useState<ListingWithBot | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -191,7 +254,8 @@ export default function BotsForRentPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-1">Bots for Rent</h1>
         <p className="text-gray-500">
-          Rent AI agents by the day. Direct them via messaging.
+          Rent AI agents by the 15-minute block or the day. Busy bots have a queue —
+          join now and optionally auto-start when it&apos;s your turn.
         </p>
         <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2 mt-2 inline-block">
           Early access: reduced reputation requirement (10+). Standard minimum will be 50 once the platform grows.
@@ -212,7 +276,7 @@ export default function BotsForRentPage() {
         </div>
         <input
           type="number"
-          placeholder="Max rate (AA/day)"
+          placeholder="Max daily rate (AA)"
           value={maxRate}
           onChange={(e) => setMaxRate(e.target.value)}
           className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-44"
@@ -241,7 +305,19 @@ export default function BotsForRentPage() {
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {listings.map((l) => (
-            <ListingCard key={l.bot_id} listing={l} onRent={() => setSelected(l)} />
+            <div key={l.bot_id} className="flex flex-col gap-2">
+              <ListingCard
+                listing={l}
+                onRent={() => setSelected(l)}
+                onJoinQueue={() => setQueueTarget(l)}
+              />
+              <QueueStatus
+                botId={l.bot_id}
+                botUsername={l.bot.username}
+                onLeft={load}
+                onAutoStarted={load}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -252,6 +328,18 @@ export default function BotsForRentPage() {
           onClose={() => setSelected(null)}
           onRented={() => {
             setSelected(null)
+            load()
+          }}
+        />
+      )}
+
+      {queueTarget && (
+        <QueueJoinModal
+          botId={queueTarget.bot_id}
+          botUsername={queueTarget.bot.username}
+          onClose={() => setQueueTarget(null)}
+          onJoined={() => {
+            setQueueTarget(null)
             load()
           }}
         />

@@ -5,10 +5,11 @@ import { Button } from '@/components/ui/button'
 import {
   Settings, Activity, Tag, Pause, Play,
   Shield, Zap, FileText, DollarSign, FolderLock,
-  CheckCircle, XCircle, AlertTriangle,
+  CheckCircle, XCircle, AlertTriangle, Users,
 } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import { BotFilesPanel } from './bot-files-panel'
+import { BotQueuePanel } from './bot-queue-panel'
 
 interface BotSettings {
   bot_id: string
@@ -21,6 +22,7 @@ interface BotSettings {
   is_paused: boolean
   rental_min_period_days: number
   rental_min_offer_aa: number | null
+  rental_queue_max: number | null
   default_sponsorship_bot_pct: number
   data_limit_mb: number | null
   data_limit_calls: number | null
@@ -39,7 +41,7 @@ interface ActivityItem {
   amount?: number
 }
 
-type Tab = 'restrictions' | 'limits' | 'rental' | 'sponsorship' | 'files' | 'activity'
+type Tab = 'restrictions' | 'limits' | 'rental' | 'queue' | 'sponsorship' | 'files' | 'activity'
 
 interface BotManagementPanelProps {
   botId: string
@@ -179,6 +181,7 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     { id: 'restrictions', label: 'Restrictions', icon: <Shield className="w-3.5 h-3.5" /> },
     { id: 'limits',       label: 'Limits',       icon: <Zap className="w-3.5 h-3.5" /> },
     { id: 'rental',       label: 'Rental',        icon: <Tag className="w-3.5 h-3.5" /> },
+    { id: 'queue',        label: 'Queue',         icon: <Users className="w-3.5 h-3.5" /> },
     { id: 'sponsorship',  label: 'Sponsorship',   icon: <DollarSign className="w-3.5 h-3.5" /> },
     { id: 'files',        label: 'Files',         icon: <FolderLock className="w-3.5 h-3.5" /> },
     { id: 'activity',     label: 'Activity',      icon: <Activity className="w-3.5 h-3.5" /> },
@@ -331,7 +334,19 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
               onChange={(v) => update('rental_min_offer_aa', v)}
               placeholder="Accept any offer"
             />
+            <NumberField
+              label="Rental queue limit"
+              description="Maximum renters allowed to wait in the queue (leave empty for unlimited)"
+              value={draft.rental_queue_max ?? null}
+              onChange={(v) => update('rental_queue_max', v)}
+              placeholder="Unlimited"
+              min={1}
+            />
           </div>
+        )}
+
+        {tab === 'queue' && (
+          <BotQueuePanel botId={botId} />
         )}
 
         {tab === 'sponsorship' && (
@@ -406,8 +421,8 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
         )}
       </div>
 
-      {/* Save button (not needed for activity, files, or the pause toggle) */}
-      {tab !== 'activity' && tab !== 'files' && (
+      {/* Save button (not needed for activity, files, queue, or the pause toggle) */}
+      {tab !== 'activity' && tab !== 'files' && tab !== 'queue' && (
         <div className="mt-3 flex justify-end">
           <Button size="sm" onClick={save} disabled={saving || saved}>
             {saved ? <><CheckCircle className="w-3 h-3 mr-1" />Saved</> : saving ? 'Saving…' : 'Save Changes'}

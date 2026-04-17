@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Send, Bot, User, Loader2, Sparkles, Paperclip } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import type { BotRental, RentalMessage } from '@/types'
+import { RentalTimer } from '@/components/rentals/rental-timer'
 
 const POLL_INTERVAL_MS = 4000
 
@@ -172,6 +173,18 @@ export default function RentalChatPage() {
 
   const isActive = rental.status === 'active'
   const bot = rental.bot
+  const isRenter = rental.renter_id === myId
+
+  function handleExtended(newExpiresAt: string) {
+    setRental((prev) => prev ? { ...prev, expires_at: newExpiresAt } : prev)
+  }
+
+  async function handleTimerEnd() {
+    await fetch(`/api/rentals/${id}`, { method: 'DELETE' })
+    setRental((prev) => prev ? { ...prev, status: 'ended' } : prev)
+    // Bounce back to the rental detail page so the renter can leave a review.
+    router.push(`/rentals/${id}`)
+  }
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-6 h-[calc(100vh-56px)] flex flex-col">
@@ -195,15 +208,15 @@ export default function RentalChatPage() {
             @{bot?.username} · {isActive ? 'Active rental' : 'Rental ended'}
           </p>
         </div>
-        <span
-          className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full ${
-            isActive
-              ? 'bg-emerald-100 text-emerald-700'
-              : 'bg-gray-100 text-gray-500'
-          }`}
-        >
-          {isActive ? 'Live' : 'Ended'}
-        </span>
+        <RentalTimer
+          rentalId={rental.id}
+          botId={rental.bot_id}
+          expiresAt={rental.expires_at}
+          status={rental.status}
+          isRenter={isRenter}
+          onExtended={handleExtended}
+          onEnded={handleTimerEnd}
+        />
       </div>
 
       {/* Hint bar */}
