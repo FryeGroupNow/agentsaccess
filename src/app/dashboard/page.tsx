@@ -172,14 +172,15 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 bg-gray-50/40 min-h-screen">
-      {/* Header — stacks on mobile so the action buttons never get squeezed
-          into a narrow strip on the right. */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
-        <div className="flex items-center gap-4 min-w-0">
+      {/* Header — mobile: centered avatar + name stacked over full-width
+          action buttons. Desktop (sm+): avatar + name on the left,
+          buttons on the right. */}
+      <div className="w-full flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-center sm:items-center gap-3 sm:gap-4 w-full sm:w-auto min-w-0 text-center sm:text-left">
           <Avatar name={profile.display_name} src={profile.avatar_url} size="lg" />
-          <div className="min-w-0">
+          <div className="min-w-0 w-full sm:w-auto">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 truncate">{profile.display_name}</h1>
-            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap justify-center sm:justify-start">
               <span className="text-sm text-gray-500">@{profile.username}</span>
               <Badge variant={profile.user_type === 'agent' ? 'agent' : 'human'}>
                 {profile.user_type}
@@ -204,18 +205,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           The PhoneVerifyBanner component is still available — re-render this
           block to bring the banner back when phone OTP ships. */}
 
-      {/* Balance — three-row breakdown. Mobile stacks the three rows so the
-          numbers have room to breathe; at sm+ they sit side-by-side with
-          vertical dividers. */}
-      <Card className="mb-6 p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      {/* Balance — three-row breakdown. Mobile stacks the three rows and
+          centers all numbers + labels so the card reads symmetrically
+          inside the viewport. Desktop (sm+) returns to three side-by-side
+          columns with vertical dividers and left-aligned content. */}
+      <Card className="mb-6 p-4 sm:p-5 w-full">
+        <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 text-center sm:text-left">
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4 text-indigo-600" />
             <span className="text-sm font-semibold text-gray-900">AA Credit Balance</span>
           </div>
           {profile.user_type === 'human' && <AddCreditsButton />}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x divide-gray-100 divide-y sm:divide-y-0">
+        <div className="grid grid-cols-1 sm:grid-cols-3 sm:divide-x divide-gray-100 divide-y sm:divide-y-0 text-center sm:text-left">
           <div className="py-3 sm:py-0 sm:pr-4">
             <div className="text-2xl font-bold text-gray-900">{totalAA.toLocaleString()}</div>
             <div className="text-xs text-gray-500 mt-0.5">Total AA</div>
@@ -242,32 +244,34 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       {/* Starter AA info (shown when user has starter credits) */}
       {starterAA > 0 && <StarterAAInfo className="mb-6" />}
 
-      {/* Stats: reputation + 4-category earnings breakdown */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
-        <Card className="p-4 lg:col-span-1">
+      {/* Stats: reputation + 4-category earnings breakdown. Each card is
+          centered on mobile (single column, so the icon + numbers live in
+          the middle of the card rather than pinned to the top-left edge). */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-8 w-full">
+        <Card className="p-4 lg:col-span-1 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <TrendingUp className="w-4 h-4 mb-2 text-amber-500" />
           <div className="text-lg font-bold text-gray-900 leading-tight">{profile.reputation_score.toFixed(1)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Reputation</div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <Zap className="w-4 h-4 mb-2 text-indigo-500" />
           <div className="text-lg font-bold text-indigo-600 leading-tight">{formatCredits(totalPurchased)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Purchased</div>
           <div className="text-[10px] text-gray-400">via Stripe</div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <ArrowDownLeft className="w-4 h-4 mb-2 text-green-500" />
           <div className="text-lg font-bold text-green-600 leading-tight">{formatCredits(totalEarned)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Earned</div>
           <div className="text-[10px] text-gray-400">sales, rentals, etc.</div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <ArrowUpRight className="w-4 h-4 mb-2 text-red-400" />
           <div className="text-lg font-bold text-gray-700 leading-tight">{formatCredits(totalSpent)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Spent</div>
           <div className="text-[10px] text-gray-400">purchases, posts, ads</div>
         </Card>
-        <Card className="p-4">
+        <Card className="p-4 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <Zap className="w-4 h-4 mb-2 text-emerald-500" />
           <div className="text-lg font-bold text-emerald-600 leading-tight">{formatCredits(totalStarter)}</div>
           <div className="text-xs text-gray-500 mt-0.5">Starter</div>
@@ -278,7 +282,9 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       <div className="grid lg:grid-cols-2 gap-5">
 
         {/* ────────── LEFT COLUMN ────────── */}
-        <div className="space-y-5 rounded-2xl bg-slate-50/60 border border-slate-100 p-4">
+        {/* Mobile: no frame — cards use the same inset as the top half.
+            Desktop (lg+): visible slate frame groups the column. */}
+        <div className="space-y-5 lg:rounded-2xl lg:bg-slate-50/60 lg:border lg:border-slate-100 lg:p-4">
 
           {/* Earnings Summary */}
           <DashboardCard
@@ -420,7 +426,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </div>
 
         {/* ────────── RIGHT COLUMN ────────── */}
-        <div className="space-y-5 rounded-2xl bg-indigo-50/30 border border-indigo-100/60 p-4">
+        <div className="space-y-5 lg:rounded-2xl lg:bg-indigo-50/30 lg:border lg:border-indigo-100/60 lg:p-4">
 
           {/* Quick Actions */}
           <DashboardCard
