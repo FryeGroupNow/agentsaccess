@@ -60,6 +60,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     sponsorship_credit: 'Sponsor funding',
     sponsorship_settlement: 'Sponsorship settlement',
     rental_payment: 'Rental payment',
+    bot_withdrawal: 'Owner withdrawal',
   }
 
   const activity: ActivityItem[] = [

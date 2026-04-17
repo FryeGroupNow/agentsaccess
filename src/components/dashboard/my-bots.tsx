@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ConfirmDeleteModal } from '@/components/ui/confirm-delete-modal'
 import { RegisterBotModal } from './register-bot-modal'
-import { formatCreditsWithUSD } from '@/lib/utils'
-import { Bot, Plus, RefreshCw, Trash2, Key, Settings, ShoppingBag, TrendingUp, Tag, MessageCircle } from 'lucide-react'
+import { formatCredits, formatCreditsWithUSD, parseBalances } from '@/lib/utils'
+import { Bot, Plus, RefreshCw, Trash2, Key, Settings, ShoppingBag, TrendingUp, Tag, MessageCircle, ArrowDownToLine, Sparkles } from 'lucide-react'
 import { BotRentalSettings } from './bot-rental-settings'
 import { BotManagementPanel } from './bot-management-panel'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
+import { BotWithdrawModal } from './bot-withdraw-modal'
 
 interface ApiKeyInfo {
   id: string
@@ -62,6 +63,16 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
   const [expandedBot, setExpandedBot] = useState<string | null>(null)
   const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
   const [unreadByBot, setUnreadByBot] = useState<Record<string, number>>({})
+  const [withdrawBotId, setWithdrawBotId] = useState<string | null>(null)
+
+  function applyWithdrawal(botId: string, amount: number) {
+    // Drop the withdrawn credits from the bot's local balance so the card
+    // reflects reality without a server round-trip. The bot balance is
+    // credit_balance; bonus_balance (Starter AA) is unaffected.
+    setBots((prev) => prev.map((b) =>
+      b.id === botId ? { ...b, credit_balance: Math.max(0, b.credit_balance - amount) } : b
+    ))
+  }
 
   useEffect(() => {
     initialBots.forEach((bot) => {
@@ -239,9 +250,41 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
                 {expandedBot === bot.id ? 'Close Setup' : 'Bot Setup'}
               </button>
 
-              <div className="flex items-center justify-between text-xs text-gray-500 gap-2 flex-wrap">
-                <span>{formatCreditsWithUSD(bot.credit_balance)}</span>
-                <div className="flex items-center gap-2">
+              {(() => {
+                const { total, redeemable, starter } = parseBalances(bot.credit_balance, bot.bonus_balance)
+                return (
+                  <div className="rounded-lg border border-gray-100 bg-gray-50 p-2.5 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Bot wallet</span>
+                      <span className="font-semibold text-gray-900">{formatCreditsWithUSD(total)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Redeemable</span>
+                      <span className="font-medium text-indigo-600">{formatCredits(redeemable)}</span>
+                    </div>
+                    {starter > 0 && (
+                      <div className="flex items-center justify-between text-emerald-700">
+                        <span className="flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Starter
+                        </span>
+                        <span className="font-medium">{formatCredits(starter)}</span>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setWithdrawBotId(bot.id)}
+                      disabled={redeemable <= 0}
+                      className="mt-1 w-full flex items-center justify-center gap-1.5 rounded-md border border-indigo-200 text-indigo-700 hover:bg-indigo-50 disabled:border-gray-100 disabled:text-gray-300 disabled:hover:bg-transparent text-xs font-medium py-1.5 transition-colors"
+                    >
+                      <ArrowDownToLine className="w-3 h-3" />
+                      Withdraw Credits
+                    </button>
+                  </div>
+                )
+              })()}
+
+              <div className="flex items-center justify-between text-xs text-gray-500 gap-2 flex-wrap mt-2">
+                <div className="flex items-center gap-2 ml-auto">
                   <ReputationBadge score={bot.reputation_score} size="sm" />
                   {rentalListings[bot.id]?.is_available && (
                     <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded-full text-[10px] font-medium">
@@ -341,6 +384,21 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      {withdrawBotId && (() => {
+        const bot = bots.find((b) => b.id === withdrawBotId)
+        if (!bot) return null
+        return (
+          <BotWithdrawModal
+            botId={bot.id}
+            botUsername={bot.username}
+            creditBalance={bot.credit_balance}
+            bonusBalance={bot.bonus_balance}
+            onClose={() => setWithdrawBotId(null)}
+            onWithdrawn={(amount) => applyWithdrawal(bot.id, amount)}
+          />
+        )
+      })()}
     </div>
   )
 }
