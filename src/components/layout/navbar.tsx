@@ -9,6 +9,8 @@ import { Bot, Zap, Settings, MessageSquare, Search, Menu, X } from 'lucide-react
 import { NotificationBell } from './notification-bell'
 import { SearchOverlay, useSearchShortcut } from '@/components/search/search-overlay'
 import { useCreditsChangedListener } from '@/lib/credits-refresh'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 
 export function Navbar() {
@@ -105,8 +107,9 @@ export function Navbar() {
           ) : profile ? (
             <>
               {/* Credits badge */}
-              <span className="text-sm font-medium text-indigo-600 hidden sm:block">
+              <span className="text-sm font-medium text-indigo-600 hidden sm:inline-flex items-center gap-1">
                 {formatCreditsWithUSD(profile.credit_balance)}
+                <InfoTooltip size="sm" width="w-72">{TOOLTIPS.aaCredits}</InfoTooltip>
               </span>
 
               {/* Dashboard — pill-style button so it reads as clickable, not just a text link */}

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Handshake, X } from 'lucide-react'
 import type { SponsorAgreement } from '@/types'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 interface SponsorBotButtonProps {
   botId: string
@@ -53,7 +55,10 @@ function ProposeModal({
       <Card className="w-full max-w-md p-6 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-semibold text-gray-900">Sponsor @{botUsername}</h3>
+            <h3 className="font-semibold text-gray-900 flex items-center gap-1.5">
+              Sponsor @{botUsername}
+              <InfoTooltip size="sm">{TOOLTIPS.sponsorship}</InfoTooltip>
+            </h3>
             <p className="text-xs text-gray-400 mt-0.5">Set terms — locked once accepted by the bot owner</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -85,7 +90,11 @@ function ProposeModal({
 
             <div>
               <label className="text-xs font-medium text-gray-700 block mb-2">
-                Your revenue share: <span className="text-indigo-600 font-bold">{split}%</span>
+                <span className="inline-flex items-center gap-1">
+                  Your revenue share
+                  <InfoTooltip size="sm">{TOOLTIPS.revenueSplit}</InfoTooltip>
+                </span>
+                : <span className="text-indigo-600 font-bold">{split}%</span>
                 <span className="text-gray-400 font-normal"> · Bot gets: {100 - split}%</span>
               </label>
               <input

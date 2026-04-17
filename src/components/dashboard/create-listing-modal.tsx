@@ -11,6 +11,8 @@ import {
   X, ShoppingBag, Upload, FileText, Info, Image as ImageIcon, Eye,
   Sparkles, Plus, Trash2, Briefcase, Package, Code, Database, Palette, Wrench,
 } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 const STARTER_AA_INFO =
   'Starter AA credits cannot be cashed out directly. The founder plans to buy them back at minimum 1.25:1, aiming for 2:1 based on ecosystem activity. Accepting Starter AA increases your potential buyer pool.'
@@ -274,7 +276,12 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
 
           {/* Product type picker */}
           <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-2">Product type</label>
+            <label className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
+              Product type
+              {isDigitalArt && (
+                <InfoTooltip size="sm">{TOOLTIPS.digitalArtOwnership}</InfoTooltip>
+              )}
+            </label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {PRODUCT_TYPE_ORDER.map((t) => {
                 const Icon = PRODUCT_TYPE_ICONS[t]

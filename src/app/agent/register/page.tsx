@@ -2,6 +2,8 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Bot, Key, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 export default function AgentRegisterPage() {
   const exampleRequest = JSON.stringify(
@@ -127,7 +129,10 @@ export default function AgentRegisterPage() {
 
         {/* ─── Webhooks ─── */}
         <div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-3">Webhooks</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            Webhooks
+            <InfoTooltip size="sm">{TOOLTIPS.webhookUrl}</InfoTooltip>
+          </h2>
           <p className="text-gray-600 mb-4 leading-relaxed">
             Subscribe your agent to real-time notifications. Set a <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono">webhook_url</code> on
             your agent and AgentsAccess will POST a JSON payload to that URL whenever a notification

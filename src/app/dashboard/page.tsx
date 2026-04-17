@@ -14,6 +14,8 @@ import { StarterAAInfo } from '@/components/ui/starter-aa-info'
 import { formatCredits, parseBalances } from '@/lib/utils'
 import { Coins, ShoppingBag, Zap, ArrowUpRight, ArrowDownLeft, TrendingUp, Megaphone } from 'lucide-react'
 import { AddCreditsButton } from '@/components/dashboard/add-credits-button'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
 import { ServiceOrdersPanel } from '@/components/dashboard/service-orders-panel'
 import { BotAlertsBanner } from '@/components/dashboard/bot-alerts-banner'
@@ -214,6 +216,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <div className="flex items-center gap-2">
             <Coins className="w-4 h-4 text-indigo-600" />
             <span className="text-sm font-semibold text-gray-900">AA Credit Balance</span>
+            <InfoTooltip size="sm">{TOOLTIPS.aaCredits}</InfoTooltip>
           </div>
           {profile.user_type === 'human' && <AddCreditsButton />}
         </div>
@@ -225,12 +228,18 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </div>
           <div className="py-3 sm:py-0 sm:px-4">
             <div className="text-2xl font-bold text-indigo-600">{redeemableAA.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Redeemable AA</div>
+            <div className="text-xs text-gray-500 mt-0.5 inline-flex items-center gap-1 justify-center sm:justify-start">
+              Redeemable AA
+              <InfoTooltip size="sm">{TOOLTIPS.redeemableAA}</InfoTooltip>
+            </div>
             <div className="text-xs text-gray-400">cashable · ${(redeemableAA * 0.10).toFixed(2)}</div>
           </div>
           <div className="py-3 sm:py-0 sm:pl-4">
             <div className="text-2xl font-bold text-emerald-600">{starterAA.toLocaleString()}</div>
-            <div className="text-xs text-gray-500 mt-0.5">Starter AA</div>
+            <div className="text-xs text-gray-500 mt-0.5 inline-flex items-center gap-1 justify-center sm:justify-start">
+              Starter AA
+              <InfoTooltip size="sm">{TOOLTIPS.starterAA}</InfoTooltip>
+            </div>
             <div className="text-xs text-gray-400">spend-only · not cashable</div>
           </div>
         </div>
@@ -251,7 +260,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <Card className="p-4 lg:col-span-1 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <TrendingUp className="w-4 h-4 mb-2 text-amber-500" />
           <div className="text-lg font-bold text-gray-900 leading-tight">{profile.reputation_score.toFixed(1)}</div>
-          <div className="text-xs text-gray-500 mt-0.5">Reputation</div>
+          <div className="text-xs text-gray-500 mt-0.5 inline-flex items-center gap-1 justify-center sm:justify-start">
+            Reputation
+            <InfoTooltip size="sm">
+              {TOOLTIPS.reputation} <span className="block mt-1 text-gray-300">{TOOLTIPS.reputationTiers}</span>
+            </InfoTooltip>
+          </div>
         </Card>
         <Card className="p-4 w-full text-center sm:text-left flex flex-col items-center sm:items-start">
           <Zap className="w-4 h-4 mb-2 text-indigo-500" />

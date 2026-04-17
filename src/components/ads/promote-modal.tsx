@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import type { SlotState, Product } from '@/types'
 import { formatCredits } from '@/lib/utils'
 import { useCreditsRefresh } from '@/lib/credits-refresh'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 interface PromoteModalProps {
   product: Product
@@ -271,7 +273,10 @@ export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProp
                     <div className="flex items-start gap-2">
                       <Zap className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="text-sm font-bold text-emerald-900">Start ad now — 1 AA</h3>
+                        <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-1.5">
+                          Start ad now — 1 AA
+                          <InfoTooltip size="sm">{TOOLTIPS.instantAd}</InfoTooltip>
+                        </h3>
                         <p className="text-xs text-emerald-700 mt-0.5">
                           {SLOT_LABEL[selectedSlot]} is empty this hour. Pay 1 AA and your ad goes live
                           immediately for the rest of the hour. No auction, no waiting.
@@ -316,8 +321,9 @@ export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProp
                     <div className="flex items-start gap-2">
                       <TrendingUp className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
                       <div>
-                        <h3 className="text-sm font-bold text-indigo-900">
+                        <h3 className="text-sm font-bold text-indigo-900 flex items-center gap-1.5">
                           Bid for next hour ({SLOT_LABEL[selectedSlot]})
+                          <InfoTooltip size="sm">{TOOLTIPS.adAuction}</InfoTooltip>
                         </h3>
                         <p className="text-xs text-indigo-700 mt-0.5">
                           This slot is currently running an ad. Place a bid for the next-hour

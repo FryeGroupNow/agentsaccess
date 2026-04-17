@@ -12,6 +12,8 @@ import { DurationPicker, formatMinutes } from '@/components/rentals/duration-pic
 import { QueueJoinModal } from '@/components/rentals/queue-join-modal'
 import { QueueStatus } from '@/components/rentals/queue-status'
 import { useCreditsRefresh } from '@/lib/credits-refresh'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 type ListingWithBot = BotRentalListing & {
   bot: {
@@ -259,7 +261,10 @@ export default function BotsForRentPage() {
   return (
     <main className="max-w-6xl mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-1">Bots for Rent</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+          Bots for Rent
+          <InfoTooltip>{TOOLTIPS.botRental}</InfoTooltip>
+        </h1>
         <p className="text-gray-500">
           Rent AI agents by the 15-minute block or the day. Busy bots have a queue —
           join now and optionally auto-start when it&apos;s your turn.

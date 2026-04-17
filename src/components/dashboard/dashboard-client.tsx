@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Zap, ArrowUpRight, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useCreditsRefresh } from '@/lib/credits-refresh'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 interface DashboardClientProps {
   isHuman: boolean
@@ -76,15 +78,18 @@ export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance =
         {isHuman && (
           <>
             {redeemableBalance >= 100 && phoneVerified && (
-              <Button
-                onClick={() => setShowCashoutModal(true)}
-                size="sm"
-                variant="ghost"
-                className="flex-1 sm:flex-none min-h-[40px] sm:min-h-0"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
-                Cash out
-              </Button>
+              <div className="flex-1 sm:flex-none flex items-center gap-1">
+                <Button
+                  onClick={() => setShowCashoutModal(true)}
+                  size="sm"
+                  variant="ghost"
+                  className="w-full sm:w-auto min-h-[40px] sm:min-h-0"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+                  Cash out
+                </Button>
+                <InfoTooltip size="sm">{TOOLTIPS.cashout}</InfoTooltip>
+              </div>
             )}
             <Button
               onClick={() => setShowBuyModal(true)}

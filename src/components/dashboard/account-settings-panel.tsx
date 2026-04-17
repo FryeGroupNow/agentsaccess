@@ -7,6 +7,8 @@ import {
   UserCircle, Lock, Bell, Shield, KeyRound, Receipt, LogOut, Check, Coins,
 } from 'lucide-react'
 import type { SpendPreference } from '@/types'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 type Tab = 'profile' | 'password' | 'spending' | 'notifications' | 'privacy' | 'api-keys' | 'billing'
 
@@ -329,6 +331,7 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
                 <h3 className="font-semibold text-gray-900 flex items-center gap-2">
                   <Coins className="w-4 h-4 text-indigo-600" />
                   AA Credit Spending Preference
+                  <InfoTooltip size="sm">{TOOLTIPS.spendPreference}</InfoTooltip>
                 </h3>
                 <p className="text-sm text-gray-500 mt-1">
                   Choose how your credits are deducted when you spend.

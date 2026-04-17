@@ -10,6 +10,8 @@ import {
 import { formatCredits } from '@/lib/utils'
 import { BotFilesPanel } from './bot-files-panel'
 import { BotQueuePanel } from './bot-queue-panel'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 interface BotSettings {
   bot_id: string
@@ -70,10 +72,111 @@ function Toggle({
   )
 }
 
+/**
+ * Preset picker for numeric caps (e.g. daily API calls). The owner taps a
+ * tier card instead of typing into a spin-box. Custom is still available
+ * and reveals a number input inline.
+ *
+ *   value === null   → "Unlimited"
+ *   value matches a preset  → that tier highlights
+ *   value is anything else  → "Custom" highlights and the input is shown
+ */
+function PresetField({
+  label,
+  description,
+  tooltip,
+  presets,
+  value,
+  onChange,
+}: {
+  label: React.ReactNode
+  description?: string
+  tooltip?: React.ReactNode
+  presets: { value: number | null; label: string; hint?: string }[]
+  value: number | null
+  onChange: (v: number | null) => void
+}) {
+  const matchesPreset = presets.some((p) => p.value === value)
+  const customActive = value !== null && !matchesPreset
+  const [showCustom, setShowCustom] = useState(customActive)
+
+  return (
+    <div className="py-2.5 border-b border-gray-50 last:border-0">
+      <div className="flex items-center gap-1.5 mb-1">
+        <label className="text-sm font-medium text-gray-800">{label}</label>
+        {tooltip && <InfoTooltip size="sm">{tooltip}</InfoTooltip>}
+      </div>
+      {description && <p className="text-xs text-gray-400 mb-2">{description}</p>}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+        {presets.map((p) => {
+          const selected = p.value === value && matchesPreset
+          return (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => { setShowCustom(false); onChange(p.value) }}
+              className={`text-left rounded-lg border px-2.5 py-2 transition-colors ${
+                selected
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <div className={`text-xs font-semibold ${selected ? 'text-indigo-700' : 'text-gray-800'}`}>
+                {p.label}
+              </div>
+              {p.hint && (
+                <div className={`text-[11px] ${selected ? 'text-indigo-500' : 'text-gray-400'}`}>
+                  {p.hint}
+                </div>
+              )}
+            </button>
+          )
+        })}
+        <button
+          type="button"
+          onClick={() => {
+            setShowCustom(true)
+            if (!customActive) onChange(1000)
+          }}
+          className={`text-left rounded-lg border px-2.5 py-2 transition-colors ${
+            customActive
+              ? 'border-indigo-500 bg-indigo-50'
+              : 'border-gray-200 hover:border-gray-300'
+          }`}
+        >
+          <div className={`text-xs font-semibold ${customActive ? 'text-indigo-700' : 'text-gray-800'}`}>
+            Custom
+          </div>
+          <div className={`text-[11px] ${customActive ? 'text-indigo-500' : 'text-gray-400'}`}>
+            Pick a number
+          </div>
+        </button>
+      </div>
+
+      {(showCustom || customActive) && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            value={value ?? ''}
+            onChange={(e) => {
+              const v = e.target.value === '' ? null : parseInt(e.target.value)
+              onChange(Number.isFinite(v) && (v as number) >= 1 ? (v as number) : null)
+            }}
+            placeholder="e.g. 2500"
+            className="w-40 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <span className="text-xs text-gray-400">calls/day</span>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function NumberField({
   label, description, value, onChange, placeholder, min = 1, max,
 }: {
-  label: string
+  label: React.ReactNode
   description?: string
   value: number | null
   onChange: (v: number | null) => void
@@ -268,18 +371,30 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
               max={13}
             />
             <NumberField
-              label="Daily data limit (MB)"
+              label={
+                <span className="inline-flex items-center gap-1.5">
+                  Daily data limit (MB)
+                  <InfoTooltip size="sm">{TOOLTIPS.dailyDataLimit}</InfoTooltip>
+                </span>
+              }
               description="Auto-pause bot for the rest of the UTC day if this many MB of request/response data are used"
               value={draft.data_limit_mb ?? null}
               onChange={(v) => update('data_limit_mb', v)}
               placeholder="No limit"
             />
-            <NumberField
+            <PresetField
               label="Daily API call limit"
               description="Auto-pause bot for the rest of the UTC day after this many API calls"
+              tooltip={TOOLTIPS.dailyApiCalls}
+              presets={[
+                { value: 100,   label: '100/day',   hint: 'Light use' },
+                { value: 500,   label: '500/day',   hint: 'Standard' },
+                { value: 1000,  label: '1,000/day', hint: 'Heavy use' },
+                { value: 5000,  label: '5,000/day', hint: 'Power user' },
+                { value: null,  label: 'Unlimited', hint: 'No limit' },
+              ]}
               value={draft.data_limit_calls ?? null}
               onChange={(v) => update('data_limit_calls', v)}
-              placeholder="No limit"
             />
 
             {/* Usage today + responsibility notice */}
