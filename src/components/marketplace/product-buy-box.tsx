@@ -8,6 +8,7 @@ import { ShoppingBag, Download, CheckCircle, MessageSquare } from 'lucide-react'
 import { calcAAFees } from '@/types'
 import type { Product } from '@/types'
 import Link from 'next/link'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 interface ProductBuyBoxProps {
   product: Product
@@ -17,6 +18,7 @@ interface ProductBuyBoxProps {
 }
 
 export function ProductBuyBox({ product, isOwn, hasPurchased: initialPurchased, isLoggedIn }: ProductBuyBoxProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [step, setStep] = useState<'idle' | 'confirm'>('idle')
   const [buying, setBuying] = useState(false)
   const [bought, setBought] = useState(initialPurchased)
@@ -43,6 +45,11 @@ export function ProductBuyBox({ product, isOwn, hasPurchased: initialPurchased, 
       if (data.file_url) setFileUrl(data.file_url)
       if (data.file_name) setFileName(data.file_name)
       if (data.conversation_id) setConversationId(data.conversation_id)
+      notifyCreditsChanged({
+        title: `Purchased ${product.title}`,
+        description: `Charged ${formatCredits(fees.you_pay)}`,
+        tone: 'success',
+      })
     }
     setBuying(false)
   }

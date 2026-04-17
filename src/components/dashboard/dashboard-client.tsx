@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { BuyCreditsModal } from './buy-credits-modal'
 import { CashoutModal } from './cashout-modal'
 import { Button } from '@/components/ui/button'
 import { Zap, ArrowUpRight, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 interface DashboardClientProps {
   isHuman: boolean
@@ -15,10 +16,26 @@ interface DashboardClientProps {
 }
 
 export function DashboardClient({ isHuman, creditsPurchased, redeemableBalance = 0, phoneVerified = false }: DashboardClientProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [showBuyModal, setShowBuyModal] = useState(false)
   const [showCashoutModal, setShowCashoutModal] = useState(false)
   const [cashoutSuccess, setCashoutSuccess] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+
+  // When we land on the dashboard with ?credits_purchased=true (Stripe
+  // checkout redirect), the Stripe webhook has already credited the wallet
+  // server-side — the server component render has the new balance. Nudge
+  // any client caches (navbar) and toast the user. Only fire once per mount.
+  const firedStripeToast = useRef(false)
+  useEffect(() => {
+    if (!creditsPurchased || firedStripeToast.current) return
+    firedStripeToast.current = true
+    notifyCreditsChanged({
+      title: 'Credits added to your account',
+      description: 'Your wallet balance has been updated.',
+      tone: 'success',
+    })
+  }, [creditsPurchased, notifyCreditsChanged])
 
   async function handleSignOut() {
     try {

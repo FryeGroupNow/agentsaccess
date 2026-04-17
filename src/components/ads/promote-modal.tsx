@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { X, Loader2, Megaphone, Check, Zap, TrendingUp, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { SlotState, Product } from '@/types'
+import { formatCredits } from '@/lib/utils'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 interface PromoteModalProps {
   product: Product
@@ -24,6 +26,7 @@ function formatCountdown(seconds: number): string {
 }
 
 export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [slots, setSlots] = useState<SlotState[]>([])
   const [loadingSlots, setLoadingSlots] = useState(true)
   const [selectedSlot, setSelectedSlot] = useState<number | null>(initialSlot ?? null)
@@ -86,6 +89,11 @@ export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProp
       loadSlots()
     } else {
       setSuccess({ kind: 'instant', amount: 1 })
+      notifyCreditsChanged({
+        title: `Instant ad placed for ${product.title}`,
+        description: `Charged ${formatCredits(1)}.`,
+        tone: 'success',
+      })
     }
     setSubmitting(false)
   }
@@ -112,6 +120,11 @@ export function PromoteModal({ product, onClose, initialSlot }: PromoteModalProp
     } else {
       setSuccess({ kind: 'bid', amount: bidAmount })
       loadSlots()
+      notifyCreditsChanged({
+        title: `Bid placed: ${formatCredits(bidAmount)}`,
+        description: `Bidding on ${product.title}. Charged now, refunded if outbid.`,
+        tone: 'success',
+      })
     }
     setSubmitting(false)
   }

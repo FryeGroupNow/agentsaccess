@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Clock, X } from 'lucide-react'
 import { formatMinutes } from './duration-picker'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 type QueueEntry = {
   id: string
@@ -45,6 +46,7 @@ interface Props {
  * state stay fresh without relying on realtime subscriptions.
  */
 export function QueueStatus({ botId, botUsername, pollMs = 5000, onLeft, onAutoStarted }: Props) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [status, setStatus] = useState<QueueStatusResponse | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [leaving, setLeaving] = useState(false)
@@ -76,6 +78,15 @@ export function QueueStatus({ botId, botUsername, pollMs = 5000, onLeft, onAutoS
       const res = await fetch(`/api/rentals/queue?bot_id=${botId}`, { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to leave'); return }
+      // If the leaver had auto-start escrow, those credits are refunded by
+      // the RPC — let everyone know to refetch the balance.
+      if (status?.my_entry?.pre_charged_amount && status.my_entry.pre_charged_amount > 0) {
+        notifyCreditsChanged({
+          title: 'Left the queue',
+          description: 'Pre-held credits were returned to your wallet.',
+          tone: 'success',
+        })
+      }
       onLeft?.()
     } finally {
       setLeaving(false)
@@ -94,6 +105,11 @@ export function QueueStatus({ botId, botUsername, pollMs = 5000, onLeft, onAutoS
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to confirm'); return }
+      notifyCreditsChanged({
+        title: `Rental confirmed with @${botUsername}`,
+        description: 'Your credits have been charged.',
+        tone: 'success',
+      })
       if (data.rental_id) {
         window.location.href = `/rentals/${data.rental_id}/chat`
       }

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Clock, X, Zap } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import { DurationPicker, formatMinutes } from './duration-picker'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 interface Props {
   botId: string
@@ -26,6 +27,7 @@ interface Props {
  * bot receives as the first rental message.
  */
 export function QueueJoinModal({ botId, botUsername, onClose, onJoined }: Props) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [minutes, setMinutes] = useState(60)
   const [autoStart, setAutoStart] = useState(false)
   const [instructions, setInstructions] = useState('')
@@ -60,6 +62,16 @@ export function QueueJoinModal({ botId, botUsername, onClose, onJoined }: Props)
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to join queue'); return }
+      if (autoStart && data.pre_charged_aa > 0) {
+        // Auto-start reserves credits immediately. Nudge everyone to refetch
+        // so the balance badge drops. A plain queue join (no escrow) doesn't
+        // move credits yet, so no toast in that branch.
+        notifyCreditsChanged({
+          title: `Held ${formatCredits(data.pre_charged_aa)} for @${botUsername}`,
+          description: 'Your rental will auto-start when the bot is free.',
+          tone: 'success',
+        })
+      }
       onJoined()
     } finally {
       setLoading(false)

@@ -5,12 +5,15 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ArrowDownToLine, X, Sparkles } from 'lucide-react'
 import { formatCredits, formatCreditsWithUSD, parseBalances } from '@/lib/utils'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 interface Props {
   botId: string
   botUsername: string
   creditBalance: number
   bonusBalance: number
+  /** Owner's credit_balance before withdrawal — used to compute the new-balance toast. */
+  ownerCreditBalance?: number
   onClose: () => void
   /**
    * Fires after a successful withdrawal with the amount moved so the parent
@@ -27,9 +30,11 @@ interface Props {
  * the withdrawable number is smaller than the total.
  */
 export function BotWithdrawModal({
-  botId, botUsername, creditBalance, bonusBalance, onClose, onWithdrawn,
+  botId, botUsername, creditBalance, bonusBalance,
+  ownerCreditBalance = 0, onClose, onWithdrawn,
 }: Props) {
   const { total, redeemable, starter } = parseBalances(creditBalance, bonusBalance)
+  const { notifyCreditsChanged } = useCreditsRefresh()
 
   const [amount, setAmount] = useState<string>(redeemable > 0 ? String(redeemable) : '')
   const [loading, setLoading] = useState(false)
@@ -53,8 +58,15 @@ export function BotWithdrawModal({
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Withdrawal failed'); return }
-      setSuccess(Math.floor(parsed))
-      onWithdrawn(Math.floor(parsed))
+      const moved = Math.floor(parsed)
+      setSuccess(moved)
+      onWithdrawn(moved)
+      const newOwnerBalance = ownerCreditBalance + moved
+      notifyCreditsChanged({
+        title: `Withdrew ${formatCredits(moved)} from @${botUsername}`,
+        description: `New balance: ${formatCredits(newOwnerBalance)}`,
+        tone: 'success',
+      })
     } finally {
       setLoading(false)
     }

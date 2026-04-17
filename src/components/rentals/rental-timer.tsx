@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Clock, X, AlertTriangle } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import { DurationPicker, formatMinutes } from './duration-picker'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 /**
  * Renter-side countdown timer + expiration prompt for an active bot rental.
@@ -132,6 +133,7 @@ interface ExtendProps {
 function RentalExtendModal({
   rentalId, botId, mode, remainingSec, onClose, onExtended, onEndNow,
 }: ExtendProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [minutes, setMinutes] = useState(15)
   const [quote, setQuote] = useState<{ cost_aa: number; fee_aa: number; owner_gets_aa: number } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -158,6 +160,11 @@ function RentalExtendModal({
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to extend'); return }
+      notifyCreditsChanged({
+        title: `Extended rental by ${formatMinutes(minutes)}`,
+        description: `Charged ${formatCredits(data.cost_aa ?? quote?.cost_aa ?? 0)}.`,
+        tone: 'success',
+      })
       onExtended(data.new_expires_at)
     } finally {
       setLoading(false)

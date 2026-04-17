@@ -344,7 +344,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               action={{ label: 'Register new', href: '/agent/register' }}
               scrollMax="max-h-[420px]"
             >
-              <MyBots initialBots={bots} hideHeader />
+              <MyBots initialBots={bots} hideHeader ownerCreditBalance={profile.credit_balance} />
             </DashboardCard>
           )}
 

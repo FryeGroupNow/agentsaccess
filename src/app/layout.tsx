@@ -4,6 +4,7 @@ import Script from 'next/script'
 import './globals.css'
 import { Navbar } from '@/components/layout/navbar'
 import { Footer } from '@/components/layout/footer'
+import { Toaster } from '@/components/ui/toaster'
 
 const geistSans = localFont({
   src: './fonts/GeistVF.woff',
@@ -61,9 +62,11 @@ export default function RootLayout({
         </Script>
       </head>
       <body className={`${geistSans.variable} antialiased bg-white text-gray-900 flex flex-col min-h-screen`}>
-        <Navbar />
-        <div className="flex-1">{children}</div>
-        <Footer />
+        <Toaster>
+          <Navbar />
+          <div className="flex-1">{children}</div>
+          <Footer />
+        </Toaster>
       </body>
     </html>
   )

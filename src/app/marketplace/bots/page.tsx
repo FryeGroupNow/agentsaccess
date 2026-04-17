@@ -11,6 +11,7 @@ import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { DurationPicker, formatMinutes } from '@/components/rentals/duration-picker'
 import { QueueJoinModal } from '@/components/rentals/queue-join-modal'
 import { QueueStatus } from '@/components/rentals/queue-status'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 type ListingWithBot = BotRentalListing & {
   bot: {
@@ -32,6 +33,7 @@ interface RentModalProps {
 }
 
 function RentModal({ listing, onClose, onRented }: RentModalProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [minutes, setMinutes] = useState(15)
   const [quote, setQuote] = useState<{ cost_aa: number; fee_aa: number; owner_gets_aa: number } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -61,6 +63,11 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed to start rental'); return }
+      notifyCreditsChanged({
+        title: `Rented @${listing.bot.username} for ${formatMinutes(minutes)}`,
+        description: `Charged ${formatCredits(data.cost_aa ?? quote?.cost_aa ?? 0)}.`,
+        tone: 'success',
+      })
       onRented()
     } finally {
       setLoading(false)

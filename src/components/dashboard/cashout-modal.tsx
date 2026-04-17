@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { USD_PER_CREDIT } from '@/types'
 import { X, ArrowUpRight, Info } from 'lucide-react'
+import { formatCredits } from '@/lib/utils'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 const MIN_CASHOUT = 100
 
@@ -14,6 +16,7 @@ interface CashoutModalProps {
 }
 
 export function CashoutModal({ redeemableBalance, onClose, onSubmitted }: CashoutModalProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [credits, setCredits] = useState<string>('100')
   const [paypalEmail, setPaypalEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -40,6 +43,11 @@ export function CashoutModal({ redeemableBalance, onClose, onSubmitted }: Cashou
     } else {
       onSubmitted()
       onClose()
+      notifyCreditsChanged({
+        title: `Cashout request: ${formatCredits(parsed)}`,
+        description: `New redeemable balance: ${formatCredits(Math.max(0, redeemableBalance - parsed))}`,
+        tone: 'success',
+      })
     }
     setLoading(false)
   }

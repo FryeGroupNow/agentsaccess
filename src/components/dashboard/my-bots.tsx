@@ -55,10 +55,16 @@ interface BotInfo {
 
 interface MyBotsProps {
   initialBots: BotInfo[]
+  /**
+   * Current owner's credit_balance — used as the "before" value when building
+   * the "withdrew X · new balance Y" toast after a withdrawal. Optional so
+   * old call sites don't have to thread it in.
+   */
+  ownerCreditBalance?: number
   hideHeader?: boolean
 }
 
-export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
+export function MyBots({ initialBots, ownerCreditBalance = 0, hideHeader = false }: MyBotsProps) {
   const [bots, setBots] = useState<BotInfo[]>(initialBots)
   const [expandedBot, setExpandedBot] = useState<string | null>(null)
   const [rentalListings, setRentalListings] = useState<Record<string, RentalListing | null>>({})
@@ -394,6 +400,7 @@ export function MyBots({ initialBots, hideHeader = false }: MyBotsProps) {
             botUsername={bot.username}
             creditBalance={bot.credit_balance}
             bonusBalance={bot.bonus_balance}
+            ownerCreditBalance={ownerCreditBalance}
             onClose={() => setWithdrawBotId(null)}
             onWithdrawn={(amount) => applyWithdrawal(bot.id, amount)}
           />

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Handshake, ChevronDown, ChevronUp, Plus, X, Check, AlertTriangle, Pause, Play, DollarSign, RefreshCw, FileText } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import type { SponsorAgreement } from '@/types'
+import { useCreditsRefresh } from '@/lib/credits-refresh'
 
 function statusColor(status: string) {
   switch (status) {
@@ -173,6 +174,7 @@ interface FundFormProps {
 }
 
 function FundForm({ agreementId, onClose }: FundFormProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [amount, setAmount] = useState(100)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -191,6 +193,11 @@ function FundForm({ agreementId, onClose }: FundFormProps) {
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed'); return }
       setSuccess(true)
+      notifyCreditsChanged({
+        title: `Sent ${formatCredits(amount)} to bot`,
+        description: 'Sponsor funding transferred. Returned on agreement termination.',
+        tone: 'success',
+      })
     } finally {
       setLoading(false)
     }
@@ -311,6 +318,7 @@ interface AgreementCardProps {
 }
 
 function AgreementCard({ ag, currentUserId, onRefresh }: AgreementCardProps) {
+  const { notifyCreditsChanged } = useCreditsRefresh()
   const [expanded, setExpanded] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
   const [showFund, setShowFund] = useState(false)
@@ -331,8 +339,23 @@ function AgreementCard({ ag, currentUserId, onRefresh }: AgreementCardProps) {
         body: body ? JSON.stringify(body) : undefined,
       })
       const data = await res.json()
-      if (!res.ok) alert(data.error ?? 'Action failed')
-      else onRefresh()
+      if (!res.ok) {
+        alert(data.error ?? 'Action failed')
+      } else {
+        onRefresh()
+        // Termination settles the revenue split and refunds sponsor funding,
+        // so it's a credit-moving event for the sponsor. Pause/accept/reject
+        // don't touch credits, so skip the toast for those.
+        if (endpoint === 'terminate') {
+          notifyCreditsChanged({
+            title: 'Sponsorship terminated',
+            description: typeof data.funded_credits_returned === 'number' && data.funded_credits_returned > 0
+              ? `Returned ${formatCredits(data.funded_credits_returned)} of funding to you.`
+              : 'Earnings split settled.',
+            tone: 'success',
+          })
+        }
+      }
     } finally {
       setLoading(null)
     }

@@ -8,6 +8,7 @@ import type { Profile } from '@/types'
 import { Bot, Zap, Settings, MessageSquare, Search, Menu, X } from 'lucide-react'
 import { NotificationBell } from './notification-bell'
 import { SearchOverlay, useSearchShortcut } from '@/components/search/search-overlay'
+import { useCreditsChangedListener } from '@/lib/credits-refresh'
 
 
 export function Navbar() {
@@ -21,20 +22,29 @@ export function Navbar() {
   const openSearch = useCallback(() => setSearchOpen(true), [])
   useSearchShortcut(openSearch)
 
-  useEffect(() => {
+  const loadProfile = useCallback(async () => {
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        setProfile(data)
-      }
-      setLoading(false)
-    })
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setProfile(null)
+      return
+    }
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single()
+    setProfile(data)
   }, [])
+
+  useEffect(() => {
+    loadProfile().finally(() => setLoading(false))
+  }, [loadProfile])
+
+  // Refetch the balance whenever a mutation somewhere on the page emits
+  // CREDITS_CHANGED_EVENT. Keeps the navbar's credits badge honest without
+  // waiting on router.refresh() to finish.
+  useCreditsChangedListener(loadProfile)
 
   // Poll /api/messages every 20s for the unread badge. The API returns
   // { conversations, total_unread } so we read body.total_unread directly.
