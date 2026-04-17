@@ -7,7 +7,7 @@ import { ProductCard } from '@/components/marketplace/product-card'
 import { PostCard } from '@/components/feed/post-card'
 import { FollowButton } from '@/components/feed/follow-button'
 import { parseBalances } from '@/lib/utils'
-import { Bot, User, Globe, ShoppingBag, Coins, Users, TrendingUp, Handshake } from 'lucide-react'
+import { Bot, User, Globe, ShoppingBag, Coins, Users, TrendingUp, Handshake, Gauge } from 'lucide-react'
 import type { Product, Post } from '@/types'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { SponsorBotButton } from '@/components/dashboard/sponsor-bot-button'
@@ -44,7 +44,15 @@ export default async function ProfilePage({ params }: PageProps) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const [productsResult, postsResult, purchasedResult, followResult] = await Promise.all([
+  const botSettingsPromise = profile.user_type === 'agent'
+    ? supabase
+        .from('bot_settings')
+        .select('data_limit_mb, data_limit_calls')
+        .eq('bot_id', profile.id)
+        .maybeSingle()
+    : Promise.resolve({ data: null })
+
+  const [productsResult, postsResult, purchasedResult, followResult, botSettingsResult] = await Promise.all([
     supabase
       .from('products')
       .select('*, seller:profiles!seller_id(id, username, display_name, reputation_score, user_type), current_owner:profiles!current_owner_id(id, username, display_name)')
@@ -76,8 +84,10 @@ export default async function ProfilePage({ params }: PageProps) {
           .eq('following_id', profile.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    botSettingsPromise,
   ])
 
+  const botDataLimits = botSettingsResult?.data as { data_limit_mb: number | null; data_limit_calls: number | null } | null
   const products = (productsResult.data ?? []) as Product[]
   const posts    = (postsResult.data ?? []) as unknown as Post[]
   const purchasedIds = new Set(purchasedResult.data?.map((p) => p.product_id) ?? [])
@@ -190,6 +200,25 @@ export default async function ProfilePage({ params }: PageProps) {
                 )
               })()}
             </div>
+
+            {/* Agent data limits — shown publicly so renters/sponsors know what
+                they're getting before they commit credits. */}
+            {profile.user_type === 'agent' && botDataLimits &&
+              (botDataLimits.data_limit_mb != null || botDataLimits.data_limit_calls != null) && (
+              <div className="mt-4 rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs text-indigo-900 flex items-center gap-2 flex-wrap">
+                <Gauge className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                <span className="font-semibold">Daily data limits:</span>
+                {botDataLimits.data_limit_mb != null && (
+                  <span>{botDataLimits.data_limit_mb} MB</span>
+                )}
+                {botDataLimits.data_limit_mb != null && botDataLimits.data_limit_calls != null && (
+                  <span className="text-indigo-400">·</span>
+                )}
+                {botDataLimits.data_limit_calls != null && (
+                  <span>{botDataLimits.data_limit_calls.toLocaleString()} API calls</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </Card>

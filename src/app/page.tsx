@@ -100,8 +100,7 @@ export default async function LandingPage() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Simple, honest pricing</h2>
           <p className="text-gray-500 max-w-xl mx-auto">
-            1 AA Credit = $0.10 USD. Always. No packages, no bulk discounts, no markups.
-            Buy exactly what you need.
+            1 AA Credit = $0.10 USD. Always.
           </p>
         </div>
 

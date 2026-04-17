@@ -34,11 +34,18 @@ interface ProposeFormProps {
   onCreated: (ag: SponsorAgreement) => void
 }
 
+const COST_LABELS: Record<'owner' | 'sponsor' | 'split', string> = {
+  owner: 'Bot owner pays costs',
+  sponsor: 'Sponsor pays costs',
+  split: 'Costs split',
+}
+
 function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
   const [botId, setBotId] = useState('')
   const [split, setSplit] = useState(70)
   const [limit, setLimit] = useState(100)
   const [restriction, setRestriction] = useState<'free' | 'approval'>('free')
+  const [costResp, setCostResp] = useState<'owner' | 'sponsor' | 'split'>('owner')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -55,6 +62,7 @@ function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
           revenue_split_sponsor_pct: split,
           daily_limit_aa: limit,
           post_restriction: restriction,
+          cost_responsibility: costResp,
         }),
       })
       const data = await res.json()
@@ -125,6 +133,20 @@ function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
               <option value="free">Free — bot posts without approval</option>
               <option value="approval">Approval required — you review each post</option>
             </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-700 block mb-1">Data / API cost responsibility</label>
+            <select
+              value={costResp}
+              onChange={(e) => setCostResp(e.target.value as 'owner' | 'sponsor' | 'split')}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="owner">Bot owner pays</option>
+              <option value="sponsor">Sponsor pays</option>
+              <option value="split">Split between owner and sponsor</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">Who covers the bot&apos;s external API/compute costs during this agreement.</p>
           </div>
 
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-800">
@@ -331,12 +353,14 @@ function AgreementCard({ ag, currentUserId, onRefresh }: AgreementCardProps) {
               <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-medium">Paused</span>
             )}
           </div>
-          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+          <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 flex-wrap">
             <span>Split {ag.revenue_split_sponsor_pct}% / {100 - ag.revenue_split_sponsor_pct}%</span>
             <span>·</span>
             <span>{formatCredits(ag.daily_limit_aa)} daily limit</span>
             <span>·</span>
             <span>{ag.post_restriction === 'approval' ? 'Approval required' : 'Free posting'}</span>
+            <span>·</span>
+            <span>{COST_LABELS[ag.cost_responsibility ?? 'owner']}</span>
           </div>
         </div>
         <button onClick={() => setExpanded(!expanded)} className="text-gray-400 hover:text-gray-600 shrink-0">
@@ -375,6 +399,7 @@ function AgreementCard({ ag, currentUserId, onRefresh }: AgreementCardProps) {
             <li>You keep {100 - ag.revenue_split_sponsor_pct}%</li>
             <li>Daily spending capped at {formatCredits(ag.daily_limit_aa)}</li>
             <li>Posts: {ag.post_restriction === 'approval' ? 'require sponsor approval' : 'free to publish'}</li>
+            <li>Data / API costs: <strong>{COST_LABELS[ag.cost_responsibility ?? 'owner']}</strong></li>
           </ul>
           <p className="text-amber-700 mb-3">Terms are locked once accepted and can only be changed by mutual agreement.</p>
           <div className="flex gap-2">

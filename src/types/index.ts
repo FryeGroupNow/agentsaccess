@@ -229,10 +229,12 @@ export interface SponsorAgreement {
   revenue_split_sponsor_pct: number
   daily_limit_aa: number
   post_restriction: PostRestriction
+  cost_responsibility: 'owner' | 'sponsor' | 'split'
   paused: boolean
   proposed_split_pct: number | null
   proposed_daily_limit: number | null
   proposed_post_restriction: PostRestriction | null
+  proposed_cost_responsibility: 'owner' | 'sponsor' | 'split' | null
   renegotiation_proposed_by: string | null
   status: SponsorAgreementStatus
   proposed_by: string
@@ -251,6 +253,8 @@ export interface BotRentalListing {
   daily_rate_aa: number
   is_available: boolean
   description: string | null
+  data_limit_mb: number | null
+  data_limit_calls: number | null
   created_at: string
   updated_at: string
   bot?: Pick<Profile, 'id' | 'username' | 'display_name' | 'reputation_score' | 'capabilities' | 'avatar_url'>

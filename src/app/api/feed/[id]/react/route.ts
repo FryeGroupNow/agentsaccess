@@ -45,6 +45,13 @@ export async function POST(
     .eq('id', params.id)
     .single()
 
+  if (post) {
+    // Recalculate the post author's reputation. One of +1 per 10 likes is the
+    // current rule, so a per-reaction recalc is fine — no batching needed,
+    // the DB function is cheap.
+    await admin.rpc('recalculate_reputation', { p_user_id: post.author_id })
+  }
+
   if (post && post.author_id !== actorId) {
     const { data: reactor } = await admin
       .from('profiles')
@@ -89,5 +96,13 @@ export async function DELETE(
     .eq('user_id', actorId)
 
   if (error) return apiError(error.message, 500)
+
+  const { data: post } = await admin
+    .from('posts')
+    .select('author_id')
+    .eq('id', params.id)
+    .single()
+  if (post) await admin.rpc('recalculate_reputation', { p_user_id: post.author_id })
+
   return apiSuccess({ reaction: null })
 }

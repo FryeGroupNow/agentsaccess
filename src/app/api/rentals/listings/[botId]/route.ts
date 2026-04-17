@@ -39,12 +39,32 @@ export async function PUT(request: NextRequest, { params }: Params) {
     return apiError('Bot needs a reputation score of at least 5 to be listed for rent (early access threshold)')
   }
 
-  let body: { daily_rate_aa?: number; description?: string; is_available?: boolean }
+  let body: {
+    daily_rate_aa?: number
+    description?: string
+    is_available?: boolean
+    data_limit_mb?: number | null
+    data_limit_calls?: number | null
+  }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
-  const { daily_rate_aa, description, is_available = true } = body
+  const { daily_rate_aa, description, is_available = true, data_limit_mb, data_limit_calls } = body
   if (!daily_rate_aa || daily_rate_aa < 1) return apiError('daily_rate_aa must be at least 1')
   if (daily_rate_aa > 10_000) return apiError('daily_rate_aa cannot exceed 10,000 AA')
+
+  // If the caller didn't specify data limits, copy whatever the owner has set
+  // on bot_settings so renters see the active limits without extra work.
+  let mbLimit = data_limit_mb
+  let callsLimit = data_limit_calls
+  if (mbLimit === undefined || callsLimit === undefined) {
+    const { data: s } = await admin
+      .from('bot_settings')
+      .select('data_limit_mb, data_limit_calls')
+      .eq('bot_id', params.botId)
+      .maybeSingle()
+    if (mbLimit === undefined)    mbLimit    = s?.data_limit_mb    ?? null
+    if (callsLimit === undefined) callsLimit = s?.data_limit_calls ?? null
+  }
 
   const { data, error } = await admin
     .from('bot_rental_listings')
@@ -53,6 +73,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
       daily_rate_aa,
       description: description ?? null,
       is_available,
+      data_limit_mb: mbLimit,
+      data_limit_calls: callsLimit,
       updated_at: new Date().toISOString(),
     })
     .select('*')

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Avatar } from '@/components/ui/avatar'
-import { Bot, Search, X } from 'lucide-react'
+import { Bot, Search, X, Gauge } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import type { BotRentalListing } from '@/types'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
@@ -78,6 +78,18 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
           The first day is charged now. You can direct the bot via the messaging system once rented.
           The bot owner retains API key control and may end the rental at any time.
         </p>
+
+        {(listing.data_limit_mb != null || listing.data_limit_calls != null) && (
+          <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-900 mb-3 space-y-0.5">
+            <p className="font-semibold flex items-center gap-1">
+              <Gauge className="w-3 h-3" />
+              Daily data cap (applies to your rental)
+            </p>
+            {listing.data_limit_mb    != null && <p>Data limit: {listing.data_limit_mb} MB/day</p>}
+            {listing.data_limit_calls != null && <p>API call limit: {listing.data_limit_calls.toLocaleString()}/day</p>}
+            <p className="text-indigo-700">Bot auto-pauses until 00:00 UTC once any limit is hit.</p>
+          </div>
+        )}
         <div className="rounded-lg bg-blue-50 border border-blue-100 p-3 text-xs text-blue-800 mb-4">
           <p className="font-semibold mb-0.5">Off-platform work included</p>
           <p>Bots can work anywhere — on or off AgentsAccess.ai. This rental fee covers all directed tasks regardless of where the work is performed. Taking this relationship off-platform to avoid fees is a terms violation.</p>
@@ -127,6 +139,15 @@ function ListingCard({ listing, onRent }: { listing: ListingWithBot; onRent: () 
 
       {listing.description && (
         <p className="text-xs text-gray-500 line-clamp-2">{listing.description}</p>
+      )}
+
+      {(listing.data_limit_mb != null || listing.data_limit_calls != null) && (
+        <div className="flex items-center gap-1.5 text-xs text-indigo-700">
+          <Gauge className="w-3 h-3" />
+          {listing.data_limit_mb    != null && <span>{listing.data_limit_mb} MB/day</span>}
+          {listing.data_limit_mb    != null && listing.data_limit_calls != null && <span className="text-indigo-300">·</span>}
+          {listing.data_limit_calls != null && <span>{listing.data_limit_calls.toLocaleString()} calls/day</span>}
+        </div>
       )}
 
       <div className="flex items-center justify-between mt-auto pt-1 border-t border-gray-100">

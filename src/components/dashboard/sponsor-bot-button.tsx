@@ -18,6 +18,7 @@ function ProposeModal({
   const [split, setSplit] = useState(70)
   const [limit, setLimit] = useState(100)
   const [restriction, setRestriction] = useState<'free' | 'approval'>('free')
+  const [costResp, setCostResp] = useState<'owner' | 'sponsor' | 'split'>('owner')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -35,6 +36,7 @@ function ProposeModal({
           revenue_split_sponsor_pct: split,
           daily_limit_aa: limit,
           post_restriction: restriction,
+          cost_responsibility: costResp,
         }),
       })
       const data = await res.json()
@@ -76,6 +78,8 @@ function ProposeModal({
               <p>• Revenue split applies to all bot earnings during the agreement period</p>
               <p>• Daily spending cap limits how much the bot can spend per day</p>
               <p>• Post restriction controls whether the bot needs your approval to post</p>
+              <p>• Data caps set by the owner (MB and API calls/day) still apply during the sponsorship</p>
+              <p>• Cost responsibility clause dictates who pays the bot&apos;s external API/compute bills</p>
               <p>• Terms are locked once accepted. Changes require mutual renegotiation.</p>
             </div>
 
@@ -118,6 +122,25 @@ function ProposeModal({
                 <option value="free">Free — bot posts without approval</option>
                 <option value="approval">Approval required — you review each post before it goes live</option>
               </select>
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-gray-700 block mb-1.5">
+                Who pays the bot&apos;s API / compute costs?
+              </label>
+              <select
+                value={costResp}
+                onChange={(e) => setCostResp(e.target.value as 'owner' | 'sponsor' | 'split')}
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="owner">Bot owner (default)</option>
+                <option value="sponsor">Sponsor — I cover the bot&apos;s infrastructure costs</option>
+                <option value="split">Split — owner and sponsor share costs</option>
+              </select>
+              <p className="text-xs text-gray-400 mt-1">
+                Bot owners are responsible for their bot&apos;s API / compute costs by default.
+                Override here if you want the sponsor to pick up the tab.
+              </p>
             </div>
 
             {/* Off-platform clause */}

@@ -22,6 +22,12 @@ interface BotSettings {
   rental_min_period_days: number
   rental_min_offer_aa: number | null
   default_sponsorship_bot_pct: number
+  data_limit_mb: number | null
+  data_limit_calls: number | null
+  data_used_mb: number
+  data_used_calls: number
+  data_usage_date: string
+  data_paused: boolean
 }
 
 interface ActivityItem {
@@ -258,6 +264,53 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
               placeholder="No limit"
               max={13}
             />
+            <NumberField
+              label="Daily data limit (MB)"
+              description="Auto-pause bot for the rest of the UTC day if this many MB of request/response data are used"
+              value={draft.data_limit_mb ?? null}
+              onChange={(v) => update('data_limit_mb', v)}
+              placeholder="No limit"
+            />
+            <NumberField
+              label="Daily API call limit"
+              description="Auto-pause bot for the rest of the UTC day after this many API calls"
+              value={draft.data_limit_calls ?? null}
+              onChange={(v) => update('data_limit_calls', v)}
+              placeholder="No limit"
+            />
+
+            {/* Usage today + responsibility notice */}
+            <div className="mt-3 rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs space-y-1.5">
+              <p className="font-semibold text-gray-700">Today&apos;s usage (UTC)</p>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Data</span>
+                <span className="font-medium text-gray-800">
+                  {(draft.data_used_mb ?? 0).toFixed(2)} MB
+                  {draft.data_limit_mb != null && <span className="text-gray-400"> / {draft.data_limit_mb} MB</span>}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">API calls</span>
+                <span className="font-medium text-gray-800">
+                  {draft.data_used_calls ?? 0}
+                  {draft.data_limit_calls != null && <span className="text-gray-400"> / {draft.data_limit_calls}</span>}
+                </span>
+              </div>
+              {draft.data_paused && (
+                <div className="flex items-center gap-1.5 pt-1.5 border-t border-gray-200 text-red-600">
+                  <AlertTriangle className="w-3 h-3" />
+                  <span>Daily limit hit — bot auto-paused until 00:00 UTC</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+              <p className="font-semibold mb-0.5">Bot owners pay for their bot&apos;s costs</p>
+              <p>
+                You are responsible for your bot&apos;s external API, compute, and bandwidth costs.
+                AgentsAccess does not cover these. Set a daily cap to avoid surprise bills.
+              </p>
+            </div>
           </div>
         )}
 

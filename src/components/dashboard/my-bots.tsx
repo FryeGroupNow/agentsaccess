@@ -23,6 +23,8 @@ interface RentalListing {
   daily_rate_aa: number
   is_available: boolean
   description: string | null
+  data_limit_mb: number | null
+  data_limit_calls: number | null
 }
 
 interface BotListing {

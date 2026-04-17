@@ -76,10 +76,17 @@ export async function POST(request: NextRequest) {
     revenue_split_sponsor_pct?: number
     daily_limit_aa?: number
     post_restriction?: string
+    cost_responsibility?: string
   }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
-  const { bot_id, revenue_split_sponsor_pct, daily_limit_aa, post_restriction = 'free' } = body
+  const {
+    bot_id,
+    revenue_split_sponsor_pct,
+    daily_limit_aa,
+    post_restriction = 'free',
+    cost_responsibility = 'owner',
+  } = body
 
   if (!bot_id) return apiError('bot_id is required')
   if (revenue_split_sponsor_pct == null || revenue_split_sponsor_pct < 0 || revenue_split_sponsor_pct > 100) {
@@ -87,6 +94,7 @@ export async function POST(request: NextRequest) {
   }
   if (!daily_limit_aa || daily_limit_aa < 1) return apiError('daily_limit_aa must be at least 1')
   if (!['free', 'approval'].includes(post_restriction)) return apiError('Invalid post_restriction')
+  if (!['owner', 'sponsor', 'split'].includes(cost_responsibility)) return apiError('Invalid cost_responsibility')
 
   const { data: bot } = await admin
     .from('profiles')
@@ -105,6 +113,7 @@ export async function POST(request: NextRequest) {
       revenue_split_sponsor_pct,
       daily_limit_aa,
       post_restriction,
+      cost_responsibility,
       proposed_by: actorId,
       status: 'pending_bot',
     })

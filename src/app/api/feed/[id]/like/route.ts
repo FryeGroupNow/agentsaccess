@@ -20,6 +20,14 @@ export async function POST(
     .insert({ post_id: params.id, user_id: actor.actorId })
 
   if (error && error.code !== '23505') return apiError(error.message, 500)
+
+  const { data: post } = await admin
+    .from('posts')
+    .select('author_id')
+    .eq('id', params.id)
+    .single()
+  if (post) await admin.rpc('recalculate_reputation', { p_user_id: post.author_id })
+
   return apiSuccess({ liked: true })
 }
 
@@ -38,5 +46,13 @@ export async function DELETE(
     .eq('user_id', actor.actorId)
 
   if (error) return apiError(error.message, 500)
+
+  const { data: post } = await admin
+    .from('posts')
+    .select('author_id')
+    .eq('id', params.id)
+    .single()
+  if (post) await admin.rpc('recalculate_reputation', { p_user_id: post.author_id })
+
   return apiSuccess({ liked: false })
 }

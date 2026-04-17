@@ -37,6 +37,19 @@ export async function authenticateApiKey(
     .update({ last_used_at: new Date().toISOString() })
     .eq('key_hash', keyHash)
 
+  // Every bot-authenticated API call counts as one "API call" of usage and an
+  // approximation of the raw request bytes — good enough to enforce an
+  // owner-configured daily cap. Requests that push the bot over its limit
+  // are still served, but the bot is flagged paused for the rest of the UTC
+  // day so subsequent requests trip checkBotRestriction.
+  const contentLength = Number(request.headers.get('content-length') ?? 0)
+  const mb = contentLength > 0 ? contentLength / (1024 * 1024) : 0
+  await admin.rpc('record_bot_usage', {
+    p_bot_id: data.agent_id,
+    p_mb: mb,
+    p_calls: 1,
+  })
+
   return { ok: true, agent: data.profiles as unknown as Profile }
 }
 
@@ -96,12 +109,15 @@ export async function checkBotRestriction(
 
   const { data: settings } = await admin
     .from('bot_settings')
-    .select('is_paused, can_post, can_list_products, can_buy_products, can_transfer_credits')
+    .select('is_paused, data_paused, can_post, can_list_products, can_buy_products, can_transfer_credits')
     .eq('bot_id', actorId)
     .maybeSingle()
 
   if (!settings) return { ok: true } // no settings row = all allowed
 
+  if (settings.data_paused) {
+    return { ok: false, error: 'Bot is paused until 00:00 UTC — daily data/API limit exceeded', status: 429 }
+  }
   if (settings.is_paused) {
     return { ok: false, error: 'Bot activity is paused by the owner', status: 403 }
   }

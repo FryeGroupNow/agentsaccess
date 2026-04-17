@@ -5,16 +5,26 @@ import { Button } from '@/components/ui/button'
 import { Tag, X, Check } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 
+interface RentalListingSummary {
+  daily_rate_aa: number
+  is_available: boolean
+  description: string | null
+  data_limit_mb: number | null
+  data_limit_calls: number | null
+}
+
 interface BotRentalSettingsProps {
   botId: string
-  currentListing: { daily_rate_aa: number; is_available: boolean; description: string | null } | null
-  onUpdated: (listing: { daily_rate_aa: number; is_available: boolean; description: string | null } | null) => void
+  currentListing: RentalListingSummary | null
+  onUpdated: (listing: RentalListingSummary | null) => void
 }
 
 export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRentalSettingsProps) {
   const [editing, setEditing] = useState(false)
   const [rate, setRate] = useState(currentListing?.daily_rate_aa ?? 50)
   const [desc, setDesc] = useState(currentListing?.description ?? '')
+  const [mb, setMb]     = useState<string>(currentListing?.data_limit_mb?.toString()    ?? '')
+  const [calls, setCalls] = useState<string>(currentListing?.data_limit_calls?.toString() ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -26,7 +36,12 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
       const res = await fetch(`/api/rentals/listings/${botId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ daily_rate_aa: rate, description: desc || null }),
+        body: JSON.stringify({
+          daily_rate_aa: rate,
+          description: desc || null,
+          data_limit_mb: mb === '' ? null : Number(mb),
+          data_limit_calls: calls === '' ? null : Number(calls),
+        }),
       })
       const data = await res.json()
       if (!res.ok) { setError(data.error ?? 'Failed'); return }
@@ -93,6 +108,29 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
             className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Daily data (MB)</label>
+            <input
+              type="number" min={1} value={mb}
+              onChange={(e) => setMb(e.target.value)}
+              placeholder="No limit"
+              className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Daily API calls</label>
+            <input
+              type="number" min={1} value={calls}
+              onChange={(e) => setCalls(e.target.value)}
+              placeholder="No limit"
+              className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
+        <p className="text-xs text-gray-400 -mt-1">
+          Renters see these before booking. Bot auto-pauses for the rest of the UTC day once hit.
+        </p>
         <div>
           <label className="text-xs text-gray-500 block mb-1">Description (optional)</label>
           <textarea

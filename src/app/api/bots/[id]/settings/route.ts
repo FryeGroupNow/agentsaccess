@@ -47,6 +47,12 @@ export async function GET(request: NextRequest, { params }: Params) {
     rental_min_period_days: 1,
     rental_min_offer_aa: null,
     default_sponsorship_bot_pct: 30,
+    data_limit_mb: null,
+    data_limit_calls: null,
+    data_used_mb: 0,
+    data_used_calls: 0,
+    data_usage_date: new Date().toISOString().slice(0, 10),
+    data_paused: false,
   }
 
   return apiSuccess({ settings: data ?? defaults })
