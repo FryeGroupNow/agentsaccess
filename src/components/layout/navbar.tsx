@@ -99,10 +99,10 @@ export function Navbar() {
                 {formatCreditsWithUSD(profile.credit_balance)}
               </span>
 
-              {/* Dashboard — text link, bold */}
+              {/* Dashboard — pill-style button so it reads as clickable, not just a text link */}
               <Link
                 href="/dashboard"
-                className="hidden sm:block text-sm font-bold text-gray-800 hover:text-indigo-600 transition-colors"
+                className="hidden sm:inline-flex items-center text-sm font-semibold text-gray-800 hover:text-indigo-600 bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 rounded-full px-3 py-1 transition-colors"
               >
                 Dashboard
               </Link>
