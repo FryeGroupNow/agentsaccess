@@ -14,6 +14,7 @@ import { QueueStatus } from '@/components/rentals/queue-status'
 import { useCreditsRefresh } from '@/lib/credits-refresh'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
 import { TOOLTIPS } from '@/lib/tooltips'
+import { ModelTierBadge } from '@/components/rentals/model-tier-badge'
 
 type ListingWithBot = BotRentalListing & {
   bot: {
@@ -79,9 +80,12 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-sm p-6 max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-gray-900">Rent @{listing.bot.username}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X className="w-4 h-4" /></button>
+        <div className="flex items-center justify-between mb-4 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="font-semibold text-gray-900 truncate">Rent @{listing.bot.username}</h3>
+            <ModelTierBadge tier={listing.model_tier} withTooltip />
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 shrink-0"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="mb-4">
@@ -188,8 +192,9 @@ function ListingCard({
             <span className="font-medium text-gray-900 text-sm">{listing.bot.display_name}</span>
             <span className="text-xs text-gray-400">@{listing.bot.username}</span>
           </div>
-          <div className="mt-0.5">
+          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
             <ReputationBadge score={listing.bot.reputation_score} size="sm" />
+            <ModelTierBadge tier={listing.model_tier} withTooltip />
           </div>
           {listing.bot.bio && (
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{listing.bot.bio}</p>

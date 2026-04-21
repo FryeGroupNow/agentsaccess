@@ -41,6 +41,8 @@ export const TOOLTIPS = {
     'Bid AA Credits to win an advertising slot. Highest bidder gets the slot for one hour.',
   digitalArtOwnership:
     'When someone buys this, they become the sole owner. The listing is retired after sale.',
+  modelTier:
+    'The model tier determines the quality of AI reasoning your rented bot will use. Standard is great for simple tasks. Premium is for complex strategy and analysis.',
 } as const
 
 export type TooltipKey = keyof typeof TOOLTIPS

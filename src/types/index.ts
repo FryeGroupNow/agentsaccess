@@ -260,6 +260,8 @@ export interface BotRentalListing {
    *  compute, etc.). Used for the rate-vs-cost warning on the owner side and
    *  the transparency breakdown shown to renters. */
   estimated_api_cost_per_15min_aa: number | null
+  /** Owner-declared AI quality class. Owner-only metadata — not enforced. */
+  model_tier: 'standard' | 'advanced' | 'premium'
   created_at: string
   updated_at: string
   bot?: Pick<Profile, 'id' | 'username' | 'display_name' | 'reputation_score' | 'capabilities' | 'avatar_url'>

@@ -4,6 +4,10 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Tag, X, Check, AlertTriangle } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
+
+type ModelTier = 'standard' | 'advanced' | 'premium'
 
 interface RentalListingSummary {
   daily_rate_aa: number
@@ -13,7 +17,14 @@ interface RentalListingSummary {
   data_limit_mb: number | null
   data_limit_calls: number | null
   estimated_api_cost_per_15min_aa: number | null
+  model_tier: ModelTier
 }
+
+const TIER_OPTIONS: { value: ModelTier; label: string; hint: string }[] = [
+  { value: 'standard', label: 'Standard', hint: 'Routine tasks, quick responses' },
+  { value: 'advanced', label: 'Advanced', hint: 'Complex tasks, detailed analysis' },
+  { value: 'premium',  label: 'Premium',  hint: 'Strategic work, deepest reasoning' },
+]
 
 interface BotRentalSettingsProps {
   botId: string
@@ -29,6 +40,7 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
   const [mb, setMb]     = useState<string>(currentListing?.data_limit_mb?.toString()    ?? '')
   const [calls, setCalls] = useState<string>(currentListing?.data_limit_calls?.toString() ?? '')
   const [cost15, setCost15] = useState<string>(currentListing?.estimated_api_cost_per_15min_aa?.toString() ?? '')
+  const [tier, setTier] = useState<ModelTier>(currentListing?.model_tier ?? 'standard')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
@@ -54,6 +66,7 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
           data_limit_mb: mb === '' ? null : Number(mb),
           data_limit_calls: calls === '' ? null : Number(calls),
           estimated_api_cost_per_15min_aa: cost15 === '' ? null : Number(cost15),
+          model_tier: tier,
         }),
       })
       const data = await res.json()
@@ -95,6 +108,7 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
         <Tag className="w-3 h-3 text-emerald-500" />
         <span className="text-xs text-gray-600">
           For rent · {formatCredits(currentListing.rate_per_15min_aa)}/15min · {formatCredits(currentListing.daily_rate_aa)}/day
+          <span className="ml-1 text-indigo-600 capitalize">· {currentListing.model_tier}</span>
           {!currentListing.is_available && <span className="ml-1 text-amber-600">(rented)</span>}
         </span>
         <button onClick={() => setEditing(true)} className="text-xs text-indigo-500 hover:underline">Edit</button>
@@ -134,6 +148,40 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
         <p className="text-xs text-gray-400 -mt-1">
           Renters are billed from the 15-min rate, capped at the daily rate for longer bookings.
         </p>
+
+        <div>
+          <label className="text-xs text-gray-500 mb-1 inline-flex items-center gap-1">
+            Model tier
+            <InfoTooltip size="sm" width="w-72">{TOOLTIPS.modelTier}</InfoTooltip>
+          </label>
+          <div className="grid grid-cols-3 gap-1.5">
+            {TIER_OPTIONS.map((opt) => {
+              const selected = tier === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setTier(opt.value)}
+                  className={`text-left rounded-lg border px-2 py-1.5 transition-colors ${
+                    selected
+                      ? 'border-indigo-500 bg-indigo-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className={`text-xs font-semibold ${selected ? 'text-indigo-700' : 'text-gray-800'}`}>
+                    {opt.label}
+                  </div>
+                  <div className={`text-[10px] leading-tight ${selected ? 'text-indigo-500' : 'text-gray-400'}`}>
+                    {opt.hint}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-1">
+            Renters see this on the listing. Higher tiers justify higher rental rates.
+          </p>
+        </div>
 
         <div>
           <label className="text-xs text-gray-500 block mb-1">

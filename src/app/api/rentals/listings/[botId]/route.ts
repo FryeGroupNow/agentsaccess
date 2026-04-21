@@ -47,14 +47,18 @@ export async function PUT(request: NextRequest, { params }: Params) {
     data_limit_mb?: number | null
     data_limit_calls?: number | null
     estimated_api_cost_per_15min_aa?: number | null
+    model_tier?: 'standard' | 'advanced' | 'premium'
   }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
   const {
     daily_rate_aa, rate_per_15min_aa, description,
     is_available = true, data_limit_mb, data_limit_calls,
-    estimated_api_cost_per_15min_aa,
+    estimated_api_cost_per_15min_aa, model_tier,
   } = body
+  if (model_tier !== undefined && !['standard', 'advanced', 'premium'].includes(model_tier)) {
+    return apiError('model_tier must be standard, advanced, or premium')
+  }
   if (!daily_rate_aa || daily_rate_aa < 1) return apiError('daily_rate_aa must be at least 1')
   if (daily_rate_aa > 10_000) return apiError('daily_rate_aa cannot exceed 10,000 AA')
   if (!rate_per_15min_aa || rate_per_15min_aa < 1) return apiError('rate_per_15min_aa must be at least 1')
@@ -88,6 +92,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       data_limit_mb: mbLimit,
       data_limit_calls: callsLimit,
       estimated_api_cost_per_15min_aa: estimated_api_cost_per_15min_aa ?? null,
+      model_tier: model_tier ?? 'standard',
       updated_at: new Date().toISOString(),
     })
     .select('*')

@@ -28,6 +28,7 @@ interface RentalListing {
   data_limit_mb: number | null
   data_limit_calls: number | null
   estimated_api_cost_per_15min_aa: number | null
+  model_tier: 'standard' | 'advanced' | 'premium'
 }
 
 interface BotListing {
