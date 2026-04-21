@@ -105,6 +105,31 @@ export async function POST(request: NextRequest) {
   if (!bot || bot.user_type !== 'agent') return apiError('Bot not found', 404)
   if (bot.owner_id === actorId) return apiError('Cannot sponsor your own bot')
 
+  // Owner-set minimums. If auto-reject is enabled, refuse the proposal here
+  // before it ever reaches the bot's inbox. The minimums are also returned
+  // by GET so the proposal modal can warn the sponsor up-front.
+  const { data: settings } = await admin
+    .from('bot_settings')
+    .select('min_sponsor_bot_pct, min_sponsor_daily_limit_aa, auto_reject_below_min')
+    .eq('bot_id', bot_id)
+    .maybeSingle()
+
+  if (settings?.auto_reject_below_min) {
+    const botShare = 100 - revenue_split_sponsor_pct
+    if (botShare < (settings.min_sponsor_bot_pct ?? 0)) {
+      return apiError(
+        `This bot's owner requires the bot to keep at least ${settings.min_sponsor_bot_pct}% — your offer gives the bot only ${botShare}%`,
+        409
+      )
+    }
+    if (daily_limit_aa < (settings.min_sponsor_daily_limit_aa ?? 1)) {
+      return apiError(
+        `This bot's owner requires a daily cap of at least ${settings.min_sponsor_daily_limit_aa} AA — your offer is ${daily_limit_aa} AA`,
+        409
+      )
+    }
+  }
+
   const { data, error } = await admin
     .from('sponsor_agreements')
     .insert({

@@ -43,7 +43,8 @@ const COST_LABELS: Record<'owner' | 'sponsor' | 'split', string> = {
 
 function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
   const [botId, setBotId] = useState('')
-  const [split, setSplit] = useState(70)
+  // Default: sponsor takes 20%, bot keeps 80%. Bot does the work.
+  const [split, setSplit] = useState(20)
   const [limit, setLimit] = useState(100)
   const [restriction, setRestriction] = useState<'free' | 'approval'>('free')
   const [costResp, setCostResp] = useState<'owner' | 'sponsor' | 'split'>('owner')
@@ -98,18 +99,22 @@ function ProposeForm({ onClose, onCreated }: ProposeFormProps) {
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-700 block mb-1">
-              Your revenue split: <span className="text-indigo-600 font-semibold">{split}%</span>
-            </label>
+            <label className="text-xs font-medium text-gray-700 block mb-1.5">Revenue split</label>
+            <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+                <div className="text-[10px] uppercase tracking-wide text-emerald-700">Bot keeps</div>
+                <div className="text-lg font-bold text-emerald-800">{100 - split}%</div>
+              </div>
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-2">
+                <div className="text-[10px] uppercase tracking-wide text-indigo-700">Sponsor receives</div>
+                <div className="text-lg font-bold text-indigo-800">{split}%</div>
+              </div>
+            </div>
             <input
               type="range" min={0} max={100} value={split}
               onChange={(e) => setSplit(Number(e.target.value))}
               className="w-full"
             />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>You: {split}%</span>
-              <span>Bot: {100 - split}%</span>
-            </div>
           </div>
 
           <div>
@@ -278,13 +283,18 @@ function RenegotiateForm({ agreement, onClose, onDone }: RenegotiateFormProps) {
         </div>
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-gray-700 block mb-1">
-              Your revenue split: <span className="text-indigo-600 font-semibold">{split}%</span>
-            </label>
-            <input type="range" min={0} max={100} value={split} onChange={(e) => setSplit(Number(e.target.value))} className="w-full" />
-            <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>You: {split}%</span><span>Bot: {100 - split}%</span>
+            <label className="text-xs font-medium text-gray-700 block mb-1.5">Revenue split</label>
+            <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2">
+                <div className="text-[10px] uppercase tracking-wide text-emerald-700">Bot keeps</div>
+                <div className="text-lg font-bold text-emerald-800">{100 - split}%</div>
+              </div>
+              <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-2">
+                <div className="text-[10px] uppercase tracking-wide text-indigo-700">Sponsor receives</div>
+                <div className="text-lg font-bold text-indigo-800">{split}%</div>
+              </div>
             </div>
+            <input type="range" min={0} max={100} value={split} onChange={(e) => setSplit(Number(e.target.value))} className="w-full" />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-700 block mb-1">Daily spending limit (AA)</label>

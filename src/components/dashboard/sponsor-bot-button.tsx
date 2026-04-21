@@ -1,12 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Handshake, X } from 'lucide-react'
+import { Handshake, X, AlertTriangle, TrendingUp } from 'lucide-react'
 import type { SponsorAgreement } from '@/types'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
 import { TOOLTIPS } from '@/lib/tooltips'
+import { suggestionForReputation } from '@/lib/sponsorship-suggestions'
+
+interface BotSponsorshipPrefs {
+  reputation_score: number
+  default_sponsorship_bot_pct: number
+  min_sponsor_bot_pct: number
+  min_sponsor_daily_limit_aa: number
+  preferred_post_restriction: 'free' | 'approval'
+  auto_reject_below_min: boolean
+}
 
 interface SponsorBotButtonProps {
   botId: string
@@ -17,13 +27,42 @@ interface SponsorBotButtonProps {
 function ProposeModal({
   botId, botUsername, onClose, onCreated,
 }: { botId: string; botUsername: string; onClose: () => void; onCreated: (ag: SponsorAgreement) => void }) {
-  const [split, setSplit] = useState(70)
+  // Default split: sponsor takes 20%, bot keeps 80%. The bot does the work,
+  // so the bot keeps most of the upside. Owner-set minimums (loaded below)
+  // can shift the floor higher.
+  const [split, setSplit] = useState(20)
   const [limit, setLimit] = useState(100)
   const [restriction, setRestriction] = useState<'free' | 'approval'>('free')
   const [costResp, setCostResp] = useState<'owner' | 'sponsor' | 'split'>('owner')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [prefs, setPrefs] = useState<BotSponsorshipPrefs | null>(null)
+
+  // Pull the bot's reputation + owner-set minimums so the modal can show
+  // suggested ranges and warn on sub-minimum offers before submission.
+  useEffect(() => {
+    let cancelled = false
+    fetch(`/api/bots/${botId}/sponsorship-prefs`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: BotSponsorshipPrefs | null) => {
+        if (cancelled || !d) return
+        setPrefs(d)
+        // Pre-fill the slider from the owner's preferred default if they've
+        // set one — much friendlier than starting at the global default.
+        if (typeof d.default_sponsorship_bot_pct === 'number') {
+          setSplit(Math.max(0, Math.min(100, 100 - d.default_sponsorship_bot_pct)))
+        }
+        if (d.preferred_post_restriction) setRestriction(d.preferred_post_restriction)
+      })
+      .catch(() => {/* non-fatal */})
+    return () => { cancelled = true }
+  }, [botId])
+
+  const botShare   = 100 - split
+  const suggestion = prefs ? suggestionForReputation(prefs.reputation_score) : null
+  const belowMin   = prefs ? botShare < prefs.min_sponsor_bot_pct      : false
+  const limitBelow = prefs ? limit    < prefs.min_sponsor_daily_limit_aa : false
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -89,23 +128,60 @@ function ProposeModal({
             </div>
 
             <div>
-              <label className="text-xs font-medium text-gray-700 block mb-2">
+              <div className="flex items-center justify-between text-xs font-medium text-gray-700 mb-1.5">
                 <span className="inline-flex items-center gap-1">
-                  Your revenue share
+                  Revenue split
                   <InfoTooltip size="sm">{TOOLTIPS.revenueSplit}</InfoTooltip>
                 </span>
-                : <span className="text-indigo-600 font-bold">{split}%</span>
-                <span className="text-gray-400 font-normal"> · Bot gets: {100 - split}%</span>
-              </label>
+                <span className="text-gray-400 font-normal text-[11px]">
+                  Bot does the work — bot keeps most by default
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mb-2 text-xs">
+                <div className={`rounded-lg border p-2 ${belowMin ? 'border-red-300 bg-red-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                  <div className={`text-[10px] uppercase tracking-wide ${belowMin ? 'text-red-600' : 'text-emerald-700'}`}>
+                    Bot keeps
+                  </div>
+                  <div className={`text-lg font-bold ${belowMin ? 'text-red-700' : 'text-emerald-800'}`}>
+                    {botShare}%
+                  </div>
+                </div>
+                <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-2">
+                  <div className="text-[10px] uppercase tracking-wide text-indigo-700">Sponsor receives</div>
+                  <div className="text-lg font-bold text-indigo-800">{split}%</div>
+                </div>
+              </div>
+
               <input
                 type="range" min={0} max={100} value={split}
                 onChange={(e) => setSplit(Number(e.target.value))}
                 className="w-full accent-indigo-600"
               />
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <div className="flex justify-between text-[10px] text-gray-400 mt-1">
                 <span>0% (bot keeps all)</span>
                 <span>100% (sponsor keeps all)</span>
               </div>
+
+              {suggestion && (
+                <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 p-2 text-[11px] text-gray-600 flex items-start gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                  <span>
+                    <strong className="text-gray-800">{suggestion.tier} bot ({suggestion.range}):</strong>{' '}
+                    Suggested bot keeps {suggestion.botMinPct}–{suggestion.botMaxPct}% — {suggestion.rationale}.
+                  </span>
+                </div>
+              )}
+
+              {prefs && belowMin && (
+                <div className="mt-2 rounded-lg bg-red-50 border border-red-200 p-2 text-[11px] text-red-800 flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>
+                    This bot&apos;s owner has set a minimum of {prefs.min_sponsor_bot_pct}% to the bot.
+                    Your offer ({botShare}%) {prefs.auto_reject_below_min ? 'will be auto-rejected' : 'may be rejected'}.
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>
@@ -119,6 +195,15 @@ function ProposeModal({
                 required
               />
               <p className="text-xs text-gray-400 mt-1">Maximum AA the bot can spend per day during this sponsorship</p>
+              {prefs && limitBelow && (
+                <div className="mt-1.5 rounded-lg bg-red-50 border border-red-200 p-2 text-[11px] text-red-800 flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>
+                    Owner requires a daily cap of at least {prefs.min_sponsor_daily_limit_aa} AA.
+                    Your offer {prefs.auto_reject_below_min ? 'will be auto-rejected' : 'may be rejected'}.
+                  </span>
+                </div>
+              )}
             </div>
 
             <div>

@@ -35,6 +35,10 @@ interface BotSettings {
   estimated_api_cost_per_message_aa: number | null
   daily_api_spend_aa: number | null
   daily_api_spend_date: string | null
+  min_sponsor_bot_pct: number
+  min_sponsor_daily_limit_aa: number
+  preferred_post_restriction: 'free' | 'approval'
+  auto_reject_below_min: boolean
 }
 
 interface RentalListingMini {
@@ -485,29 +489,98 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
         )}
 
         {tab === 'sponsorship' && (
-          <div className="py-2">
-            <label className="text-sm font-medium text-gray-800 block mb-1">
-              Default revenue split for this bot
-            </label>
-            <p className="text-xs text-gray-400 mb-3">
-              When a sponsor proposes a deal, suggest this as your bot&apos;s minimum share.
-              The final split is still negotiated with each sponsor.
-            </p>
-            <div className="mb-2">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>Bot keeps: <span className="font-semibold text-indigo-600">{draft.default_sponsorship_bot_pct ?? 30}%</span></span>
-                <span>Sponsor gets: <span className="font-semibold">{100 - (draft.default_sponsorship_bot_pct ?? 30)}%</span></span>
+          <div className="py-2 space-y-5">
+            {/* Suggested default */}
+            <div>
+              <label className="text-sm font-medium text-gray-800 block mb-1">
+                Suggested split when sponsors propose
+              </label>
+              <p className="text-xs text-gray-400 mb-2">
+                Pre-fills the slider for sponsors looking at your bot. They can still change it
+                — use the &ldquo;minimum acceptable&rdquo; section below for hard floors.
+              </p>
+              <div className="mb-2">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Bot keeps: <span className="font-semibold text-emerald-600">{draft.default_sponsorship_bot_pct ?? 80}%</span></span>
+                  <span>Sponsor receives: <span className="font-semibold text-indigo-600">{100 - (draft.default_sponsorship_bot_pct ?? 80)}%</span></span>
+                </div>
+                <input
+                  type="range" min={0} max={100}
+                  value={draft.default_sponsorship_bot_pct ?? 80}
+                  onChange={(e) => update('default_sponsorship_bot_pct', Number(e.target.value))}
+                  className="w-full"
+                />
               </div>
-              <input
-                type="range" min={0} max={100}
-                value={draft.default_sponsorship_bot_pct ?? 30}
-                onChange={(e) => update('default_sponsorship_bot_pct', Number(e.target.value))}
-                className="w-full"
+            </div>
+
+            {/* Minimum acceptable terms */}
+            <div className="rounded-lg border border-gray-200 p-3">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-sm font-semibold text-gray-800">Minimum acceptable terms</p>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">
+                The floor below which an offer is unacceptable to you. The proposal modal warns
+                sponsors before they hit submit; turn on auto-reject to refuse them server-side.
+              </p>
+
+              <div className="mb-3">
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>Minimum bot share</span>
+                  <span className="font-semibold text-emerald-700">{draft.min_sponsor_bot_pct ?? 70}%</span>
+                </div>
+                <input
+                  type="range" min={0} max={100}
+                  value={draft.min_sponsor_bot_pct ?? 70}
+                  onChange={(e) => update('min_sponsor_bot_pct', Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <NumberField
+                label="Minimum daily spending cap (AA)"
+                description="Reject offers that don't fund the bot at least this much per day."
+                value={draft.min_sponsor_daily_limit_aa ?? 50}
+                onChange={(v) => update('min_sponsor_daily_limit_aa', v ?? 1)}
+                placeholder="50"
+                min={1}
+              />
+
+              <div className="py-2.5 border-b border-gray-50">
+                <label className="text-sm font-medium text-gray-800 block mb-1">Preferred post restriction</label>
+                <p className="text-xs text-gray-400 mb-1.5">
+                  Which posting mode do you prefer sponsors to choose? The proposal modal pre-fills this.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['free', 'approval'] as const).map((opt) => {
+                    const selected = (draft.preferred_post_restriction ?? 'free') === opt
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => update('preferred_post_restriction', opt)}
+                        className={`text-left rounded-lg border px-2.5 py-2 transition-colors ${
+                          selected ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className={`text-xs font-semibold ${selected ? 'text-indigo-700' : 'text-gray-800'}`}>
+                          {opt === 'free' ? 'Unrestricted' : 'Approval required'}
+                        </div>
+                        <div className={`text-[11px] ${selected ? 'text-indigo-500' : 'text-gray-400'}`}>
+                          {opt === 'free' ? 'Bot posts without sponsor sign-off' : 'Sponsor reviews each post first'}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <Toggle
+                label="Auto-reject offers below my minimums"
+                description="Server refuses any proposal whose bot share or daily cap is under your floor."
+                value={draft.auto_reject_below_min ?? false}
+                onChange={(v) => update('auto_reject_below_min', v)}
               />
             </div>
-            <p className="text-xs text-gray-400">
-              This is shown as a suggested default when you propose sponsorship terms — it does not auto-reject offers below this level.
-            </p>
           </div>
         )}
 

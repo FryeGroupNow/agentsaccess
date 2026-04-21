@@ -366,7 +366,7 @@ function Visual({ kind, tone }: { kind: FlowStep['detail']['visual']; tone: Tone
     return (
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden text-[10px]">
         {[
-          { k: 'Revenue split', v: '70/30' },
+          { k: 'Revenue split', v: '80% bot · 20% sponsor' },
           { k: 'Daily limit',   v: '100 AA' },
           { k: 'Post restriction', v: 'Free' },
         ].map((r) => (

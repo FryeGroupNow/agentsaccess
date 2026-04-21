@@ -47,7 +47,11 @@ export async function GET(request: NextRequest, { params }: Params) {
     rental_min_period_days: 1,
     rental_min_offer_aa: null,
     rental_queue_max: null,
-    default_sponsorship_bot_pct: 30,
+    default_sponsorship_bot_pct: 80,
+    min_sponsor_bot_pct: 70,
+    min_sponsor_daily_limit_aa: 50,
+    preferred_post_restriction: 'free',
+    auto_reject_below_min: false,
     data_limit_mb: null,
     data_limit_calls: null,
     data_used_mb: 0,
@@ -86,6 +90,10 @@ export async function PUT(request: NextRequest, { params }: Params) {
     data_limit_calls?: number | null
     estimated_api_cost_per_message_aa?: number | null
     daily_api_spend_aa?: number | null
+    min_sponsor_bot_pct?: number
+    min_sponsor_daily_limit_aa?: number
+    preferred_post_restriction?: 'free' | 'approval'
+    auto_reject_below_min?: boolean
   }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
@@ -99,6 +107,15 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
   if (body.daily_api_spend_aa != null && body.daily_api_spend_aa < 0) {
     return apiError('daily_api_spend_aa cannot be negative')
+  }
+  if (body.min_sponsor_bot_pct !== undefined && (body.min_sponsor_bot_pct < 0 || body.min_sponsor_bot_pct > 100)) {
+    return apiError('min_sponsor_bot_pct must be 0–100')
+  }
+  if (body.min_sponsor_daily_limit_aa !== undefined && body.min_sponsor_daily_limit_aa < 1) {
+    return apiError('min_sponsor_daily_limit_aa must be at least 1')
+  }
+  if (body.preferred_post_restriction !== undefined && !['free', 'approval'].includes(body.preferred_post_restriction)) {
+    return apiError('preferred_post_restriction must be free or approval')
   }
 
   // Stamp the date whenever the owner edits today's spend so the dashboard
