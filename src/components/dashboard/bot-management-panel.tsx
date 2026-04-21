@@ -32,6 +32,15 @@ interface BotSettings {
   data_used_calls: number
   data_usage_date: string
   data_paused: boolean
+  estimated_api_cost_per_message_aa: number | null
+  daily_api_spend_aa: number | null
+  daily_api_spend_date: string | null
+}
+
+interface RentalListingMini {
+  rate_per_15min_aa: number
+  daily_rate_aa: number
+  estimated_api_cost_per_15min_aa: number | null
 }
 
 interface ActivityItem {
@@ -43,7 +52,7 @@ interface ActivityItem {
   amount?: number
 }
 
-type Tab = 'restrictions' | 'limits' | 'rental' | 'queue' | 'sponsorship' | 'files' | 'activity'
+type Tab = 'restrictions' | 'limits' | 'rental' | 'queue' | 'sponsorship' | 'files' | 'costs' | 'activity'
 
 interface BotManagementPanelProps {
   botId: string
@@ -219,6 +228,7 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [draft, setDraft] = useState<Partial<BotSettings>>({})
+  const [listing, setListing] = useState<RentalListingMini | null>(null)
 
   const loadSettings = useCallback(async () => {
     setLoading(true)
@@ -240,7 +250,16 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     setActivityLoading(false)
   }, [botId])
 
+  const loadListing = useCallback(async () => {
+    const res = await fetch(`/api/rentals/listings/${botId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setListing(data.listing as RentalListingMini | null)
+    }
+  }, [botId])
+
   useEffect(() => { loadSettings() }, [loadSettings])
+  useEffect(() => { loadListing() }, [loadListing])
 
   useEffect(() => {
     if (tab === 'activity') loadActivity()
@@ -287,6 +306,7 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     { id: 'queue',        label: 'Queue',         icon: <Users className="w-3.5 h-3.5" /> },
     { id: 'sponsorship',  label: 'Sponsorship',   icon: <DollarSign className="w-3.5 h-3.5" /> },
     { id: 'files',        label: 'Files',         icon: <FolderLock className="w-3.5 h-3.5" /> },
+    { id: 'costs',        label: 'Costs',         icon: <DollarSign className="w-3.5 h-3.5" /> },
     { id: 'activity',     label: 'Activity',      icon: <Activity className="w-3.5 h-3.5" /> },
   ]
 
@@ -494,6 +514,106 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
         {tab === 'files' && (
           <BotFilesPanel botId={botId} botUsername={botUsername} />
         )}
+
+        {tab === 'costs' && (() => {
+          const perMsg   = draft.estimated_api_cost_per_message_aa ?? null
+          const todaySpend = draft.daily_api_spend_aa ?? null
+          const rate15 = listing?.rate_per_15min_aa ?? null
+          const cost15 = listing?.estimated_api_cost_per_15min_aa ?? null
+
+          // Profit per hour at the listed rate, after the listed cost.
+          // 4 × 15-min blocks per hour. We ignore the platform fee here so
+          // the number matches what the owner sees on the listing form.
+          const profitPerHour = rate15 != null && cost15 != null
+            ? (rate15 - cost15) * 4
+            : null
+
+          return (
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-800 mb-1">Operating cost estimates</p>
+                <p className="text-xs text-gray-400 mb-3">
+                  These figures are owner-only — renters see the per-15-min cost on the public
+                  listing only as part of the transparency breakdown. Manual entry for now;
+                  automatic ingestion from your API provider is on the roadmap.
+                </p>
+                <NumberField
+                  label="Estimated API cost per message / task (AA)"
+                  description="Fractional values OK (e.g. 0.05 AA = $0.005 per message). Use your provider's typical per-call cost."
+                  value={perMsg}
+                  onChange={(v) => update('estimated_api_cost_per_message_aa', v)}
+                  placeholder="e.g. 0.05"
+                  min={0}
+                />
+                <NumberField
+                  label="Today's API spend (AA)"
+                  description="What you've spent on external API/compute today. Updated manually — re-enter when checking your provider dashboard."
+                  value={todaySpend}
+                  onChange={(v) => update('daily_api_spend_aa', v)}
+                  placeholder="e.g. 12.50"
+                  min={0}
+                />
+                {draft.daily_api_spend_date && (
+                  <p className="text-[11px] text-gray-400 -mt-1.5 mb-3">
+                    Last updated: {new Date(draft.daily_api_spend_date).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5 text-xs">
+                <p className="font-semibold text-gray-800 mb-1">Profit margin calculator</p>
+                {rate15 == null || cost15 == null ? (
+                  <p className="text-gray-500">
+                    Set a rental rate and an &ldquo;operating cost / 15 min&rdquo; on this bot&apos;s rental
+                    listing to see live profit estimates here.
+                  </p>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Listed rate (15 min)</span>
+                      <span className="font-medium text-gray-900">{formatCredits(rate15)}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500">Operating cost (15 min)</span>
+                      <span className="font-medium text-gray-900">{formatCredits(cost15)}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-gray-200 pt-1.5">
+                      <span className="text-gray-500">Profit per hour at full utilization</span>
+                      <span className={`font-semibold ${profitPerHour! < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {profitPerHour! >= 0 ? '+' : ''}{formatCredits(profitPerHour!)}
+                      </span>
+                    </div>
+                    {profitPerHour! < 0 && (
+                      <p className="text-red-600 text-[11px]">
+                        At the current rate you lose money on every rental. Raise the listing
+                        rate or lower your declared cost.
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {perMsg != null && todaySpend != null && (
+                <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-xs text-indigo-900">
+                  <p className="font-semibold mb-0.5">Today, at a glance</p>
+                  <p>
+                    Spend: {formatCredits(todaySpend)} · approx{' '}
+                    {Math.round(todaySpend / Math.max(perMsg, 0.0001))} messages worth of API
+                    usage at your declared per-message cost.
+                  </p>
+                </div>
+              )}
+
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                <p className="font-semibold mb-0.5">Owners are responsible for their own costs</p>
+                <p>
+                  AgentsAccess does not pay for your bot&apos;s external API, compute, or bandwidth.
+                  Set a rental rate and a daily spend cap that keep you in the black.
+                </p>
+              </div>
+            </div>
+          )
+        })()}
 
         {tab === 'activity' && (
           <div>

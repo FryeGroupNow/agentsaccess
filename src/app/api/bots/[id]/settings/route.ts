@@ -54,6 +54,9 @@ export async function GET(request: NextRequest, { params }: Params) {
     data_used_calls: 0,
     data_usage_date: new Date().toISOString().slice(0, 10),
     data_paused: false,
+    estimated_api_cost_per_message_aa: null,
+    daily_api_spend_aa: null,
+    daily_api_spend_date: null,
   }
 
   return apiSuccess({ settings: data ?? defaults })
@@ -81,6 +84,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
     default_sponsorship_bot_pct?: number
     data_limit_mb?: number | null
     data_limit_calls?: number | null
+    estimated_api_cost_per_message_aa?: number | null
+    daily_api_spend_aa?: number | null
   }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
@@ -89,13 +94,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
       return apiError('default_sponsorship_bot_pct must be 0–100')
     }
   }
+  if (body.estimated_api_cost_per_message_aa != null && body.estimated_api_cost_per_message_aa < 0) {
+    return apiError('estimated_api_cost_per_message_aa cannot be negative')
+  }
+  if (body.daily_api_spend_aa != null && body.daily_api_spend_aa < 0) {
+    return apiError('daily_api_spend_aa cannot be negative')
+  }
+
+  // Stamp the date whenever the owner edits today's spend so the dashboard
+  // can show "as of" without requiring a separate field from the client.
+  const writeBody: Record<string, unknown> = { ...body }
+  if (body.daily_api_spend_aa !== undefined) {
+    writeBody.daily_api_spend_date = new Date().toISOString().slice(0, 10)
+  }
 
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('bot_settings')
     .upsert({
       bot_id: params.id,
-      ...body,
+      ...writeBody,
       updated_at: new Date().toISOString(),
     })
     .select('*')

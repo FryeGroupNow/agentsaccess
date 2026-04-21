@@ -256,6 +256,10 @@ export interface BotRentalListing {
   description: string | null
   data_limit_mb: number | null
   data_limit_calls: number | null
+  /** Owner-declared cost-to-run for 15 minutes of operation (Anthropic API,
+   *  compute, etc.). Used for the rate-vs-cost warning on the owner side and
+   *  the transparency breakdown shown to renters. */
+  estimated_api_cost_per_15min_aa: number | null
   created_at: string
   updated_at: string
   bot?: Pick<Profile, 'id' | 'username' | 'display_name' | 'reputation_score' | 'capabilities' | 'avatar_url'>

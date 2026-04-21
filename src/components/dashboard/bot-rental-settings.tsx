@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Tag, X, Check } from 'lucide-react'
+import { Tag, X, Check, AlertTriangle } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 
 interface RentalListingSummary {
@@ -12,6 +12,7 @@ interface RentalListingSummary {
   description: string | null
   data_limit_mb: number | null
   data_limit_calls: number | null
+  estimated_api_cost_per_15min_aa: number | null
 }
 
 interface BotRentalSettingsProps {
@@ -27,9 +28,17 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
   const [desc, setDesc]  = useState(currentListing?.description ?? '')
   const [mb, setMb]     = useState<string>(currentListing?.data_limit_mb?.toString()    ?? '')
   const [calls, setCalls] = useState<string>(currentListing?.data_limit_calls?.toString() ?? '')
+  const [cost15, setCost15] = useState<string>(currentListing?.estimated_api_cost_per_15min_aa?.toString() ?? '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+
+  // Warn the owner when their per-15-min rental rate doesn't cover the cost
+  // they declared it takes to run the bot. We show the warning live as they
+  // type so they can adjust before saving.
+  const costNum = cost15 === '' ? null : Number(cost15)
+  const losingMoney = costNum != null && Number.isFinite(costNum) && rate15 > 0 && rate15 < costNum
+  const slimMargin  = costNum != null && Number.isFinite(costNum) && !losingMoney && rate15 < costNum * 1.25
 
   async function save() {
     setError('')
@@ -44,6 +53,7 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
           description: desc || null,
           data_limit_mb: mb === '' ? null : Number(mb),
           data_limit_calls: calls === '' ? null : Number(calls),
+          estimated_api_cost_per_15min_aa: cost15 === '' ? null : Number(cost15),
         }),
       })
       const data = await res.json()
@@ -124,6 +134,41 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
         <p className="text-xs text-gray-400 -mt-1">
           Renters are billed from the 15-min rate, capped at the daily rate for longer bookings.
         </p>
+
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">
+            Your operating cost / 15 min (AA, optional)
+          </label>
+          <input
+            type="number" min={0} step="0.1" value={cost15}
+            onChange={(e) => setCost15(e.target.value)}
+            placeholder="e.g. 3"
+            className="w-full border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">
+            What 15 min of operation costs <em>you</em> (Anthropic API, compute, etc.). Used to warn you if
+            your rate is too low and to show renters a transparency breakdown.
+          </p>
+        </div>
+
+        {losingMoney && (
+          <div className="flex items-start gap-1.5 rounded-lg bg-red-50 border border-red-200 p-2 text-xs text-red-800">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <span>
+              Warning: your rental rate ({formatCredits(rate15)}) is below your estimated operating cost
+              ({formatCredits(costNum!)}). You will lose money on rentals.
+            </span>
+          </div>
+        )}
+        {!losingMoney && slimMargin && (
+          <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 border border-amber-200 p-2 text-xs text-amber-800">
+            <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+            <span>
+              Slim margin: your rate is less than 25% above cost. Consider raising it to absorb spikes.
+            </span>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs text-gray-500 block mb-1">Daily data (MB)</label>

@@ -117,6 +117,27 @@ function RentModal({ listing, onClose, onRented }: RentModalProps) {
           unused time is <strong>not refunded</strong> (the bot was reserved for you).
         </p>
 
+        {/* Transparency breakdown — shown only when the owner has declared
+            a per-15-min operating cost. Helps renters see where their AA goes. */}
+        {listing.estimated_api_cost_per_15min_aa != null && quote && (() => {
+          const blocks = Math.ceil(minutes / 15)
+          const ownerCost   = Math.round(blocks * listing.estimated_api_cost_per_15min_aa! * 100) / 100
+          const ownerProfit = Math.max(0, quote.owner_gets_aa - ownerCost)
+          return (
+            <div className="rounded-lg bg-emerald-50 border border-emerald-100 p-3 text-xs text-emerald-900 mb-3 space-y-0.5">
+              <p className="font-semibold mb-0.5">Where your AA goes</p>
+              <p>Rental rate: {formatCredits(quote.cost_aa)}</p>
+              <p>Bot operating costs: ~{formatCredits(ownerCost)} (declared by owner)</p>
+              <p>Platform fee: {formatCredits(quote.fee_aa)}</p>
+              <p>Owner profit: ~{formatCredits(ownerProfit)}</p>
+              <p className="text-[11px] text-emerald-700 mt-1">
+                Operating cost is the owner&apos;s own estimate of their API/compute spend — it&apos;s
+                shown for transparency, not billed separately.
+              </p>
+            </div>
+          )
+        })()}
+
         {(listing.data_limit_mb != null || listing.data_limit_calls != null) && (
           <div className="rounded-lg bg-indigo-50 border border-indigo-100 p-3 text-xs text-indigo-900 mb-3 space-y-0.5">
             <p className="font-semibold flex items-center gap-1">

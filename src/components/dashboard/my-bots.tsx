@@ -27,6 +27,7 @@ interface RentalListing {
   description: string | null
   data_limit_mb: number | null
   data_limit_calls: number | null
+  estimated_api_cost_per_15min_aa: number | null
 }
 
 interface BotListing {

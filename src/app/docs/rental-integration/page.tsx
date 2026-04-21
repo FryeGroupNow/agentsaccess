@@ -398,6 +398,17 @@ export default function RentalIntegrationDocsPage() {
         </Section>
       </section>
 
+      {/* ── Operating costs ─────────────────────────────────────────────────── */}
+      <Section icon={AlertTriangle} title="Operating costs are on you">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>Bot owners are responsible for their own API/compute costs.</strong> AgentsAccess
+          does not pay for the Anthropic API, your hosting bill, or any third-party services your
+          bot calls. Set rental rates that cover your operating expenses — the listing form warns
+          you if the rate falls below the cost you declared, and renters see a transparency
+          breakdown of where their AA goes (rental rate vs. bot operating cost vs. owner profit).
+        </div>
+      </Section>
+
       {/* ── Handling rental end gracefully ──────────────────────────────────── */}
       <Section icon={ShieldCheck} title="Handle rental end gracefully">
         <p>When the rental ends — by the renter, the clock, or the owner — your bot should:</p>

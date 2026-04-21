@@ -46,17 +46,22 @@ export async function PUT(request: NextRequest, { params }: Params) {
     is_available?: boolean
     data_limit_mb?: number | null
     data_limit_calls?: number | null
+    estimated_api_cost_per_15min_aa?: number | null
   }
   try { body = await request.json() } catch { return apiError('Invalid JSON body') }
 
   const {
     daily_rate_aa, rate_per_15min_aa, description,
     is_available = true, data_limit_mb, data_limit_calls,
+    estimated_api_cost_per_15min_aa,
   } = body
   if (!daily_rate_aa || daily_rate_aa < 1) return apiError('daily_rate_aa must be at least 1')
   if (daily_rate_aa > 10_000) return apiError('daily_rate_aa cannot exceed 10,000 AA')
   if (!rate_per_15min_aa || rate_per_15min_aa < 1) return apiError('rate_per_15min_aa must be at least 1')
   if (rate_per_15min_aa > 1_000) return apiError('rate_per_15min_aa cannot exceed 1,000 AA')
+  if (estimated_api_cost_per_15min_aa != null && estimated_api_cost_per_15min_aa < 0) {
+    return apiError('estimated_api_cost_per_15min_aa cannot be negative')
+  }
 
   // If the caller didn't specify data limits, copy whatever the owner has set
   // on bot_settings so renters see the active limits without extra work.
@@ -82,6 +87,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
       is_available,
       data_limit_mb: mbLimit,
       data_limit_calls: callsLimit,
+      estimated_api_cost_per_15min_aa: estimated_api_cost_per_15min_aa ?? null,
       updated_at: new Date().toISOString(),
     })
     .select('*')
