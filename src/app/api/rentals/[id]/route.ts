@@ -51,6 +51,31 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   if (error) return apiError(error.message, 500)
   if (data?.error) return apiError(data.error, 400)
 
+  // Tell the bot (and its owner via fanout) the rental has ended so any
+  // background loops can stop processing for this rental_id.
+  const { data: rentalRow } = await admin
+    .from('bot_rentals')
+    .select('bot_id, renter_id, owner_id')
+    .eq('id', params.id)
+    .maybeSingle()
+
+  if (rentalRow?.bot_id) {
+    createNotification({
+      userId: rentalRow.bot_id,
+      type: 'rental_ended',
+      title: 'Rental ended',
+      body: 'The rental period is over. Wrap up any in-flight work.',
+      link: `/rentals/${params.id}`,
+      event: 'rental_ended',
+      data: {
+        rental_id: params.id,
+        ended_by: actor.actorId,
+        renter_id: rentalRow.renter_id,
+        owner_id: rentalRow.owner_id,
+      },
+    }).catch((err) => console.error('[end_rental] notify failed', err))
+  }
+
   const promo = data?.promotion
   if (promo && promo.action) {
     const { data: entry } = await admin

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 // GET /api/agents/me/pending
 //
@@ -29,7 +30,42 @@ export async function GET(request: NextRequest) {
   const admin = createAdminClient()
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
 
-  const [messagesRes, purchasesRes, ordersRes, notificationsRes] = await Promise.all([
+  // Lazy housekeeping for any rentals this actor is in: expire ones whose
+  // clocks ran out and emit one-shot rental_ending_soon warnings (< 5 min).
+  // Both run cheaply when there's nothing to do.
+  await admin.rpc('expire_due_rentals')
+  const cutoff = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+  const { data: warnRows } = await admin
+    .from('bot_rentals')
+    .update({ ending_warning_sent: true })
+    .eq('status', 'active')
+    .eq('ending_warning_sent', false)
+    .lte('expires_at', cutoff)
+    .or(`bot_id.eq.${actorId},owner_id.eq.${actorId},renter_id.eq.${actorId}`)
+    .select('id, bot_id, renter_id, owner_id, expires_at')
+
+  if (warnRows && warnRows.length > 0) {
+    await Promise.all(
+      warnRows.map((r) =>
+        createNotification({
+          userId: r.bot_id,
+          type: 'rental_ending_soon',
+          title: 'Rental ending in less than 5 minutes',
+          body: 'Wrap up any in-flight work before the rental closes.',
+          link: `/rentals/${r.id}/chat`,
+          event: 'rental_ending_soon',
+          data: {
+            rental_id: r.id,
+            renter_id: r.renter_id,
+            owner_id: r.owner_id,
+            expires_at: r.expires_at,
+          },
+        }).catch((err) => console.error('[rental_ending_soon] notify failed', err))
+      )
+    )
+  }
+
+  const [messagesRes, purchasesRes, ordersRes, notificationsRes, rentalsRes] = await Promise.all([
     // Unread messages addressed to this actor (they are not the sender
     // and is_read = false). Join the conversation so polling clients can
     // open the thread without a follow-up call.
@@ -90,23 +126,39 @@ export async function GET(request: NextRequest) {
       .eq('is_read', false)
       .order('created_at', { ascending: false })
       .limit(100),
+
+    // Active rentals where this actor is a participant. Bots use this to
+    // discover new work without needing a separate /api/rentals call.
+    admin
+      .from('bot_rentals')
+      .select(`
+        id, bot_id, owner_id, renter_id, status, started_at, expires_at,
+        renter:profiles!renter_id(id, username, display_name, avatar_url)
+      `)
+      .eq('status', 'active')
+      .or(`bot_id.eq.${actorId},owner_id.eq.${actorId},renter_id.eq.${actorId}`)
+      .order('started_at', { ascending: false })
+      .limit(100),
   ])
 
   if (messagesRes.error)      return apiError(`messages lookup failed: ${messagesRes.error.message}`, 500)
   if (purchasesRes.error)     return apiError(`purchases lookup failed: ${purchasesRes.error.message}`, 500)
   if (ordersRes.error)        return apiError(`service_orders lookup failed: ${ordersRes.error.message}`, 500)
   if (notificationsRes.error) return apiError(`notifications lookup failed: ${notificationsRes.error.message}`, 500)
+  if (rentalsRes.error)       return apiError(`rentals lookup failed: ${rentalsRes.error.message}`, 500)
 
   const unread_messages        = messagesRes.data ?? []
   const recent_purchases       = purchasesRes.data ?? []
   const pending_service_orders = ordersRes.data ?? []
   const unread_notifications   = notificationsRes.data ?? []
+  const active_rentals         = rentalsRes.data ?? []
 
   const total_pending =
     unread_messages.length +
     recent_purchases.length +
     pending_service_orders.length +
-    unread_notifications.length
+    unread_notifications.length +
+    active_rentals.length
 
   return apiSuccess({
     total_pending,
@@ -116,11 +168,13 @@ export async function GET(request: NextRequest) {
       recent_purchases:       recent_purchases.length,
       pending_service_orders: pending_service_orders.length,
       unread_notifications:   unread_notifications.length,
+      active_rentals:         active_rentals.length,
     },
     unread_messages,
     recent_purchases,
     pending_service_orders,
     unread_notifications,
+    active_rentals,
     server_time: new Date().toISOString(),
   })
 }

@@ -14,6 +14,39 @@ export async function GET(request: NextRequest) {
   // Sweep up any rentals whose clock ran out before we return the list.
   await admin.rpc('expire_due_rentals')
 
+  // Fire a one-shot "ending soon" warning when < 5 minutes remain. We claim
+  // the rentals atomically by flipping ending_warning_sent before notifying,
+  // so concurrent reads don't spam duplicate webhooks.
+  const cutoff = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+  const { data: warnRows } = await admin
+    .from('bot_rentals')
+    .update({ ending_warning_sent: true })
+    .eq('status', 'active')
+    .eq('ending_warning_sent', false)
+    .lte('expires_at', cutoff)
+    .select('id, bot_id, renter_id, owner_id, expires_at')
+
+  if (warnRows && warnRows.length > 0) {
+    await Promise.all(
+      warnRows.map((r) =>
+        createNotification({
+          userId: r.bot_id,
+          type: 'rental_ending_soon',
+          title: 'Rental ending in less than 5 minutes',
+          body: 'Wrap up any in-flight work before the rental closes.',
+          link: `/rentals/${r.id}/chat`,
+          event: 'rental_ending_soon',
+          data: {
+            rental_id: r.id,
+            renter_id: r.renter_id,
+            owner_id: r.owner_id,
+            expires_at: r.expires_at,
+          },
+        }).catch((err) => console.error('[rental_ending_soon] notify failed', err))
+      )
+    )
+  }
+
   const { data, error } = await admin
     .from('bot_rentals')
     .select(`

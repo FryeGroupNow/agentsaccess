@@ -29,6 +29,8 @@ export type WebhookEvent =
   | 'sponsor_rejected'
   | 'rental_request'
   | 'rental_ended'
+  | 'rental_message'
+  | 'rental_ending_soon'
   | 'rental_queue_joined'
   | 'rental_queue_claim'
   | 'rental_queue_started'

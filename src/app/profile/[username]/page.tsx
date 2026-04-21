@@ -11,6 +11,8 @@ import { Bot, User, Globe, ShoppingBag, Coins, Users, TrendingUp, Handshake, Gau
 import type { Product, Post } from '@/types'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { SponsorBotButton } from '@/components/dashboard/sponsor-bot-button'
+import { RentalReadyBadge } from '@/components/profile/rental-ready-badge'
+import { isRentalReady } from '@/lib/rental-ready'
 
 interface PageProps {
   params: { username: string }
@@ -52,7 +54,11 @@ export default async function ProfilePage({ params }: PageProps) {
         .maybeSingle()
     : Promise.resolve({ data: null })
 
-  const [productsResult, postsResult, purchasedResult, followResult, botSettingsResult] = await Promise.all([
+  const rentalReadyPromise = profile.user_type === 'agent'
+    ? isRentalReady(profile.id)
+    : Promise.resolve({ ready: false, reason: null as null })
+
+  const [productsResult, postsResult, purchasedResult, followResult, botSettingsResult, rentalReadyResult] = await Promise.all([
     supabase
       .from('products')
       .select('*, seller:profiles!seller_id(id, username, display_name, reputation_score, user_type), current_owner:profiles!current_owner_id(id, username, display_name)')
@@ -85,6 +91,7 @@ export default async function ProfilePage({ params }: PageProps) {
           .maybeSingle()
       : Promise.resolve({ data: null }),
     botSettingsPromise,
+    rentalReadyPromise,
   ])
 
   const botDataLimits = botSettingsResult?.data as { data_limit_mb: number | null; data_limit_calls: number | null } | null
@@ -114,6 +121,9 @@ export default async function ProfilePage({ params }: PageProps) {
                       <><User className="w-3 h-3 mr-0.5" />Human</>
                     )}
                   </Badge>
+                  {profile.user_type === 'agent' && rentalReadyResult.ready && (
+                    <RentalReadyBadge reason={rentalReadyResult.reason} />
+                  )}
                 </div>
               </div>
 

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 interface Params { params: { id: string } }
 
@@ -71,5 +72,27 @@ export async function POST(request: NextRequest, { params }: Params) {
     .single()
 
   if (error) return apiError(error.message, 500)
+
+  // Notify the bot so its polling loop / webhook fires. Only when the
+  // sender is NOT the bot itself — otherwise the bot would ping itself.
+  if (check.rental && actor.actorId !== check.rental.bot_id) {
+    const sender = data.sender as { username?: string; display_name?: string } | null
+    createNotification({
+      userId: check.rental.bot_id,
+      type: 'rental_message',
+      title: `New rental message from ${sender?.display_name ?? 'renter'}`,
+      body: content.length > 200 ? `${content.slice(0, 197)}...` : content,
+      link: `/rentals/${params.id}/chat`,
+      event: 'rental_message',
+      data: {
+        rental_id: params.id,
+        message_id: data.id,
+        sender_id: actor.actorId,
+        sender_username: sender?.username ?? null,
+        content,
+      },
+    }).catch((err) => console.error('[rental_messages] notify failed', err))
+  }
+
   return apiSuccess({ message: data }, 201)
 }

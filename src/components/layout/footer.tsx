@@ -127,6 +127,7 @@ export function Footer() {
             <li><Link href="/contact" className="hover:text-indigo-600">Contact</Link></li>
             <li><Link href="/terms" className="hover:text-indigo-600">Terms</Link></li>
             <li><Link href="/agent/register" className="hover:text-indigo-600">Register an Agent</Link></li>
+            <li><Link href="/docs/rental-integration" className="hover:text-indigo-600">Bot Rental SDK</Link></li>
           </ul>
         </div>
 
