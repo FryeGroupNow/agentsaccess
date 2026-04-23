@@ -32,6 +32,84 @@ const TYPE_COLORS: Record<ProductType, string> = {
   digital_art:     'bg-pink-50 text-pink-700 border-pink-100',
 }
 
+// Per-type cover gradient + ink color for the fallback cover art. The
+// gradients echo TYPE_COLORS so a product without an uploaded image still
+// feels "branded" for its category rather than anonymous.
+const COVER_FALLBACK: Record<ProductType, { gradient: string; ink: string; initialBg: string }> = {
+  digital_product: { gradient: 'from-indigo-500 via-indigo-400 to-violet-500', ink: 'text-white/90', initialBg: 'bg-white/15'  },
+  service:         { gradient: 'from-amber-400 via-orange-400 to-rose-400',    ink: 'text-white/95', initialBg: 'bg-white/20'  },
+  template:        { gradient: 'from-sky-500 via-sky-400 to-blue-500',         ink: 'text-white/90', initialBg: 'bg-white/15'  },
+  tool:            { gradient: 'from-emerald-500 via-teal-400 to-cyan-500',    ink: 'text-white/90', initialBg: 'bg-white/15'  },
+  api:             { gradient: 'from-violet-600 via-purple-500 to-fuchsia-500',ink: 'text-white/90', initialBg: 'bg-white/15'  },
+  dataset:         { gradient: 'from-cyan-500 via-teal-500 to-emerald-500',    ink: 'text-white/90', initialBg: 'bg-white/15'  },
+  digital_art:     { gradient: 'from-pink-500 via-rose-400 to-orange-400',     ink: 'text-white/95', initialBg: 'bg-white/20'  },
+}
+
+// 1×1 transparent PNG encoded as SVG dot pattern — lightweight CSS-only
+// texture overlay that adds depth without a network request.
+const COVER_DOTS =
+  'radial-gradient(circle, rgba(255,255,255,0.22) 1px, transparent 1px)'
+
+/**
+ * Fallback cover art for products without an uploaded image. Composed of:
+ *   - type-specific gradient background
+ *   - large typographic initial (first character of the product title)
+ *   - soft dotted overlay for texture
+ *   - decorative type icon tucked bottom-right
+ *
+ * Looks intentional rather than empty — a renter browsing the marketplace
+ * should see a set of polished cards whether or not each seller uploaded
+ * a cover image.
+ */
+function ProductCoverFallback({
+  title,
+  type,
+}: {
+  title: string
+  type: ProductType
+}) {
+  const theme = COVER_FALLBACK[type]
+  const TypeIcon = TYPE_ICONS[type]
+  const firstChar = title.trim().charAt(0).toUpperCase() || '·'
+  return (
+    <div className={`w-full h-full relative bg-gradient-to-br ${theme.gradient}`}>
+      {/* Dot-grid overlay for texture */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-60"
+        style={{ backgroundImage: COVER_DOTS, backgroundSize: '14px 14px' }}
+      />
+
+      {/* Soft radial highlight, top-left */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(circle at 20% 15%, rgba(255,255,255,0.35), transparent 55%)',
+        }}
+      />
+
+      {/* Large initial — the dominant graphic element */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className={`flex items-center justify-center w-24 h-24 rounded-2xl backdrop-blur-sm ${theme.initialBg} ring-1 ring-white/25 shadow-xl`}
+        >
+          <span className={`text-5xl font-black tracking-tight ${theme.ink}`}>
+            {firstChar}
+          </span>
+        </div>
+      </div>
+
+      {/* Decorative type glyph, bottom-right — signals "this is a
+          [template / API / dataset / …]" without crowding the initial. */}
+      <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full bg-white/15 backdrop-blur-sm ring-1 ring-white/25 flex items-center justify-center">
+        <TypeIcon className="w-4 h-4 text-white/90" />
+      </div>
+    </div>
+  )
+}
+
 interface ProductCardProps {
   product: Product
   isOwn?: boolean
@@ -140,10 +218,8 @@ export function ProductCard({ product, isOwn = false, hasPurchased = false }: Pr
         </div>
       )}
 
-      {/* Cover image or fallback */}
-      <div className={`aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${
-        product.cover_image_url ? 'from-gray-100 to-gray-50' : 'from-indigo-100 via-violet-50 to-pink-50'
-      } relative`}>
+      {/* Cover image or branded fallback */}
+      <div className="aspect-[16/10] w-full overflow-hidden relative bg-gray-50">
         {product.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -152,13 +228,18 @@ export function ProductCard({ product, isOwn = false, hasPurchased = false }: Pr
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <TypeIcon className="w-12 h-12 text-indigo-200" />
-          </div>
+          <ProductCoverFallback title={product.title} type={type} />
         )}
 
-        {/* Type badge (top-left) */}
-        <span className={`absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border backdrop-blur-sm ${typeColor}`}>
+        {/* Type badge (top-left). When sitting on top of the colored fallback
+            cover we invert to a translucent white pill so it stays legible. */}
+        <span
+          className={`absolute top-3 left-3 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full border backdrop-blur-sm ${
+            product.cover_image_url
+              ? typeColor
+              : 'bg-white/25 text-white border-white/30'
+          }`}
+        >
           <TypeIcon className="w-3 h-3" />
           {PRODUCT_TYPE_LABELS[type]}
         </span>
