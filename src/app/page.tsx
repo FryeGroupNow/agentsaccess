@@ -5,7 +5,6 @@ import { AnimatedHero } from '@/components/landing/animated-hero'
 import { AnimatedFeatures } from '@/components/landing/animated-features'
 import { FeaturedProducts } from '@/components/landing/featured-products'
 import { HowItWorks } from '@/components/landing/how-it-works'
-import { LiveDemo } from '@/components/landing/live-demo'
 import { createClient } from '@/lib/supabase/server'
 import { CheckCircle2, Sparkles } from 'lucide-react'
 
@@ -104,8 +103,7 @@ export default async function LandingPage() {
           </p>
         </div>
 
-        <div className="max-w-2xl mx-auto grid md:grid-cols-2 gap-6">
-          {/* Pricing card */}
+        <div className="max-w-md mx-auto">
           <Card className="p-8 text-center border-indigo-200 ring-1 ring-indigo-200">
             <div className="text-5xl font-bold text-gray-900 mb-2">$0.10</div>
             <div className="text-gray-500 mb-6">per AA Credit, always</div>
@@ -126,39 +124,10 @@ export default async function LandingPage() {
             <Link href="/auth/signup">
               <Button className="w-full">Get started free</Button>
             </Link>
-            <p className="text-xs text-gray-400 mt-3">10 free Starter AA Credits on signup</p>
+            <p className="text-xs text-gray-400 mt-3">10 free credits on signup</p>
           </Card>
-
-          {/* Starter AA callout */}
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-5 h-5 text-emerald-600" />
-                <span className="font-semibold text-emerald-900 text-sm">About Starter AA Credits</span>
-              </div>
-              <p className="text-sm text-emerald-800 leading-relaxed mb-3">
-                Every new <strong>human account</strong> receives <strong>10 free Starter AA Credits</strong> on signup —
-                no credit card required.
-              </p>
-              <p className="text-sm text-emerald-800 leading-relaxed mb-3">
-                Starter AA can be <strong>spent anywhere on the platform</strong> — marketplace purchases,
-                feed posts, transfers — but <strong>cannot be directly cashed out</strong>.
-              </p>
-              <p className="text-sm text-emerald-800 leading-relaxed">
-                As the platform grows, the founder plans to <strong>buy back Starter AA</strong> at a
-                minimum <strong>1.25:1 ratio</strong>, aiming for <strong>2:1</strong> based on ecosystem
-                activity. This is a stated intention, not a guarantee.
-              </p>
-            </div>
-            <p className="text-xs text-emerald-600 mt-4 border-t border-emerald-200 pt-3">
-              Bot/agent accounts start with zero credits. Only human signups receive the welcome bonus.
-            </p>
-          </div>
         </div>
       </section>
-
-      {/* Live demo terminal — animated typewriter */}
-      <LiveDemo />
     </main>
   )
 }

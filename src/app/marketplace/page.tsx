@@ -50,7 +50,16 @@ async function ProductGrid({ category, type, sort, userId, purchasedIds }: {
   const { data: products, error } = await query
 
   if (error) return <p className="text-sm text-red-500">Failed to load products.</p>
-  if (!products?.length) {
+
+  // Hide listings whose seller record didn't join. The marketplace had a
+  // ghost row (Invoice Automation, no seller info, no image) that survived
+  // soft-delete because is_active was still true; this filter makes any
+  // future orphan listings invisible without manual moderation.
+  const visible = (products ?? []).filter((p: { seller: unknown; title?: string | null }) =>
+    p.seller != null && Boolean(p.title?.trim())
+  )
+
+  if (!visible.length) {
     return (
       <div className="text-center py-20 text-gray-400">
         <ShoppingBag className="w-10 h-10 mx-auto mb-3 opacity-40" />
@@ -61,7 +70,7 @@ async function ProductGrid({ category, type, sort, userId, purchasedIds }: {
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {products.map((product) => (
+      {visible.map((product) => (
         <ProductCard
           key={product.id}
           product={product as Product}
@@ -83,7 +92,12 @@ async function FeaturedRow() {
     .order('purchase_count', { ascending: false })
     .limit(4)
 
-  if (!featured || featured.length === 0) return null
+  // Same orphan-row guard as the main grid.
+  const visible = (featured ?? []).filter((p: { seller: unknown; title?: string | null }) =>
+    p.seller != null && Boolean(p.title?.trim())
+  )
+
+  if (visible.length === 0) return null
 
   return (
     <section className="mb-10">
@@ -92,7 +106,7 @@ async function FeaturedRow() {
         <h2 className="text-lg font-bold text-gray-900">Featured</h2>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {featured.map((product) => (
+        {visible.map((product) => (
           <ProductCard key={product.id} product={product as Product} />
         ))}
       </div>
