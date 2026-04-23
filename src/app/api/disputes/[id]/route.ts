@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 interface Params { params: { id: string } }
 
@@ -76,23 +77,53 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     ? `Dispute resolved on "${dispute.product?.title}"`
     : `Dispute rejected on "${dispute.product?.title}"`
 
+  const sharedData = {
+    dispute_id:    dispute.id,
+    product_id:    dispute.product?.id ?? null,
+    product_title: dispute.product?.title ?? null,
+    status:        body.status,
+    refund_amount: (updates.refund_amount as number | undefined) ?? 0,
+    resolution_note: body.resolution_note?.trim() ?? null,
+  }
+
   await Promise.all([
-    admin.from('notifications').insert({
-      user_id: dispute.buyer_id,
-      type: 'dispute_resolved',
+    createNotification({
+      userId: dispute.buyer_id,
+      type:   'dispute_resolved',
       title,
-      body: body.resolution_note?.slice(0, 100) ?? null,
-      link: '/dashboard',
-      data: { dispute_id: dispute.id, status: body.status },
+      body:   body.resolution_note?.slice(0, 200) ?? null,
+      link:   '/dashboard',
+      event:  'dispute_resolved',
+      data:   { ...sharedData, role: 'buyer' },
     }),
-    admin.from('notifications').insert({
-      user_id: dispute.seller_id,
-      type: 'dispute_resolved',
+    createNotification({
+      userId: dispute.seller_id,
+      type:   'dispute_resolved',
       title,
-      body: body.resolution_note?.slice(0, 100) ?? null,
-      link: '/dashboard',
-      data: { dispute_id: dispute.id, status: body.status },
+      body:   body.resolution_note?.slice(0, 200) ?? null,
+      link:   '/dashboard',
+      event:  'dispute_resolved',
+      data:   { ...sharedData, role: 'seller' },
     }),
+    // If the resolution included a refund, the buyer's balance just went
+    // up — surface that as a credits_received event too so polling-free
+    // bots can update their books without a separate listener.
+    sharedData.refund_amount > 0
+      ? createNotification({
+          userId: dispute.buyer_id,
+          type:   'credits_received',
+          title:  `Refund of ${sharedData.refund_amount} AA credited to you`,
+          body:   `Dispute on "${dispute.product?.title ?? ''}" resolved.`,
+          link:   '/dashboard',
+          event:  'credits_received',
+          data: {
+            source:      'dispute_refund',
+            amount:      sharedData.refund_amount,
+            dispute_id:  dispute.id,
+            product_id:  dispute.product?.id ?? null,
+          },
+        })
+      : Promise.resolve(),
   ])
 
   return apiSuccess(updated)

@@ -40,13 +40,31 @@ export async function POST(request: NextRequest) {
       .eq('id', rental.renter_id)
       .single()
 
+    // Look up the queue entry for any pre-loaded instructions so the bot's
+    // webhook receives them inline — no follow-up read required.
+    const { data: queueEntry } = await admin
+      .from('rental_queue')
+      .select('pre_loaded_instructions, desired_duration_minutes')
+      .eq('id', body.queue_id)
+      .maybeSingle()
+
     const payload = {
       type: 'rental_request' as const,
       title: `Rental confirmed by @${renter?.username ?? 'someone'}`,
-      body: 'Open the rental chat to receive instructions.',
+      body: queueEntry?.pre_loaded_instructions
+        ? 'Pre-loaded instructions are attached.'
+        : 'Open the rental chat to receive instructions.',
       link: `/rentals/${rental.id}/chat`,
       event: 'rental_request' as const,
-      data: { rental_id: rental.id, bot_id: rental.bot_id },
+      data: {
+        rental_id:               rental.id,
+        bot_id:                  rental.bot_id,
+        renter_id:               rental.renter_id,
+        renter_username:         renter?.username ?? null,
+        pre_loaded_instructions: queueEntry?.pre_loaded_instructions ?? null,
+        desired_duration_minutes: queueEntry?.desired_duration_minutes ?? null,
+        source:                  'queue_confirm',
+      },
     }
     if (rental.owner_id) await createNotification({ userId: rental.owner_id, ...payload })
     if (rental.bot_id)   await createNotification({ userId: rental.bot_id,   ...payload })

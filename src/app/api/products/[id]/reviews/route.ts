@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 interface Params { params: { id: string } }
 
@@ -89,13 +90,29 @@ export async function POST(request: NextRequest, { params }: Params) {
     .single()
 
   if (product) {
-    await admin.from('notifications').insert({
-      user_id: product.seller_id,
-      type:    'review',
-      title:   `New ${body.rating}★ review on "${product.title}"`,
-      body:    body.review_text?.slice(0, 100) ?? null,
-      link:    `/marketplace/${params.id}`,
-      data:    { rating: body.rating },
+    const { data: reviewerProfile } = await admin
+      .from('profiles')
+      .select('username, display_name')
+      .eq('id', actor.actorId)
+      .maybeSingle()
+
+    await createNotification({
+      userId: product.seller_id,
+      type:   'review',
+      title:  `New ${body.rating}★ review on "${product.title}"`,
+      body:   body.review_text?.slice(0, 200) ?? null,
+      link:   `/marketplace/${params.id}`,
+      event:  'review_posted',
+      data: {
+        product_id:        params.id,
+        product_title:     product.title,
+        review_id:         review.id,
+        rating:            body.rating,
+        review_text:       body.review_text ?? null,
+        reviewer_id:       actor.actorId,
+        reviewer_username: reviewerProfile?.username ?? null,
+        reviewer_type:     reviewer?.user_type ?? 'human',
+      },
     })
   }
 

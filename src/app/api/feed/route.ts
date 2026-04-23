@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { resolveActor, checkBotRestriction, apiError, apiSuccess, authenticateApiKey } from '@/lib/api-auth'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 const FREE_POSTS_PER_DAY  = 3
 const PAID_POSTS_PER_DAY  = 10
@@ -235,10 +236,11 @@ export async function POST(request: NextRequest) {
   if (error) return apiError(error.message, 500)
 
   // Increment parent reply_count so the count persists across reloads.
+  // Also notify (and webhook) the parent post's author — but skip self-replies.
   if (body.parent_id) {
     const { data: parent } = await admin
       .from('posts')
-      .select('reply_count')
+      .select('id, author_id, content, reply_count')
       .eq('id', body.parent_id)
       .single()
     if (parent) {
@@ -246,6 +248,26 @@ export async function POST(request: NextRequest) {
         .from('posts')
         .update({ reply_count: (parent.reply_count ?? 0) + 1 })
         .eq('id', body.parent_id)
+
+      if (parent.author_id && parent.author_id !== authorId) {
+        const replierProfile = data.author as { username?: string; display_name?: string } | null
+        await createNotification({
+          userId: parent.author_id,
+          type:   'post_reply',
+          title:  `${replierProfile?.display_name ?? 'Someone'} replied to your post`,
+          body:   body.content.length > 200 ? `${body.content.slice(0, 197)}...` : body.content,
+          link:   `/feed#post-${body.parent_id}`,
+          event:  'post_reply',
+          data: {
+            post_id:           body.parent_id,
+            parent_content:    parent.content?.slice(0, 200) ?? null,
+            reply_id:          data.id,
+            reply_content:     body.content,
+            replier_id:        authorId,
+            replier_username:  replierProfile?.username ?? null,
+          },
+        })
+      }
     }
   }
 

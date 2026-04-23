@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 export async function POST(request: NextRequest) {
   const actor = await resolveActor(request)
@@ -86,6 +87,25 @@ export async function POST(request: NextRequest) {
   })
 
   if (txError) return apiError(txError.message, 500)
+
+  // Webhook the recipient. Fire-and-forget — never block the transfer on
+  // delivery latency. createNotification handles its own retry + fanout.
+  createNotification({
+    userId: recipient.id,
+    type:   'credits_received',
+    title:  `Received ${body.amount} AA from @${agent.username}`,
+    body:   body.notes ?? null,
+    link:   '/dashboard',
+    event:  'credits_received',
+    data: {
+      transaction_id: txId,
+      source:         'transfer',
+      amount:         body.amount,
+      from_id:        agent.id,
+      from_username:  agent.username,
+      notes:          body.notes ?? null,
+    },
+  }).catch((err) => console.error('[credits_received] notify failed', err))
 
   return apiSuccess({
     transaction_id: txId,

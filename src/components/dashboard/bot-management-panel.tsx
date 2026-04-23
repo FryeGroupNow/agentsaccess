@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import {
   Settings, Activity, Tag, Pause, Play,
   Shield, Zap, FileText, DollarSign, FolderLock,
-  CheckCircle, XCircle, AlertTriangle, Users,
+  CheckCircle, XCircle, AlertTriangle, Users, Webhook,
 } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import { BotFilesPanel } from './bot-files-panel'
@@ -56,7 +56,7 @@ interface ActivityItem {
   amount?: number
 }
 
-type Tab = 'restrictions' | 'limits' | 'rental' | 'queue' | 'sponsorship' | 'files' | 'costs' | 'activity'
+type Tab = 'restrictions' | 'limits' | 'rental' | 'queue' | 'sponsorship' | 'webhook' | 'files' | 'costs' | 'activity'
 
 interface BotManagementPanelProps {
   botId: string
@@ -233,6 +233,10 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
   const [saved, setSaved] = useState(false)
   const [draft, setDraft] = useState<Partial<BotSettings>>({})
   const [listing, setListing] = useState<RentalListingMini | null>(null)
+  const [webhookUrl, setWebhookUrl] = useState<string>('')
+  const [webhookSaving, setWebhookSaving] = useState(false)
+  const [webhookTesting, setWebhookTesting] = useState(false)
+  const [webhookResult, setWebhookResult] = useState<{ ok: boolean; status?: number; error?: string } | null>(null)
 
   const loadSettings = useCallback(async () => {
     setLoading(true)
@@ -262,8 +266,17 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     }
   }, [botId])
 
+  const loadWebhookUrl = useCallback(async () => {
+    const res = await fetch(`/api/agents/${botId}`)
+    if (res.ok) {
+      const data = await res.json()
+      setWebhookUrl(data.agent?.webhook_url ?? '')
+    }
+  }, [botId])
+
   useEffect(() => { loadSettings() }, [loadSettings])
   useEffect(() => { loadListing() }, [loadListing])
+  useEffect(() => { loadWebhookUrl() }, [loadWebhookUrl])
 
   useEffect(() => {
     if (tab === 'activity') loadActivity()
@@ -309,6 +322,7 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
     { id: 'rental',       label: 'Rental',        icon: <Tag className="w-3.5 h-3.5" /> },
     { id: 'queue',        label: 'Queue',         icon: <Users className="w-3.5 h-3.5" /> },
     { id: 'sponsorship',  label: 'Sponsorship',   icon: <DollarSign className="w-3.5 h-3.5" /> },
+    { id: 'webhook',      label: 'Webhook',       icon: <Webhook className="w-3.5 h-3.5" /> },
     { id: 'files',        label: 'Files',         icon: <FolderLock className="w-3.5 h-3.5" /> },
     { id: 'costs',        label: 'Costs',         icon: <DollarSign className="w-3.5 h-3.5" /> },
     { id: 'activity',     label: 'Activity',      icon: <Activity className="w-3.5 h-3.5" /> },
@@ -588,6 +602,90 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
           <BotFilesPanel botId={botId} botUsername={botUsername} />
         )}
 
+        {tab === 'webhook' && (() => {
+          async function saveUrl() {
+            setWebhookSaving(true)
+            setWebhookResult(null)
+            try {
+              const res = await fetch(`/api/agents/${botId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ webhook_url: webhookUrl.trim() || null }),
+              })
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}))
+                setWebhookResult({ ok: false, error: data.error ?? 'Save failed' })
+              }
+            } finally {
+              setWebhookSaving(false)
+            }
+          }
+
+          async function fireTest() {
+            setWebhookTesting(true)
+            setWebhookResult(null)
+            try {
+              const res = await fetch(`/api/agents/${botId}/webhook-test`, { method: 'POST' })
+              const data = await res.json().catch(() => ({}))
+              if (data.result) setWebhookResult(data.result)
+              else setWebhookResult({ ok: false, error: data.error ?? `HTTP ${res.status}` })
+            } finally {
+              setWebhookTesting(false)
+            }
+          }
+
+          return (
+            <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-gray-800 block mb-1">Webhook URL</label>
+                <p className="text-xs text-gray-400 mb-2">
+                  Where AgentsAccess POSTs platform events for this bot. Replaces polling
+                  entirely — see <a href="/docs/rental-integration" className="text-indigo-600 hover:underline">/docs/rental-integration</a>{' '}
+                  for the payload schema.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    placeholder="https://your-host.example/webhook"
+                    className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <Button size="sm" onClick={saveUrl} disabled={webhookSaving} variant="secondary">
+                    {webhookSaving ? 'Saving…' : 'Save'}
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={fireTest} disabled={webhookTesting || !webhookUrl.trim()}>
+                  {webhookTesting ? 'Sending…' : 'Send test event'}
+                </Button>
+                <span className="text-[11px] text-gray-400">
+                  Fires a <code>webhook.test</code> POST to the saved URL.
+                </span>
+              </div>
+
+              {webhookResult && (
+                <div className={`rounded-lg p-2.5 text-xs ${
+                  webhookResult.ok
+                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    : 'bg-red-50 border border-red-200 text-red-800'
+                }`}>
+                  {webhookResult.ok
+                    ? <>✓ Endpoint replied with HTTP {webhookResult.status}. Webhooks are wired up.</>
+                    : <>✗ {webhookResult.error ? webhookResult.error : `HTTP ${webhookResult.status} — endpoint did not return 2xx`}</>}
+                </div>
+              )}
+
+              <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 text-xs text-gray-600">
+                <p className="font-semibold text-gray-800 mb-1">Delivery contract</p>
+                <p>POST application/json · 10 s timeout · one retry after 30 s on non-2xx · best-effort thereafter.</p>
+              </div>
+            </div>
+          )
+        })()}
+
         {tab === 'costs' && (() => {
           const perMsg   = draft.estimated_api_cost_per_message_aa ?? null
           const todaySpend = draft.daily_api_spend_aa ?? null
@@ -729,8 +827,8 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
         )}
       </div>
 
-      {/* Save button (not needed for activity, files, queue, or the pause toggle) */}
-      {tab !== 'activity' && tab !== 'files' && tab !== 'queue' && (
+      {/* Save button (not needed for activity, files, queue, webhook, or the pause toggle) */}
+      {tab !== 'activity' && tab !== 'files' && tab !== 'queue' && tab !== 'webhook' && (
         <div className="mt-3 flex justify-end">
           <Button size="sm" onClick={save} disabled={saving || saved}>
             {saved ? <><CheckCircle className="w-3 h-3 mr-1" />Saved</> : saving ? 'Saving…' : 'Save Changes'}

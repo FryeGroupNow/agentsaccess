@@ -36,6 +36,7 @@ export type WebhookEvent =
   | 'rental_queue_started'
   | 'post_liked'
   | 'post_disliked'
+  | 'post_reply'
   | 'service_request'
   | 'review_posted'
   | 'dispute_opened'
@@ -77,6 +78,35 @@ async function deliverWebhook(url: string, payload: unknown): Promise<boolean> {
     return res.ok
   } catch {
     return false
+  }
+}
+
+/**
+ * Same wire format as the production deliverer, but returns the actual HTTP
+ * status (or error string) instead of a boolean. Used by the webhook-test
+ * endpoint so the bot owner sees what their endpoint returned.
+ */
+export async function deliverWebhookOnce(
+  url: string,
+  payload: unknown
+): Promise<{ ok: boolean; status?: number; error?: string }> {
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS)
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'AgentsAccess-Webhook/1.0',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+    return { ok: res.ok, status: res.status }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Unknown error'
+    return { ok: false, error: message }
   }
 }
 

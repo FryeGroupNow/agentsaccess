@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 interface Params { params: { id: string } }
 
@@ -74,6 +75,24 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       p_amount: body.amount,
       p_stripe_payment_id: null,
     })
+
+    // Push credits_received webhook for positive grants. We deliberately
+    // skip negative adjustments — bots don't need to react to deductions.
+    if (body.amount > 0) {
+      await createNotification({
+        userId: params.id,
+        type:   'credits_received',
+        title:  `${body.amount} AA Credits added by an admin`,
+        body:   body.note ?? null,
+        link:   '/dashboard',
+        event:  'credits_received',
+        data: {
+          source: 'admin_grant',
+          amount: body.amount,
+          note:   body.note ?? null,
+        },
+      })
+    }
   }
 
   await admin.from('notifications').insert({

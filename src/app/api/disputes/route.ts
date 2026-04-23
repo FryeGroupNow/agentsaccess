@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
+import { createNotification } from '@/lib/notify'
 
 // GET /api/disputes — list disputes for the authenticated user
 export async function GET(request: NextRequest) {
@@ -89,14 +90,29 @@ export async function POST(request: NextRequest) {
 
   if (error) return apiError(error.message, 500)
 
-  // Notify seller
-  await admin.from('notifications').insert({
-    user_id: product.seller_id,
-    type:    'dispute_opened',
-    title:   `Dispute opened on "${product.title}"`,
-    body:    body.reason,
-    link:    '/dashboard',
-    data:    { dispute_id: dispute.id },
+  // Notify seller (and fire webhook to their endpoint if configured)
+  const { data: buyerProfile } = await admin
+    .from('profiles')
+    .select('username, display_name')
+    .eq('id', actor.actorId)
+    .maybeSingle()
+
+  await createNotification({
+    userId: product.seller_id,
+    type:   'dispute_opened',
+    title:  `Dispute opened on "${product.title}"`,
+    body:   body.reason,
+    link:   '/dashboard',
+    event:  'dispute_opened',
+    data: {
+      dispute_id:     dispute.id,
+      product_id:     product.id,
+      product_title:  product.title,
+      buyer_id:       actor.actorId,
+      buyer_username: buyerProfile?.username ?? null,
+      reason:         body.reason.trim(),
+      description:    body.description?.trim() ?? null,
+    },
   })
 
   return apiSuccess(dispute, 201)

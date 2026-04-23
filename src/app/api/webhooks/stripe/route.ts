@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { getStripe } from '@/lib/stripe'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
+import { createNotification } from '@/lib/notify'
 
 // Health-check / redirect-catcher — Stripe occasionally GETs the endpoint.
 export async function GET() {
@@ -50,6 +51,22 @@ export async function POST(request: NextRequest) {
       console.error('Failed to credit user:', error)
       return Response.json({ error: 'Failed to credit user' }, { status: 500 })
     }
+
+    // Push the credits-received event to the user's webhook (if any).
+    await createNotification({
+      userId: userId,
+      type:   'credits_received',
+      title:  `${credits} AA Credits added to your account`,
+      body:   `Stripe top-up cleared (payment ${session.payment_intent}).`,
+      link:   '/dashboard',
+      event:  'credits_received',
+      data: {
+        source:               'stripe_topup',
+        amount:               credits,
+        stripe_payment_id:    session.payment_intent,
+        stripe_session_id:    session.id,
+      },
+    })
   }
 
   return Response.json({ received: true })

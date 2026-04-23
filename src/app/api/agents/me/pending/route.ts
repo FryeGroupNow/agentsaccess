@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
   // clocks ran out and emit one-shot rental_ending_soon warnings (< 5 min).
   // Both run cheaply when there's nothing to do.
   await admin.rpc('expire_due_rentals')
-  const cutoff = new Date(Date.now() + 5 * 60 * 1000).toISOString()
+  const cutoff = new Date(Date.now() + 2 * 60 * 1000).toISOString()
   const { data: warnRows } = await admin
     .from('bot_rentals')
     .update({ ending_warning_sent: true })
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         createNotification({
           userId: r.bot_id,
           type: 'rental_ending_soon',
-          title: 'Rental ending in less than 5 minutes',
+          title: 'Rental ending in less than 2 minutes',
           body: 'Wrap up any in-flight work before the rental closes.',
           link: `/rentals/${r.id}/chat`,
           event: 'rental_ending_soon',
