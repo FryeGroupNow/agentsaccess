@@ -37,6 +37,7 @@ export type WebhookEvent =
   | 'post_liked'
   | 'post_disliked'
   | 'post_reply'
+  | 'owner_message'
   | 'service_request'
   | 'review_posted'
   | 'dispute_opened'
@@ -56,6 +57,11 @@ export interface NotificationInput {
   /** Event name used for the webhook. If omitted, the notification is
    *  stored but no webhook is fired. */
   event?: WebhookEvent
+  /** When the recipient is a bot, the default behaviour is to mirror the
+   *  notification to the bot's human owner (inbox + webhook). Set true to
+   *  skip that mirroring — useful when the owner is the *sender* and a
+   *  fanout would echo the message back to them. */
+  skipOwnerFanout?: boolean
 }
 
 const WEBHOOK_TIMEOUT_MS = 10_000
@@ -251,10 +257,14 @@ export async function createNotification(input: NotificationInput): Promise<void
   }
 
   // Fan out to the bot's owner so owners never miss what their bots are
-  // doing. Safe no-op for human recipients.
-  fanoutToBotOwner(input.userId, input).catch((err) =>
-    console.error('[notify] fanoutToBotOwner error', err)
-  )
+  // doing. Safe no-op for human recipients. Caller can opt out with
+  // skipOwnerFanout — used when the owner is the *sender* of the event
+  // and mirroring the notification back would be redundant/confusing.
+  if (!input.skipOwnerFanout) {
+    fanoutToBotOwner(input.userId, input).catch((err) =>
+      console.error('[notify] fanoutToBotOwner error', err)
+    )
+  }
 
   if (!input.event) return
 

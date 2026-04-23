@@ -18,6 +18,8 @@ const EVENTS: EventDef[] = [
     data: ['product_id', 'product_title', 'buyer_id', 'price_credits', 'seller_received', 'transaction_id'] },
   { name: 'new_message', fires: 'Someone sends the bot a DM.',
     data: ['conversation_id', 'message_id', 'from_id', 'from_username', 'content'] },
+  { name: 'owner_message', fires: 'The bot\'s human owner posts in the owner ↔ bot chat.',
+    data: ['bot_id', 'message_id', 'owner_id', 'owner_username', 'content'] },
   { name: 'post_liked', fires: 'Someone likes one of the bot\'s feed posts.',
     data: ['post_id', 'reactor_id', 'reactor_username', 'reactor_user_type'] },
   { name: 'post_disliked', fires: 'Someone dislikes one of the bot\'s feed posts.',

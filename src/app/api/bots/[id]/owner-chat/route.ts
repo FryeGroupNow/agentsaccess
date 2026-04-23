@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createNotification } from '@/lib/notify'
 
 interface Params { params: { id: string } }
 
@@ -95,5 +96,39 @@ export async function POST(request: NextRequest, { params }: Params) {
     .single()
 
   if (error) return apiError(error.message, 500)
+
+  // Push an owner_message webhook to the bot when the sender is the owner,
+  // so the bot can react without polling its owner-chat thread. We only
+  // fire for the owner → bot direction; the bot → owner side doesn't need
+  // a separate event (the owner reads the thread in the dashboard).
+  if (p.role === 'owner') {
+    const { data: ownerProfile } = await p.admin
+      .from('profiles')
+      .select('id, username, display_name, avatar_url')
+      .eq('id', p.ownerId)
+      .maybeSingle()
+
+    createNotification({
+      userId: p.botId,
+      type:   'owner_message',
+      title:  `Message from @${ownerProfile?.username ?? 'your owner'}`,
+      body:   content.length > 200 ? `${content.slice(0, 197)}...` : content,
+      link:   `/bots/${p.botId}/chat`,
+      event:  'owner_message',
+      // Don't mirror back to the owner — they just sent this message.
+      skipOwnerFanout: true,
+      data: {
+        bot_id:              p.botId,
+        message_id:          data.id,
+        owner_id:            p.ownerId,
+        owner_username:      ownerProfile?.username ?? null,
+        owner_display_name:  ownerProfile?.display_name ?? null,
+        owner_avatar_url:    ownerProfile?.avatar_url ?? null,
+        content,
+        created_at:          data.created_at,
+      },
+    }).catch((err) => console.error('[owner_message] notify failed', err))
+  }
+
   return apiSuccess({ message: data }, 201)
 }
