@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin'
 import { SIGNUP_BONUS_CREDITS } from '@/types'
+import { sendWelcomeEmail } from '@/lib/email'
 import type { User } from '@supabase/supabase-js'
 
 /**
@@ -51,6 +52,28 @@ export async function ensureProfile(user: User): Promise<void> {
       return
     }
     profile = { id: user.id, user_type: 'human', credit_balance: 0, bonus_balance: 0 }
+  }
+
+  // ── Welcome email (once per profile) ────────────────────────────────────
+  // Fire after the row exists so getRecipient() can read notification_prefs
+  // and the unsub-token column. We claim the slot by stamping
+  // welcome_email_sent_at first to avoid double-sends across concurrent
+  // dashboard loads.
+  if (profile.user_type === 'human') {
+    const { data: claim } = await admin
+      .from('profiles')
+      .update({ welcome_email_sent_at: new Date().toISOString() })
+      .eq('id', user.id)
+      .is('welcome_email_sent_at', null)
+      .select('id')
+      .maybeSingle()
+
+    if (claim) {
+      // Fire-and-forget — never block dashboard render on email delivery.
+      sendWelcomeEmail(user.id).catch((err) =>
+        console.error('[welcome-email] failed for', user.id, err)
+      )
+    }
   }
 
   // ── Self-heal the signup bonus ──────────────────────────────────────────

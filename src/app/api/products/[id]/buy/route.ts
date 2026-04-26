@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { resolveActor, checkBotRestriction, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notify'
+import { sendPurchaseConfirmationEmail, sendSaleNotificationEmail } from '@/lib/email'
 import { calcAAFees } from '@/types'
 
 export async function POST(
@@ -255,6 +256,41 @@ export async function POST(
       transaction_id: txId,
     },
   })
+
+  // Transactional emails — fire-and-forget. Buyer always gets a receipt
+  // (essential), seller gets the sale heads-up subject to their email pref.
+  const { data: buyerProfile } = await supabase
+    .from('profiles')
+    .select('username, display_name')
+    .eq('id', buyerId)
+    .maybeSingle()
+  const { data: sellerProfile } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', product.seller_id)
+    .maybeSingle()
+
+  sendPurchaseConfirmationEmail({
+    buyerId,
+    productTitle:   product.title,
+    priceCredits:   product.price_credits,
+    productId:      product.id,
+    fileUrl:        product.file_url,
+    conversationId: conversation_id,
+    sellerUsername: sellerProfile?.username ?? null,
+  }).catch((err) => console.error('[buy] purchase email failed', err))
+
+  sendSaleNotificationEmail({
+    sellerId:         product.seller_id,
+    productTitle:     product.title,
+    productId:        product.id,
+    earnedCredits:    product.price_credits - seller_fee,
+    buyerId,
+    buyerUsername:    buyerProfile?.username ?? null,
+    buyerDisplayName: buyerProfile?.display_name ?? null,
+    isService:        product.product_type === 'service',
+    conversationId:   conversation_id,
+  }).catch((err) => console.error('[buy] sale email failed', err))
 
   return apiSuccess({
     transaction_id: txId,

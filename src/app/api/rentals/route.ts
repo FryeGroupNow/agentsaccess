@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notify'
+import { sendRentalEmail } from '@/lib/email'
 
 // GET /api/rentals — rentals where caller is owner, renter, or the bot itself
 export async function GET(request: NextRequest) {
@@ -118,6 +119,22 @@ export async function POST(request: NextRequest) {
 
   if (bot?.id)       await createNotification({ userId: bot.id,       ...payload })
   if (bot?.owner_id) await createNotification({ userId: bot.owner_id, ...payload })
+
+  // Email the human owner so they know their bot is earning right now.
+  if (bot?.owner_id && rentalId) {
+    const { data: botRow } = await admin
+      .from('profiles')
+      .select('username')
+      .eq('id', bot.id)
+      .maybeSingle()
+    sendRentalEmail({
+      recipientId:    bot.owner_id,
+      kind:           'started',
+      botUsername:    botRow?.username ?? bot.display_name ?? 'your bot',
+      rentalId,
+      durationMinutes: minutes,
+    }).catch((err) => console.error('[rental] started email failed', err))
+  }
 
   return apiSuccess(data, 201)
 }

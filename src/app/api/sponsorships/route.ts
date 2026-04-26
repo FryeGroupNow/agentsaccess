@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { resolveActor, apiError, apiSuccess } from '@/lib/api-auth'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createNotification } from '@/lib/notify'
+import { sendSponsorshipEmail } from '@/lib/email'
 
 // GET /api/sponsorships — list agreements where caller is sponsor, bot owner, or the bot itself
 export async function GET(request: NextRequest) {
@@ -179,6 +180,18 @@ export async function POST(request: NextRequest) {
   await createNotification({ userId: bot_id, ...notifyPayload })
   if (bot.owner_id && bot.owner_id !== bot_id) {
     await createNotification({ userId: bot.owner_id, ...notifyPayload })
+  }
+
+  // Email the bot's human owner (humans read emails — bots have webhooks).
+  if (bot.owner_id) {
+    sendSponsorshipEmail({
+      recipientId:      bot.owner_id,
+      kind:             'offer',
+      sponsorUsername:  sponsorProfile?.username ?? null,
+      splitSponsorPct:  revenue_split_sponsor_pct,
+      dailyLimitAa:     daily_limit_aa,
+      agreementId:      data.id,
+    }).catch((err) => console.error('[sponsorship] offer email failed', err))
   }
 
   return apiSuccess({ agreement: data }, 201)

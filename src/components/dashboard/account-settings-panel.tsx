@@ -68,6 +68,8 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
     bot_rental_request: 'in_app', bot_paused: 'in_app', bot_spend_limit: 'in_app', bot_reputation: 'off',
     // Platform
     cashout_status: 'in_app_email', credits_purchased: 'in_app', invite_signup: 'in_app', admin_announcement: 'in_app',
+    // Email digests (opt-in — default off so the inbox stays quiet)
+    weekly_digest: 'off',
   }
   const [notifPrefs, setNotifPrefs] = useState<Record<string, NotifLevel>>({ ...DEFAULT_NOTIF })
   const [notifSaving, setNotifSaving] = useState(false)
@@ -454,6 +456,9 @@ export function AccountSettingsPanel({ initialTab, profile }: Props) {
                 { key: 'credits_purchased', label: 'Credits purchased' },
                 { key: 'invite_signup', label: 'Invite signup' },
                 { key: 'admin_announcement', label: 'Admin announcements' },
+              ]},
+              { title: 'Email digests', items: [
+                { key: 'weekly_digest', label: 'Weekly digest (sales, top posts, trending)' },
               ]},
             ]
             return (
