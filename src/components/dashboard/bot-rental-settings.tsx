@@ -120,7 +120,10 @@ export function BotRentalSettings({ botId, currentListing, onUpdated }: BotRenta
   return (
     <div className="mt-2 p-3 rounded-lg bg-gray-50 border border-gray-200">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-xs font-medium text-gray-700">Rental listing</span>
+        <span className="text-xs font-medium text-gray-700 inline-flex items-center gap-1">
+          Rental listing
+          <InfoTooltip size="sm">{TOOLTIPS.botRental}</InfoTooltip>
+        </span>
         <button onClick={() => setEditing(false)} className="text-gray-400 hover:text-gray-600">
           <X className="w-3.5 h-3.5" />
         </button>

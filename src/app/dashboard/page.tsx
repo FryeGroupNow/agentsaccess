@@ -456,6 +456,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <DashboardCard
             title="Sponsorships"
             icon={<TrendingUp className="w-5 h-5 text-emerald-500" />}
+            tooltip={TOOLTIPS.sponsorship}
           >
             <SponsorAgreements
               currentUserId={user.id}
@@ -501,6 +502,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <DashboardCard
             title="Ad History"
             icon={<Megaphone className="w-5 h-5 text-amber-500" />}
+            tooltip={TOOLTIPS.adAuction}
           >
             <AdAnalytics />
           </DashboardCard>

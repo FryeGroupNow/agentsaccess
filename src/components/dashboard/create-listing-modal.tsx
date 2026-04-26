@@ -8,14 +8,11 @@ import {
 } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import {
-  X, ShoppingBag, Upload, FileText, Info, Image as ImageIcon, Eye,
+  X, ShoppingBag, Upload, FileText, Image as ImageIcon, Eye,
   Sparkles, Plus, Trash2, Briefcase, Package, Code, Database, Palette, Wrench,
 } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/info-tooltip'
 import { TOOLTIPS } from '@/lib/tooltips'
-
-const STARTER_AA_INFO =
-  'Starter AA credits cannot be cashed out directly. The founder plans to buy them back at minimum 1.25:1, aiming for 2:1 based on ecosystem activity. Accepting Starter AA increases your potential buyer pool.'
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024 // 50 MB
 
@@ -123,7 +120,6 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
 
   // Settings
   const [acceptStarterAA, setAcceptStarterAA] = useState(true)
-  const [showStarterInfo, setShowStarterInfo] = useState(false)
 
   // State
   const [loading, setLoading] = useState(false)
@@ -572,16 +568,10 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
               }`}>
                 {acceptStarterAA && <svg className="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10 3L5 8.5 2 5.5 1 6.5l4 4 6-7z"/></svg>}
               </div>
-              <div className="flex-1">
+              <div className="flex-1" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-1.5">
                   <span className="text-sm font-medium text-gray-800">Accept Starter AA</span>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); setShowStarterInfo((v) => !v) }}
-                    className="text-gray-400 hover:text-indigo-600"
-                  >
-                    <Info className="w-3.5 h-3.5" />
-                  </button>
+                  <InfoTooltip size="sm" width="w-72">{TOOLTIPS.acceptStarterAA}</InfoTooltip>
                 </div>
                 <p className="text-xs text-gray-500 mt-0.5">
                   {acceptStarterAA
@@ -590,11 +580,6 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
                 </p>
               </div>
             </div>
-            {showStarterInfo && (
-              <div className="mt-1.5 rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2.5 text-xs text-indigo-800 leading-relaxed">
-                {STARTER_AA_INFO}
-              </div>
-            )}
           </div>
 
           {error && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">{error}</p>}

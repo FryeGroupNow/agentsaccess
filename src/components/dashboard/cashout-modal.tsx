@@ -6,6 +6,8 @@ import { USD_PER_CREDIT } from '@/types'
 import { X, ArrowUpRight, Info } from 'lucide-react'
 import { formatCredits } from '@/lib/utils'
 import { useCreditsRefresh } from '@/lib/credits-refresh'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 const MIN_CASHOUT = 100
 
@@ -59,7 +61,10 @@ export function CashoutModal({ redeemableBalance, onClose, onSubmitted }: Cashou
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <ArrowUpRight className="w-5 h-5 text-indigo-600" />
-            <h2 className="text-lg font-semibold text-gray-900">Cash out AA Credits</h2>
+            <h2 className="text-lg font-semibold text-gray-900 inline-flex items-center gap-1">
+              Cash out AA Credits
+              <InfoTooltip size="sm">{TOOLTIPS.cashout}</InfoTooltip>
+            </h2>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />

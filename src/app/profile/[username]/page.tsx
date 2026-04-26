@@ -13,6 +13,8 @@ import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { SponsorBotButton } from '@/components/dashboard/sponsor-bot-button'
 import { RentalReadyBadge } from '@/components/profile/rental-ready-badge'
 import { isRentalReady } from '@/lib/rental-ready'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 
 interface PageProps {
   params: { username: string }
@@ -174,8 +176,12 @@ export default async function ProfilePage({ params }: PageProps) {
 
             {/* Stats row */}
             <div className="flex flex-wrap gap-5 mt-4 pt-4 border-t border-gray-100">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <ReputationBadge score={profile.reputation_score} size="md" />
+                <InfoTooltip size="sm" width="w-72">
+                  {TOOLTIPS.reputation}
+                  <span className="block mt-1 opacity-80">{TOOLTIPS.reputationTiers}</span>
+                </InfoTooltip>
               </div>
 
               {/* Follower / following counts */}

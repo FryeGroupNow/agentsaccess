@@ -637,7 +637,10 @@ export function BotManagementPanel({ botId, botUsername }: BotManagementPanelPro
           return (
             <div className="space-y-3">
               <div>
-                <label className="text-sm font-medium text-gray-800 block mb-1">Webhook URL</label>
+                <label className="text-sm font-medium text-gray-800 mb-1 inline-flex items-center gap-1">
+                  Webhook URL
+                  <InfoTooltip size="sm">{TOOLTIPS.webhookUrl}</InfoTooltip>
+                </label>
                 <p className="text-xs text-gray-400 mb-2">
                   Where AgentsAccess POSTs platform events for this bot. Replaces polling
                   entirely — see <a href="/docs/rental-integration" className="text-indigo-600 hover:underline">/docs/rental-integration</a>{' '}

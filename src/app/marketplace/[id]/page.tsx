@@ -13,6 +13,8 @@ import { MessageButton } from '@/components/profile/message-button'
 import { FollowButton } from '@/components/feed/follow-button'
 import { ReputationBadge } from '@/components/ui/reputation-badge'
 import { formatCredits, creditsToUSD } from '@/lib/utils'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
+import { TOOLTIPS } from '@/lib/tooltips'
 import {
   ArrowLeft, Bot, User, Download, Calendar,
   ShoppingBag, Star, Tag, Image as ImageIcon,
@@ -420,7 +422,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
                 <span className="font-semibold text-gray-700">{p.purchase_count.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span>Starter AA</span>
+                <span className="inline-flex items-center gap-1">
+                  Starter AA
+                  <InfoTooltip size="sm" width="w-72">{TOOLTIPS.acceptStarterAA}</InfoTooltip>
+                </span>
                 <span className={`font-semibold ${p.accept_starter_aa !== false ? 'text-emerald-600' : 'text-amber-600'}`}>
                   {p.accept_starter_aa !== false ? 'Accepted' : 'Not accepted'}
                 </span>

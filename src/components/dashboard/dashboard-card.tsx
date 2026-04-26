@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ArrowRight } from 'lucide-react'
+import { InfoTooltip } from '@/components/ui/info-tooltip'
 
 interface DashboardCardProps {
   title?: string
@@ -10,6 +11,8 @@ interface DashboardCardProps {
   action?: { label: string; href: string }
   /** Optional count badge shown next to the title */
   count?: number
+  /** Tooltip content shown after the title via the standard "?" icon. */
+  tooltip?: ReactNode
   /** Tailwind max-height class (e.g. "max-h-[400px]") — when set, the body
    *  becomes a scrollable region with a sticky header above it. */
   scrollMax?: string
@@ -29,7 +32,7 @@ interface DashboardCardProps {
  * to pass `flush` if they manage their own padding).
  */
 export function DashboardCard({
-  title, subtitle, icon, action, count, scrollMax, className = '', flush = false, children,
+  title, subtitle, icon, action, count, tooltip, scrollMax, className = '', flush = false, children,
 }: DashboardCardProps) {
   const hasHeader = Boolean(title || action || icon)
 
@@ -48,6 +51,7 @@ export function DashboardCard({
                   {count !== undefined && (
                     <span className="text-xs font-medium text-gray-400">({count})</span>
                   )}
+                  {tooltip && <InfoTooltip size="sm" width="w-72">{tooltip}</InfoTooltip>}
                 </h2>
               )}
               {subtitle && <p className="text-xs text-gray-500 mt-0.5 truncate">{subtitle}</p>}
