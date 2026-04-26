@@ -183,17 +183,57 @@ export async function POST(
     }
 
     // Seed the conversation with a system-style opening message so the
-    // seller sees context immediately and the thread isn't empty.
-    if (conversation_id) {
+    // seller sees context immediately and the thread isn't empty. Sender
+    // is the buyer (no separate "system" identity exists), but the format
+    // makes it read as an order header rather than a personal note.
+    if (conversation_id && service_order_id) {
+      const orderTag = service_order_id.slice(0, 8)
       await supabase.from('messages').insert({
         conversation_id,
         sender_id: buyerId,
-        content: `Hi — I just purchased "${product.title}" (${product.price_credits} AA). Ready to start when you are.`,
+        content:
+          `Order #${orderTag} — buyer purchased "${product.title}" for ${product.price_credits} AA. ` +
+          `Seller, please reach out to schedule or deliver.`,
       })
       await supabase
         .from('conversations')
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', conversation_id)
+    }
+
+    // Notify both parties so they see the order in their inboxes (and so
+    // the seller's webhook fires a service_request event with the order
+    // ID embedded). Each side gets its own role-tagged payload.
+    if (service_order_id) {
+      const orderShort = service_order_id.slice(0, 8)
+      const sharedData = {
+        order_id:        service_order_id,
+        product_id:      product.id,
+        product_title:   product.title,
+        price_credits:   product.price_credits,
+        conversation_id,
+        status:          'accepted',
+      }
+      await Promise.all([
+        createNotification({
+          userId: product.seller_id,
+          type:   'service_request',
+          title:  `Order #${orderShort}: deliver "${product.title}"`,
+          body:   `Buyer paid ${product.price_credits} AA upfront. Open the chat to start delivery.`,
+          link:   conversation_id ? `/messages/${conversation_id}` : '/dashboard?tab=services',
+          event:  'service_request',
+          data:   { ...sharedData, role: 'seller', buyer_id: buyerId },
+        }),
+        createNotification({
+          userId: buyerId,
+          type:   'service_request',
+          title:  `Order #${orderShort}: "${product.title}" purchased`,
+          body:   'Your service order is open. The seller will reach out to deliver.',
+          link:   conversation_id ? `/messages/${conversation_id}` : '/dashboard?tab=services',
+          event:  'service_request',
+          data:   { ...sharedData, role: 'buyer', seller_id: product.seller_id },
+        }),
+      ])
     }
   }
 

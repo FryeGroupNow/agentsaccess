@@ -90,5 +90,33 @@ export async function GET(request: NextRequest) {
     .limit(50)
 
   if (error) return apiError(error.message, 500)
-  return apiSuccess({ orders: data ?? [] })
+
+  // Resolve the (sorted-pair) conversation between buyer and seller for
+  // each order so the dashboard can deep-link to it without an extra
+  // round-trip per row.
+  const orders = (data ?? []) as Array<{
+    id: string; buyer_id: string; seller_id: string; conversation_id?: string | null
+  }>
+
+  if (orders.length > 0) {
+    const pairs = orders.map((o) => {
+      const [pa, pb] = [o.buyer_id, o.seller_id].sort()
+      return { pa, pb }
+    })
+    const uniquePairs = Array.from(new Map(pairs.map((p) => [`${p.pa}|${p.pb}`, p])).values())
+    const { data: convs } = await admin
+      .from('conversations')
+      .select('id, participant_a, participant_b')
+      .or(uniquePairs.map((p) => `and(participant_a.eq.${p.pa},participant_b.eq.${p.pb})`).join(','))
+
+    const convById = new Map(
+      (convs ?? []).map((c) => [`${c.participant_a}|${c.participant_b}`, c.id])
+    )
+    for (const o of orders) {
+      const [pa, pb] = [o.buyer_id, o.seller_id].sort()
+      o.conversation_id = convById.get(`${pa}|${pb}`) ?? null
+    }
+  }
+
+  return apiSuccess({ orders })
 }

@@ -18,6 +18,7 @@ import { InfoTooltip } from '@/components/ui/info-tooltip'
 import { TOOLTIPS } from '@/lib/tooltips'
 import { AdAnalytics } from '@/components/ads/ad-analytics'
 import { ServiceOrdersPanel } from '@/components/dashboard/service-orders-panel'
+import { PurchasesPanel } from '@/components/dashboard/purchases-panel'
 import { BotAlertsBanner } from '@/components/dashboard/bot-alerts-banner'
 import { SponsorAgreements } from '@/components/dashboard/sponsor-agreements'
 import { AccountSettingsPanel } from '@/components/dashboard/account-settings-panel'
@@ -79,10 +80,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       .order('created_at', { ascending: false }),
     supabase
       .from('purchases')
-      .select('product_id, created_at, products(id, title, price_credits, category, product_type, file_url, file_name, cover_image_url)')
+      .select(`
+        product_id, created_at,
+        products(
+          id, title, price_credits, category, product_type, file_url, file_name, cover_image_url,
+          seller_id,
+          seller:profiles!seller_id(id, username, display_name)
+        )
+      `)
       .eq('buyer_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(20),
+      .limit(50),
     supabase
       .from('profiles')
       .select('id, username, display_name, bio, capabilities, credit_balance, bonus_balance, reputation_score, created_at, api_keys(id, name, last_used_at, created_at)')
@@ -123,8 +131,68 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   const transactions = (transactionsResult.data ?? []) as Transaction[]
   const listings = (listingsResult.data ?? []) as Product[]
-  const purchases = purchasesResult.data ?? []
+  const purchasesRaw = purchasesResult.data ?? []
   const myPosts = (myPostsResult.data ?? []) as import('@/types').Post[]
+
+  // Normalise purchases to the shape PurchasesPanel expects: flat seller info,
+  // single product object. Also resolve buyer↔seller conversation IDs in one
+  // round-trip so the "Message seller" link can deep-link rather than route
+  // through the seller's profile page.
+  type SellerJoin = { id: string; username: string | null; display_name: string | null } | null
+  type ProductJoin = {
+    id: string; title: string; price_credits: number; category: string | null
+    product_type: string | null; file_url: string | null; file_name: string | null
+    cover_image_url: string | null; seller_id: string; seller?: SellerJoin
+  } | null
+
+  // Supabase types the FK join as an array even though the relation is 1:1;
+  // cast through unknown so we can narrow to the actual single-row shape.
+  const purchases = (purchasesRaw as unknown as Array<{
+    product_id: string; created_at: string; products: ProductJoin
+  }>).map((row) => {
+    const p = row.products
+    return {
+      product_id:  row.product_id,
+      created_at:  row.created_at,
+      product: p
+        ? {
+            id:                  p.id,
+            title:               p.title,
+            price_credits:       p.price_credits,
+            category:            p.category,
+            product_type:        p.product_type,
+            file_url:            p.file_url,
+            file_name:           p.file_name,
+            cover_image_url:     p.cover_image_url,
+            seller_id:           p.seller_id,
+            seller_username:     p.seller?.username      ?? null,
+            seller_display_name: p.seller?.display_name  ?? null,
+          }
+        : null,
+    }
+  })
+
+  const conversationsBySeller: Record<string, string> = {}
+  const sellerIds = Array.from(
+    new Set(purchases.map((p) => p.product?.seller_id).filter((s): s is string => Boolean(s)))
+  )
+  if (sellerIds.length > 0) {
+    const pairs = sellerIds.map((sid) => {
+      const [pa, pb] = [user.id, sid].sort()
+      return { pa, pb, seller: sid }
+    })
+    const { data: convs } = await supabase
+      .from('conversations')
+      .select('id, participant_a, participant_b')
+      .or(pairs.map((p) => `and(participant_a.eq.${p.pa},participant_b.eq.${p.pb})`).join(','))
+    const byKey = new Map(
+      (convs ?? []).map((c) => [`${c.participant_a}|${c.participant_b}`, c.id])
+    )
+    for (const p of pairs) {
+      const id = byKey.get(`${p.pa}|${p.pb}`)
+      if (id) conversationsBySeller[p.seller] = id
+    }
+  }
   const rawBots = (botsResult.data ?? []) as {
     id: string; username: string; display_name: string; bio: string | null
     capabilities: string[] | null; credit_balance: number; bonus_balance: number
@@ -467,56 +535,16 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </DashboardCard>
 
-          {/* Recent purchases */}
+          {/* My Purchases — every product the user owns, with permanent
+              download / review / message-seller links. Service rows deep-link
+              back to the Services section for delivery confirmation. */}
           <DashboardCard
-            title="Purchased"
+            title="My Purchases"
             count={purchases.length}
             icon={<ShoppingBag className="w-5 h-5 text-gray-400" />}
+            scrollMax="max-h-[480px]"
           >
-            {purchases.length === 0 ? (
-              <p className="text-xs text-gray-400">Nothing purchased yet.</p>
-            ) : (
-              <div className="space-y-2">
-                {purchases.map((p) => {
-                  const prod = p.products as unknown as (Product & { file_url?: string | null; file_name?: string | null }) | null
-                  if (!prod) return null
-                  const isService = prod.product_type === 'service'
-                  return (
-                    <div key={p.product_id} className="rounded-lg border border-gray-100 p-2.5">
-                      <div className="flex items-center gap-2">
-                        <ShoppingBag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <Link href={`/marketplace/${prod.id}`} className="text-sm text-gray-800 truncate flex-1 hover:text-indigo-600">
-                          {prod.title}
-                        </Link>
-                      </div>
-                      <div className="flex items-center gap-2 mt-1.5">
-                        {prod.file_url && (
-                          <a
-                            href={prod.file_url}
-                            download={prod.file_name ?? undefined}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-1"
-                          >
-                            <ArrowDownLeft className="w-3 h-3 rotate-90" />
-                            Download
-                          </a>
-                        )}
-                        {isService && (
-                          <Link
-                            href="/dashboard?tab=services"
-                            className="inline-flex items-center gap-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-medium px-2 py-1"
-                          >
-                            <Zap className="w-3 h-3" />
-                            Open session
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+            <PurchasesPanel purchases={purchases} conversationsBySeller={conversationsBySeller} />
           </DashboardCard>
 
           {/* My Posts */}
