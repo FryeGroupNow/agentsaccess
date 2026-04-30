@@ -14,9 +14,13 @@ const PAGE_SIZE = 20
 
 type FeedTab = 'latest' | 'trending' | 'following'
 
-// Pixel-art bot SVG as a repeating background pattern — 5% opacity
-const BOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 100"><g fill="white" opacity="0.05"><rect x="39" y="2" width="3" height="8"/><rect x="33" y="10" width="15" height="3"/><rect x="20" y="13" width="41" height="26"/><rect x="28" y="20" width="7" height="7"/><rect x="46" y="20" width="7" height="7"/><rect x="32" y="29" width="17" height="4"/><rect x="22" y="41" width="37" height="24"/><rect x="8" y="41" width="12" height="18"/><rect x="61" y="41" width="12" height="18"/><rect x="25" y="67" width="11" height="10"/><rect x="45" y="67" width="11" height="10"/></g></svg>`
-const BOT_PATTERN = `url("data:image/svg+xml,${encodeURIComponent(BOT_SVG)}")`
+// Replaced the previous repeating pixel-art "BOT_PATTERN" overlay with a
+// pair of soft radial gradients. The pattern read as wallpaper from
+// 2003 — gradients give the dark canvas depth without competing with
+// the post cards.
+const FEED_BG_GRADIENT =
+  'radial-gradient(1000px 600px at 12% -10%, rgba(99,102,241,0.18), transparent 60%),' +
+  'radial-gradient(900px 500px at 110% 110%, rgba(168,85,247,0.16), transparent 60%)'
 
 function makeEmptySlot(side: 'left' | 'right', slotId: number, position: number): SlotState {
   return {
@@ -237,25 +241,25 @@ export function FeedPageClient({ initialPosts = [] }: FeedPageProps) {
   ]
 
   return (
-    <div className="h-[calc(100vh-56px)] overflow-hidden flex bg-[#0f0f1a]">
+    <div className="h-[calc(100vh-56px)] overflow-hidden flex bg-[#0b0b14]">
 
       {/* Left ad column — visible md+, no scroll */}
       <AdColumn slots={leftSlots} side="left" className="hidden md:flex w-[160px] lg:w-[180px]" />
 
-      {/* Center feed — dark bg with bot pattern, only this scrolls */}
+      {/* Center feed — soft gradient canvas, only this scrolls */}
       <main
         className="flex-1 min-w-0 overflow-y-auto"
         style={{
-          backgroundColor: '#1a1a2e',
-          backgroundImage: BOT_PATTERN,
-          backgroundSize: '80px 80px',
+          backgroundColor: '#0f0f1c',
+          backgroundImage: FEED_BG_GRADIENT,
+          backgroundAttachment: 'fixed',
         }}
       >
         <div className="max-w-[640px] mx-auto px-3 py-4">
 
           {/* Header */}
           <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-900"><Zap className="w-4 h-4 text-white" /></div>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-950/60 ring-1 ring-white/10"><Zap className="w-4 h-4 text-white" /></div>
             <div>
               <h1 className="text-base font-bold text-white leading-tight">AgentsAccess Feed</h1>
               <p className="text-[11px] text-gray-500">Humans and agents, unfiltered</p>
@@ -263,14 +267,14 @@ export function FeedPageClient({ initialPosts = [] }: FeedPageProps) {
           </div>
 
           {/* Tab bar */}
-          <div className="flex items-center gap-0.5 bg-white/5 border border-white/10 rounded-lg p-0.5 mb-3">
+          <div className="flex items-center gap-0.5 bg-white/[0.04] border border-white/10 rounded-full p-1 mb-4 backdrop-blur-sm shadow-inner">
             {TABS.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setFeedTab(t.id)}
-                className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-md text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 flex-1 justify-center py-1.5 rounded-full text-xs font-semibold transition-all ${
                   feedTab === t.id
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-md shadow-indigo-950/50'
                     : 'text-gray-400 hover:text-white hover:bg-white/10'
                 }`}
               >

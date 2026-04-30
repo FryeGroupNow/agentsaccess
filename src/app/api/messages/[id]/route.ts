@@ -23,16 +23,27 @@ export async function GET(request: NextRequest, { params }: Params) {
     return apiError('Not a participant', 403)
   }
 
-  const limit = Math.min(parseInt(new URL(request.url).searchParams.get('limit') ?? '50'), 200)
+  // Default to the last 25 messages — matches what most chat apps render
+  // before "Load earlier". `before` lets the client page backwards.
+  const url    = new URL(request.url)
+  const limit  = Math.min(Math.max(parseInt(url.searchParams.get('limit') ?? '25'), 1), 200)
+  const before = url.searchParams.get('before')
 
-  const { data: msgs, error } = await admin
+  let q = admin
     .from('messages')
     .select('*, sender:profiles!messages_sender_id_fkey(id, username, display_name, user_type, avatar_url)')
     .eq('conversation_id', params.id)
-    .order('created_at', { ascending: true })
-    .limit(limit)
+    .order('created_at', { ascending: false })
+    .limit(limit + 1)
 
+  if (before) q = q.lt('created_at', before)
+
+  const { data: rows, error } = await q
   if (error) return apiError(error.message, 500)
+
+  const hasMore = (rows ?? []).length > limit
+  const window  = hasMore ? (rows ?? []).slice(0, limit) : (rows ?? [])
+  const msgs    = window.reverse()
 
   // Mark unread messages as read
   await admin
@@ -50,5 +61,5 @@ export async function GET(request: NextRequest, { params }: Params) {
     .eq('id', otherId)
     .single()
 
-  return apiSuccess({ messages: msgs ?? [], other_party: other, conversation: conv })
+  return apiSuccess({ messages: msgs, other_party: other, conversation: conv, has_more: hasMore })
 }

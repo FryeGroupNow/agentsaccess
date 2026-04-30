@@ -74,7 +74,11 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
   const totalLikes = humanLikes + botLikes
   const totalDislikes = humanDislikes + botDislikes
   const isAgent = author?.user_type === 'agent'
-  const altBg = index % 2 === 1 ? 'bg-gray-50/60' : 'bg-white'
+  // index was used for an alternating row-stripe treatment that read as
+  // early-2000s-forum on the dark feed background. The redesign drops the
+  // stripes in favour of a single glass card style, but we keep the param
+  // so existing callers still compile.
+  void index
 
   async function handleReact(reaction: 'like' | 'dislike') {
     if (!currentUserId || reacting) return
@@ -174,11 +178,14 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
 
   return (
     <article
-      className={`rounded-2xl border transition-colors duration-150 mb-3 ${
-        promoted
-          ? 'border-amber-200 bg-amber-50/40 ring-1 ring-amber-100'
-          : `border-gray-100 ${altBg} hover:border-gray-200`
-      }`}
+      className={cn(
+        'rounded-2xl border transition-all duration-200 mb-3 backdrop-blur',
+        isReply
+          ? 'bg-white border-gray-100 shadow-none'
+          : promoted
+            ? 'border-amber-300/40 bg-gradient-to-br from-amber-50/90 via-white to-white shadow-sm ring-1 ring-amber-200/50'
+            : 'border-white/10 bg-white/95 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_-8px_rgba(15,23,42,0.18)] hover:shadow-[0_2px_4px_rgba(15,23,42,0.06),0_12px_32px_-10px_rgba(79,70,229,0.25)] hover:-translate-y-0.5',
+      )}
     >
       {promoted && (
         <div className="px-4 pt-2.5 pb-0 flex items-center gap-1.5">
@@ -355,69 +362,63 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
             </div>
           )}
 
-          {/* Engagement bar — wraps on mobile */}
-          <div className="flex items-center gap-1.5 sm:gap-2 pt-3 mt-1 border-t border-gray-100 dark:border-gray-800 flex-wrap">
-            {/* Like button — always visible, solid chip */}
+          {/* Engagement bar — borderless pills on a hairline divider */}
+          <div className="flex items-center gap-1 sm:gap-1.5 pt-2.5 mt-1 border-t border-gray-50 flex-wrap">
+            {/* Like — pill chip, no outer border */}
             <button
               onClick={() => handleReact('like')}
               disabled={!currentUserId || reacting}
               aria-label="Like this post"
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all',
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all',
                 myReaction === 'like'
-                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-700 dark:hover:bg-indigo-950/40',
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-indigo-50 hover:text-indigo-700',
                 !currentUserId && 'cursor-default opacity-80'
               )}
             >
-              <ThumbsUp className={cn('w-4 h-4', myReaction === 'like' && 'fill-current')} />
+              <ThumbsUp className={cn('w-3.5 h-3.5', myReaction === 'like' && 'fill-current')} />
               <span>{totalLikes}</span>
             </button>
 
-            {/* Dislike button — always visible, solid chip */}
+            {/* Dislike */}
             <button
               onClick={() => handleReact('dislike')}
               disabled={!currentUserId || reacting}
               aria-label="Dislike this post"
               className={cn(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all',
+                'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all',
                 myReaction === 'dislike'
-                  ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-700 hover:bg-red-50 hover:border-red-300 hover:text-red-700 dark:hover:bg-red-950/40',
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'text-gray-500 hover:bg-red-50 hover:text-red-600',
                 !currentUserId && 'cursor-default opacity-80'
               )}
             >
-              <ThumbsDown className={cn('w-4 h-4', myReaction === 'dislike' && 'fill-current')} />
+              <ThumbsDown className={cn('w-3.5 h-3.5', myReaction === 'dislike' && 'fill-current')} />
               <span>{totalDislikes}</span>
             </button>
 
-            {/* Human/Bot breakdown — readable size */}
-            <div className="flex items-center gap-2 ml-1 pl-3 border-l border-gray-200 dark:border-gray-700">
-              {/* Humans */}
-              <span
-                className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-gray-200"
-                title={`${humanLikes} human likes, ${humanDislikes} human dislikes`}
-              >
-                <User className="w-4 h-4 text-indigo-500" />
-                <span className="text-indigo-600 dark:text-indigo-400">{humanLikes}↑</span>
-                <span className="text-red-500 dark:text-red-400">{humanDislikes}↓</span>
+            {/* Human / bot breakdown — small text, no extra border */}
+            <div className="flex items-center gap-2 ml-1 pl-2 border-l border-gray-100 text-[11px] font-semibold text-gray-500">
+              <span className="flex items-center gap-1" title={`${humanLikes} human likes, ${humanDislikes} dislikes`}>
+                <User className="w-3 h-3 text-indigo-400" />
+                <span className="text-indigo-600">{humanLikes}↑</span>
+                <span className="text-gray-300">·</span>
+                <span className="text-red-500">{humanDislikes}↓</span>
               </span>
-              {/* Bots */}
-              <span
-                className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-gray-200"
-                title={`${botLikes} bot likes, ${botDislikes} bot dislikes`}
-              >
-                <Bot className="w-4 h-4 text-violet-500" />
-                <span className="text-violet-600 dark:text-violet-400">{botLikes}↑</span>
-                <span className="text-red-500 dark:text-red-400">{botDislikes}↓</span>
+              <span className="flex items-center gap-1" title={`${botLikes} bot likes, ${botDislikes} dislikes`}>
+                <Bot className="w-3 h-3 text-violet-400" />
+                <span className="text-violet-600">{botLikes}↑</span>
+                <span className="text-gray-300">·</span>
+                <span className="text-red-500">{botDislikes}↓</span>
               </span>
             </div>
 
-            {/* Reply button */}
+            {/* Reply pill */}
             {currentUserId && !isReply && (
               <button
                 onClick={() => setShowReplyForm(!showReplyForm)}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition-all ml-auto"
+                className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-all ml-auto"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 Reply
@@ -428,10 +429,10 @@ export function PostCard({ post, currentUserId, isFollowing = false, index = 0, 
             {replyCount > 0 && !isReply && (
               <button
                 onClick={toggleReplies}
-                className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 rounded-full hover:bg-indigo-50 transition-colors"
               >
                 <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showReplies && 'rotate-180')} />
-                {replyCount} {replyCount === 1 ? 'reply' : 'replies'}
+                {replyCount}
               </button>
             )}
           </div>

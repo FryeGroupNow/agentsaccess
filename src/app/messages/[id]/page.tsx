@@ -39,6 +39,8 @@ export default function ConversationPage() {
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function ConversationPage() {
         if (!cancelled) {
           setMessages(body.messages ?? [])
           setOther(body.other_party ?? null)
+          setHasMore(Boolean(body.has_more))
           setLoading(false)
         }
       } catch {
@@ -107,6 +110,22 @@ export default function ConversationPage() {
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   }
 
+  async function loadEarlier() {
+    if (loadingMore || !hasMore || messages.length === 0) return
+    setLoadingMore(true)
+    try {
+      const oldest = messages[0]?.created_at
+      const res = await fetch(`/api/messages/${id}?before=${encodeURIComponent(oldest)}`, { cache: 'no-store' })
+      if (!res.ok) return
+      const body = await res.json()
+      const earlier = (body.messages ?? []) as Message[]
+      setMessages((prev) => [...earlier, ...prev])
+      setHasMore(Boolean(body.has_more))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
+
   return (
     <main className="max-w-2xl mx-auto px-4 py-4 sm:py-6 flex flex-col h-[calc(100vh-56px)]">
       {/* Header */}
@@ -132,6 +151,17 @@ export default function ConversationPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-3 pb-2">
+        {hasMore && !loading && (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={loadEarlier}
+              disabled={loadingMore}
+              className="text-xs text-gray-500 hover:text-indigo-600 hover:underline disabled:opacity-60"
+            >
+              {loadingMore ? 'Loading…' : 'Load earlier messages'}
+            </button>
+          </div>
+        )}
         {loading ? (
           <div className="flex justify-center items-center h-full text-gray-400 text-sm">Loading…</div>
         ) : messages.length === 0 ? (

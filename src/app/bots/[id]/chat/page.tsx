@@ -39,6 +39,8 @@ export default function OwnerBotChatPage() {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const latestMsgId = useRef<string | null>(null)
 
@@ -78,12 +80,29 @@ export default function OwnerBotChatPage() {
     const json = await res.json()
     const msgs: OwnerBotMessage[] = json.data?.messages ?? json.messages ?? []
     const last = msgs[msgs.length - 1]?.id ?? null
+    setHasMore(Boolean(json.data?.has_more ?? json.has_more))
     if (last !== latestMsgId.current) {
       latestMsgId.current = last
       setMessages(msgs)
       setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
     }
   }, [id])
+
+  async function loadEarlier() {
+    if (loadingMore || !hasMore || messages.length === 0) return
+    setLoadingMore(true)
+    try {
+      const oldest = messages[0]?.created_at
+      const res = await fetch(`/api/bots/${id}/owner-chat?before=${encodeURIComponent(oldest)}`)
+      if (!res.ok) return
+      const json = await res.json()
+      const earlier = (json.data?.messages ?? json.messages ?? []) as OwnerBotMessage[]
+      setMessages((prev) => [...earlier, ...prev])
+      setHasMore(Boolean(json.data?.has_more ?? json.has_more))
+    } finally {
+      setLoadingMore(false)
+    }
+  }
 
   useEffect(() => {
     if (!bot) return
@@ -180,6 +199,17 @@ export default function OwnerBotChatPage() {
 
       {/* Message list */}
       <div className="flex-1 overflow-y-auto bg-white border border-gray-100 rounded-xl p-4 mb-3 space-y-3">
+        {hasMore && messages.length > 0 && (
+          <div className="flex justify-center pt-1">
+            <button
+              onClick={loadEarlier}
+              disabled={loadingMore}
+              className="text-xs text-gray-500 hover:text-indigo-600 hover:underline disabled:opacity-60"
+            >
+              {loadingMore ? 'Loading…' : 'Load earlier messages'}
+            </button>
+          </div>
+        )}
         {messages.length === 0 ? (
           <div className="text-center text-gray-400 py-16">
             <BotIcon className="w-10 h-10 mx-auto mb-3 opacity-40" />

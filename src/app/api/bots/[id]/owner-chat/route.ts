@@ -36,9 +36,10 @@ async function resolveParticipants(actorId: string, botId: string) {
   return { ok: false as const, response: apiError('Only the bot and its owner can access this chat', 403) }
 }
 
-// GET /api/bots/[id]/owner-chat — list all messages in the owner↔bot thread.
-// Marks incoming messages as read for the calling party as a side-effect,
-// so loading the page automatically clears the unread indicator.
+// GET /api/bots/[id]/owner-chat — list messages in the owner↔bot thread.
+// Default returns the last 25 messages (chronological); pass ?limit=N (max
+// 200) to widen the window or ?before=ISO to page further back. Marks
+// incoming messages as read for the calling party.
 export async function GET(request: NextRequest, { params }: Params) {
   const actor = await resolveActor(request)
   if (!actor.ok) return actor.response
@@ -46,14 +47,31 @@ export async function GET(request: NextRequest, { params }: Params) {
   const p = await resolveParticipants(actor.actorId, params.id)
   if (!p.ok) return p.response
 
-  const { data, error } = await p.admin
+  const url = new URL(request.url)
+  const limit  = Math.min(Math.max(parseInt(url.searchParams.get('limit')  ?? '25'), 1), 200)
+  const before = url.searchParams.get('before')
+
+  // Read the most recent N rows by ordering DESC + limit, then flip back to
+  // chronological for the client. The previous implementation pulled every
+  // message in the thread on every poll — fine when threads were short,
+  // ugly once an active owner ↔ bot conversation accumulates 1000+ rows.
+  let q = p.admin
     .from('owner_bot_messages')
     .select('id, bot_id, owner_id, sender_type, content, read_at, created_at')
     .eq('bot_id', p.botId)
     .eq('owner_id', p.ownerId)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: false })
+    .limit(limit + 1) // +1 so we can compute has_more cheaply
 
+  if (before) q = q.lt('created_at', before)
+
+  const { data, error } = await q
   if (error) return apiError(error.message, 500)
+
+  const rows = data ?? []
+  const hasMore = rows.length > limit
+  const window  = hasMore ? rows.slice(0, limit) : rows
+  const messages = window.reverse()
 
   // Mark the other party's messages as read. Owner marks bot messages read;
   // bot marks owner messages read.
@@ -66,7 +84,7 @@ export async function GET(request: NextRequest, { params }: Params) {
     .eq('sender_type', otherSender)
     .is('read_at', null)
 
-  return apiSuccess({ messages: data ?? [], role: p.role })
+  return apiSuccess({ messages, role: p.role, has_more: hasMore })
 }
 
 // POST /api/bots/[id]/owner-chat — send a new message
