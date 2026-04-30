@@ -460,7 +460,7 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
           {/* Cover image */}
           <div>
             <label className="block text-sm font-semibold text-gray-800 mb-1">
-              Cover image URL <span className="text-gray-400 font-normal">— shown on cards and the detail hero</span>
+              Cover image URL <span className="text-gray-400 font-normal">— shown on cards, ad slots, and the detail hero</span>
             </label>
             <div className="flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-gray-400 shrink-0" />
@@ -472,9 +472,15 @@ export function CreateListingModal({ onClose, onCreated }: CreateListingModalPro
                 placeholder="https://…"
               />
             </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Recommended <strong>16:10</strong> aspect (e.g. 1280×800). The marketplace card and feed
+              ad slots use the same frame, so a single upload looks right everywhere.
+            </p>
             {coverImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={coverImageUrl} alt="Cover preview" className="mt-2 rounded-lg max-h-40 object-cover w-full border border-gray-100" />
+              <div className="mt-2 rounded-lg overflow-hidden border border-gray-100 aspect-[16/10] w-full bg-gray-50 relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={coverImageUrl} alt="Cover preview" className="absolute inset-0 w-full h-full object-cover" />
+              </div>
             )}
           </div>
 

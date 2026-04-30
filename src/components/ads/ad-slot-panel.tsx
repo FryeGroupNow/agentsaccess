@@ -82,7 +82,7 @@ export function AdSlotPanel({ slot, sharp }: AdSlotPanelProps) {
     <Link
       href={href}
       onClick={handleClick}
-      className={`group relative flex flex-col ${r} border border-indigo-500/30 bg-gray-900 overflow-hidden w-full h-full hover:border-indigo-400 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-200`}
+      className={`group relative flex flex-col ${r} border border-white/15 bg-gray-900 overflow-hidden w-full h-full ring-1 ring-black/5 hover:border-indigo-400/70 hover:ring-indigo-400/30 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-200`}
     >
       {/* Sponsored ribbon */}
       <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent px-2.5 py-1.5 flex items-center justify-between pointer-events-none">
@@ -92,8 +92,10 @@ export function AdSlotPanel({ slot, sharp }: AdSlotPanelProps) {
         <ExternalLink className="w-3 h-3 text-white/80 group-hover:text-white" />
       </div>
 
-      {/* Cover image or fallback hero area */}
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-indigo-800 via-violet-800 to-pink-700 shrink-0">
+      {/* Cover image — locked to the same 16:10 ratio as marketplace cards
+          so a seller's existing cover image fits seamlessly without
+          re-cropping. */}
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-indigo-800 via-violet-800 to-pink-700 shrink-0">
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -179,7 +181,7 @@ function RotatingFillerSlot({ slotId, promoteHref, topBidLabel, rounded }: Rotat
     return (
       <Link
         href={promoteHref}
-        className={`flex flex-col items-center justify-center gap-2 ${rounded} border border-indigo-400/30 bg-gradient-to-br from-indigo-800/50 via-violet-900/40 to-indigo-950/70 hover:from-indigo-700/60 hover:border-indigo-300 transition-all cursor-pointer group w-full h-full p-4 text-center relative overflow-hidden`}
+        className={`flex flex-col items-center justify-center gap-2 ${rounded} border border-white/15 ring-1 ring-black/5 bg-gradient-to-br from-indigo-800/50 via-violet-900/40 to-indigo-950/70 hover:from-indigo-700/60 hover:border-indigo-300/70 hover:ring-indigo-400/30 transition-all cursor-pointer group w-full h-full p-4 text-center relative overflow-hidden`}
       >
         <div className="absolute inset-0 opacity-30 pointer-events-none"
              style={{ backgroundImage: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.18), transparent 60%)' }} />
@@ -206,7 +208,7 @@ function RotatingFillerSlot({ slotId, promoteHref, topBidLabel, rounded }: Rotat
   return (
     <Link
       href={`/marketplace/${product.id}`}
-      className={`group relative flex flex-col ${rounded} border border-white/10 bg-gray-900 overflow-hidden w-full h-full hover:border-indigo-400/60 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300`}
+      className={`group relative flex flex-col ${rounded} border border-white/15 bg-gray-900 overflow-hidden w-full h-full ring-1 ring-black/5 hover:border-indigo-400/70 hover:ring-indigo-400/30 hover:shadow-lg hover:shadow-indigo-500/10 transition-all duration-300`}
     >
       {/* Featured ribbon — distinct from "Sponsored" so users know this is
           a house pick, not a paid placement. */}
@@ -218,7 +220,9 @@ function RotatingFillerSlot({ slotId, promoteHref, topBidLabel, rounded }: Rotat
         <ExternalLink className="w-3 h-3 text-white/80 group-hover:text-white" />
       </div>
 
-      <div className="relative aspect-[4/3] w-full overflow-hidden bg-gradient-to-br from-indigo-800 via-violet-800 to-pink-700 shrink-0">
+      {/* Same 16:10 cover frame as the paid sponsored card so the swap
+          between filler and a real winning bid is visually identical. */}
+      <div className="relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-indigo-800 via-violet-800 to-pink-700 shrink-0">
         {product.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
